@@ -33,5 +33,22 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/data/estimate_master.json
     - assets/images/logo.jpg
     - assets/images/logo.png
+    - assets/images/hero_solar_installation.jpg
+    - assets/images/hero_installation.jpg
+    - assets/images/solar_installation_detail.jpg
+    - assets/images/solar_structure_detail.jpg
+    - assets/images/solar_rooftop_overview.jpg
+    - assets/images/design_view_top.jpg
+    - assets/images/design_view_left.jpg
+    - assets/images/design_view_right.jpg
+    - assets/images/solar_panel_detail.jpg
+    - assets/images/solar_pannel_6.jpg
+    - assets/images/solar_pannel_5.jpg
+    - assets/images/solar_pannel_7.jpg
+    - assets/images/solar_pannel_8.jpg
+    - assets/images/solar_pannel_9.jpg
+    - assets/images/solar_pannel_10.jpg
+    - assets/fonts/sans_serif.ttf

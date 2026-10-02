@@ -188,56 +188,108 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildQuickActions(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: GsCard(
-        padding: const EdgeInsets.all(16),
-        goldAccent: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GsCard(
+            padding: const EdgeInsets.all(16),
+            goldAccent: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: GSColors.gold500.withValues(alpha: 0.2),
-                  ),
-                  child: const Icon(
-                    Icons.receipt_long,
-                    color: GSColors.navy900,
-                    size: 22,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GSColors.gold500.withValues(alpha: 0.2),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long,
+                        color: GSColors.navy900,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Quotation',
+                      style: GSTextStyles.headlineSmall
+                          .copyWith(color: GSColors.navy900),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 4),
                 Text(
-                  'Quotation',
-                  style: GSTextStyles.headlineSmall
-                      .copyWith(color: GSColors.navy900),
+                  'Generate and share a solar quotation for a new client.',
+                  style: GSTextStyles.bodySmall
+                      .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 12),
+                GsButton(
+                  text: 'Create Quotation',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const QuotationFormScreen(),
+                      ),
+                    );
+                  },
+                  icon: Icons.receipt_long,
+                  fullWidth: true,
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Generate and share a solar quotation for a new client.',
-              style: GSTextStyles.bodySmall
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(height: 12),
+          GsCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GSColors.teal500.withValues(alpha: 0.2),
+                      ),
+                      child: const Icon(
+                        Icons.calculate,
+                        color: GSColors.navy900,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Estimate',
+                      style: GSTextStyles.headlineSmall
+                          .copyWith(color: GSColors.navy900),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Build a detailed solar estimate with our price calculator.',
+                  style: GSTextStyles.bodySmall
+                      .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 12),
+                GsButton(
+                  text: 'Create Estimate',
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/create-estimate');
+                  },
+                  icon: Icons.calculate,
+                  fullWidth: true,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            GsButton(
-              text: 'Create Quotation',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const QuotationFormScreen(),
-                  ),
-                );
-              },
-              icon: Icons.receipt_long,
-              fullWidth: true,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

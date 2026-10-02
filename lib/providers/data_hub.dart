@@ -6,6 +6,7 @@ import '../models/follow_up.dart';
 import '../models/installation.dart';
 import '../models/payment.dart';
 import '../models/quote.dart';
+import '../models/estimate.dart';
 import '../services/database_service.dart';
 
 /// Central data hub — loads, caches, and manages all application data.
@@ -21,6 +22,7 @@ class DataHub extends ChangeNotifier {
   List<QuoteModel> _quotes = [];
   List<PaymentModel> _payments = [];
   List<InstallationModel> _installations = [];
+  List<EstimateRecord> _estimates = [];
   AppSettingsModel? _settings;
 
   DataHub(this._db);
@@ -33,6 +35,7 @@ class DataHub extends ChangeNotifier {
   List<PaymentModel> get payments => List.unmodifiable(_payments);
   List<InstallationModel> get installations =>
       List.unmodifiable(_installations);
+  List<EstimateRecord> get estimates => List.unmodifiable(_estimates);
   AppSettingsModel? get settings => _settings;
 
   String generateId() => _db.generateId();
@@ -54,6 +57,7 @@ class DataHub extends ChangeNotifier {
       _quotes = await _db.getAllQuotes();
       _payments = await _db.getAllPayments();
       _installations = await _db.getAllInstallations();
+      _estimates = await _db.getAllEstimates();
       _settings = await _db.getSettings();
       _loading = false;
       _error = null;
@@ -260,6 +264,18 @@ class DataHub extends ChangeNotifier {
     _settings = settings;
     notifyListeners();
   }
+
+  // ── Estimates ───────────────────────────────────────────────────
+
+  Future<EstimateRecord> addEstimate(EstimateModel estimate) async {
+    final record = await _db.saveEstimate(estimate);
+    _estimates.insert(0, record);
+    _estimates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    notifyListeners();
+    return record;
+  }
+
+  int get estimateCount => _estimates.length;
 
   // ── Pipeline ──────────────────────────────────────────────────
 

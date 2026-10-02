@@ -24,6 +24,16 @@ abstract class GSColors {
   static const ink = Color(0xFF0F1B3D);
   static const white = Color(0xFFFFFFFF);
   static const whiteBg = Color(0xFFFAFAFA);
+  static const pageBg = Color(0xFFF3F4F6); // light-gray page background for forms
+
+  // Accent teal / green (wizard progress + radios)
+  static const teal500 = Color(0xFF2BBFA4);
+
+  // Medium navy (primary button fill)
+  static const navy500 = Color(0xFF1E2A5E);
+
+  // Error / required
+  static const errorRed = Color(0xFFED1C24);
 
   // Status colours
   static const statusNew = Color(0xFF2196F3);

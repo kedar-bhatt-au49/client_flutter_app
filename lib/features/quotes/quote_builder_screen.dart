@@ -14,7 +14,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../services/pdf_service.dart';
+import '../../services/proposal_pdf.dart';
+import '../../models/proposal_data.dart';
 
 /// Quote builder — select a package, see prices, save & share on WhatsApp.
 class QuoteBuilderScreen extends StatefulWidget {
@@ -32,6 +33,12 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   bool _residential = true;
   String _status = 'draft';
   bool _loading = false;
+  // Admin-editable overrides
+  final _dcCableSpecsController = TextEditingController(text: '4 sq.mm');
+  final _acWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _earthingWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _inverterKwController = TextEditingController(text: '3.6 kW');
+  final _customPriceController = TextEditingController();
 
   @override
   void initState() {
@@ -49,9 +56,24 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   GSPackage get _pkg => gsPackageById(_selectedPackageId) ?? gsPackages.first;
   bool get _isEdit => widget.existing != null;
 
+  int get _effectiveUpfront =>
+      _customPriceController.text.trim().isNotEmpty
+          ? int.tryParse(_customPriceController.text.trim()) ?? _pkg.upfront
+          : _pkg.upfront;
+
   int get _effectiveSubsidy => _residential ? GSTax.subsidyMax : 0;
-  int get _afterSubsidy => _pkg.upfront - _effectiveSubsidy;
-  int get _grandTotal => _pkg.upfront + GSTax.stampCharge;
+  int get _afterSubsidy => _effectiveUpfront - _effectiveSubsidy;
+  int get _grandTotal => _effectiveUpfront + GSTax.stampCharge;
+
+  @override
+  void dispose() {
+    _dcCableSpecsController.dispose();
+    _acWireSpecsController.dispose();
+    _earthingWireSpecsController.dispose();
+    _inverterKwController.dispose();
+    _customPriceController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +171,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                           style: GSTextStyles.bodySmall.copyWith(color: GSColors.statusLost)),
                     ),
                   const SizedBox(height: 16),
-                  _priceRow('Upfront (pre-subsidy)', _pkg.upfront),
+                  _priceRow('Upfront (pre-subsidy)', _effectiveUpfront),
                   _priceRow('Subsidy (PM Surya Ghar)', -_effectiveSubsidy,
                       color: _residential ? GSColors.green600 : GSColors.statusLost),
                   _priceRow('Structure Cost', _pkg.structureCost),
@@ -162,9 +184,33 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // ── Status selector ────────────────────────────────────
+            // ── Advanced Specs (Manual Override) ───────────────────
+            _sectionHeading('Advanced Specs'),
+            Text(
+              'Override wiring gauge, inverter kW, or price before sharing.',
+              style: GSTextStyles.bodySmall
+                  .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(height: 12),
+            _specField('DC Cable (sq.mm)', _dcCableSpecsController),
+            _specField('AC Wire (sq.mm)', _acWireSpecsController),
+            _specField('Earthing Wire (sq.mm)', _earthingWireSpecsController),
+            _specField('Inverter Capacity', _inverterKwController),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _customPriceController,
+              decoration: InputDecoration(
+                labelText: 'Custom Price (Optional)',
+                hintText: 'Leave blank to use package price (₹${_pkg.upfront})',
+                prefixIcon: Icon(Icons.currency_rupee, size: 20),
+                prefixText: '₹ ',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 24),
             if (_isEdit)
               DropdownButtonFormField<String>(
                 initialValue: _status,
@@ -210,7 +256,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                 if (!_isEdit)
                   Expanded(
                     child: GsOutlinedButton(
-                      text: 'Share PDF',
+                      text: 'Share 7-Page Quote',
                       onPressed: _loading ? null : _sharePdf,
                       icon: Icons.picture_as_pdf,
                     ),
@@ -253,6 +299,22 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     );
   }
 
+  Widget _sectionHeading(String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(title,
+            style: GSTextStyles.headlineSmall
+                .copyWith(color: GSColors.navy900)),
+      );
+
+  Widget _specField(String label, TextEditingController controller) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: TextFormField(
+          controller: controller,
+          decoration: InputDecoration(labelText: label),
+        ),
+      );
+
   void _saveQuote() async {
     setState(() => _loading = true);
     final hub = context.read<DataHub>();
@@ -264,10 +326,10 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       packageId: _selectedPackageId,
       kw: _pkg.kw,
       panels: _pkg.panels,
-      upfront: _pkg.upfront,
+      upfront: _effectiveUpfront,
       afterSubsidy: _afterSubsidy,
       structureCost: _pkg.structureCost,
-      total: _pkg.upfront,
+      total: _effectiveUpfront,
       status: _status,
       sentAt: now,
       isResidential: _residential,
@@ -287,7 +349,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       'Hello,\n\n'
       'Here is your solar quote from Global Solar 2.0:\n\n'
       '${pkg.kw} kW System (${pkg.panels} panels)\n'
-      'Total (pre-subsidy): ₹${pkg.upfront.formatWithComma()}\n'
+      'Total (pre-subsidy): ₹${_effectiveUpfront.formatWithComma()}\n'
       'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
       'Structure cost: ₹${pkg.structureCost.formatWithComma()}\n'
       'Stamp charge: ₹${GSTax.stampCharge}\n'
@@ -311,37 +373,79 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
         packageId: _selectedPackageId,
         kw: _pkg.kw,
         panels: _pkg.panels,
-        upfront: _pkg.upfront,
+        upfront: _effectiveUpfront,
         afterSubsidy: _afterSubsidy,
         structureCost: _pkg.structureCost,
-        total: _pkg.upfront,
+        total: _effectiveUpfront,
         status: 'draft',
         sentAt: DateTime.now(),
         isResidential: _residential,
       );
 
-      final bytes = await PdfService.generateQuotation(
-        client: widget.client,
-        quote: quote,
-      );
+      final SolarProposalData proposalData;
+      if (widget.client != null) {
+        proposalData = SolarProposalData.fromClientAndQuote(
+          client: widget.client!,
+          quote: quote,
+          dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+              ? _dcCableSpecsController.text.trim()
+              : null,
+          acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+              ? _acWireSpecsController.text.trim()
+              : null,
+          earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+              ? _earthingWireSpecsController.text.trim()
+              : null,
+          inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+              ? _inverterKwController.text.trim()
+              : null,
+          customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+              ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+              : null,
+        );
+      } else {
+        proposalData = SolarProposalData.withDefaults(
+          quotationId: quote.id,
+          plantCapacityKw: _pkg.kw.toStringAsFixed(2),
+          package: _pkg,
+          dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+              ? _dcCableSpecsController.text.trim()
+              : null,
+          acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+              ? _acWireSpecsController.text.trim()
+              : null,
+          earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+              ? _earthingWireSpecsController.text.trim()
+              : null,
+          inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+              ? _inverterKwController.text.trim()
+              : null,
+          customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+              ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+              : null,
+        );
+      }
+
+      final bytes = await ProposalPdf.generate(proposalData);
 
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/gs_quotation_${quote.id}.pdf');
+      final file = File('${dir.path}/gs_proposal_${quote.id}.pdf');
       await file.writeAsBytes(bytes, flush: true);
 
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/pdf')],
-          subject: 'Global Solar 2.0 — Solar Quotation',
-          text: '${_pkg.kw} kW System • ${_pkg.panels} panels\n'
+          subject: 'Global Solar 2.0 — Roof Top Solar Proposal',
+          text: '${_pkg.kw} kW System (${_pkg.panels} panels)\n'
               'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
-              'Total (incl. stamp): ₹${_grandTotal.formatWithComma()}',
+              'Total: ₹${_grandTotal.formatWithComma()}\n'
+              '7-page detailed proposal PDF attached.',
         ),
       );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF shared via WhatsApp')),
+        const SnackBar(content: Text('7-Page Proposal PDF shared')),
       );
     } catch (e) {
       final messenger = ScaffoldMessenger.of(context);

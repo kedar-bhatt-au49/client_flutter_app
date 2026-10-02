@@ -5,6 +5,7 @@ import '../models/follow_up.dart';
 import '../models/installation.dart';
 import '../models/payment.dart';
 import '../models/quote.dart';
+import '../models/estimate.dart';
 import '../models/app_settings.dart';
 import 'seed_data.dart';
 
@@ -23,6 +24,7 @@ class DatabaseService {
   static const boxInstallations = 'installations';
   static const boxSettings = 'settings';
   static const boxApp = 'app';
+  static const boxEstimates = 'estimates';
 
   // Keys
   static const keyFirstRun = 'first_run_done';
@@ -39,6 +41,7 @@ class DatabaseService {
     await Hive.openBox(boxInstallations);
     await Hive.openBox(boxSettings);
     await Hive.openBox(boxApp);
+    await Hive.openBox(boxEstimates);
     _initialized = true;
   }
 
@@ -255,7 +258,49 @@ class DatabaseService {
     await box.delete(clientId);
   }
 
-  // ── Dashboard stats ──────────────────────────────────────────
+  // ── Estimates ──────────────────────────────────────────────────
+
+  Future<EstimateRecord> saveEstimate(EstimateModel estimate,
+      {String? id, MasterData? master}) async {
+    master ??= await MasterData.load();
+    id ??= DatabaseService._uuid.v4();
+    final now = DateTime.now();
+    final record = EstimateRecord(
+      id: id,
+      data: estimate,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final box = Hive.box(boxEstimates);
+    await box.put(id, record.toJson());
+    return record;
+  }
+
+  Future<List<EstimateRecord>> getAllEstimates() async {
+    await init();
+    final master = await MasterData.load();
+    final box = Hive.box(boxEstimates);
+    return box.values
+        .map((e) => EstimateRecord.fromJson(
+            Map<String, dynamic>.from(e as Map), master))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  Future<EstimateRecord?> getEstimate(String id) async {
+    final box = Hive.box(boxEstimates);
+    final raw = box.get(id);
+    if (raw == null) return null;
+    return EstimateRecord.fromJson(
+        Map<String, dynamic>.from(raw as Map), await MasterData.load());
+  }
+
+  Future<void> deleteEstimate(String id) async {
+    final box = Hive.box(boxEstimates);
+    await box.delete(id);
+  }
+
+  // ── Dashboard stats ──
 
   Future<DashboardStats> getDashboardStats() async {
     final clients = await getAllClients();

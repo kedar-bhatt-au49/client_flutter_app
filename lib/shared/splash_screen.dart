@@ -95,7 +95,37 @@ class _SplashScreenState extends State<SplashScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const SolarSunLogo(size: 160),
+                          // Official Global Solar logo in a gold ring
+                          Container(
+                            width: 152,
+                            height: 152,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFFFFD54F),
+                                  Color(0xFFFFE082),
+                                  Color(0xFFFFB300),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: GSColors.gold500.withValues(alpha: 0.5),
+                                  blurRadius: 30,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                'assets/images/logo.jpg',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 20),
                           // Brand identity
                           RichText(

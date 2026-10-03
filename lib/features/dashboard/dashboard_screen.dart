@@ -81,7 +81,7 @@ class DashboardScreen extends StatelessWidget {
 
   // ── Header ─────────────────────────────────────────────────────
   Widget _buildHeader(BuildContext context, AuthProvider auth) {
-    final firstName = auth.currentUser?.name.split(' ').first ?? 'Admin';
+    final firstName = _firstNameOf(auth.currentUser?.name) ?? 'Admin';
     final role = auth.currentUser?.role == 'owner' ? 'Founder' : 'Co-Founder';
     final hour = DateTime.now().hour;
     final greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
@@ -124,8 +124,14 @@ class DashboardScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: Color(0xFF050E26),
                       ),
-                      child: const Icon(Icons.solar_power_rounded,
-                          color: GSColors.gold500, size: 26),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo.jpg',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -801,6 +807,17 @@ class DashboardScreen extends StatelessWidget {
 }
 
 enum _StatStyle { solid, gold, green }
+
+/// Extracts a display first-name, stripping titles like Mr./Mrs./Dr.
+String? _firstNameOf(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  final cleaned = raw.replaceFirst(
+      RegExp(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Shri|Smt\.?|Shree)\s+',
+          caseSensitive: false),
+      '');
+  final parts = cleaned.trim().split(RegExp(r'\s+'));
+  return parts.isNotEmpty && parts.first.isNotEmpty ? parts.first : null;
+}
 
 class _StatCard extends StatelessWidget {
   final (IconData, String, String, Color, String, _StatStyle) item;

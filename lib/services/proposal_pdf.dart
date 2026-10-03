@@ -40,6 +40,13 @@ class ProposalPdf {
     return amount < 0 ? '-$s' : s;
   }
 
+  /// Formats an amount with Indian digit grouping and the `/-` suffix.
+  /// e.g. `moneyINR(180000)` → `Rs. 1,80,000/-`.
+  static String moneyINR(int amount) {
+    final s = 'Rs. ${_fmt.format(amount.abs())}/-';
+    return amount < 0 ? '-$s' : s;
+  }
+
   /// Generates the full 7-page proposal PDF and returns the raw bytes.
   static Future<Uint8List> generate(SolarProposalData data) async {
     final logo = data.logoImage ?? await _loadAssetLogo();
@@ -126,6 +133,50 @@ class ProposalPdf {
   }
 }
 
+/// Clips a child to a trapezoid that produces the angled 60/40 divider
+/// seen in the financial summary rows.
+///
+/// When [leftSide] is `true` the right edge is angled inward (for the
+/// left 60 % half). When `false` the left edge is angled outward (for the
+/// right 40 % half), so the two halves meet on a clean diagonal.
+class _DiagonalClip extends pw.SingleChildWidget {
+  final bool leftSide;
+
+  _DiagonalClip({required this.leftSide, super.child});
+
+  @override
+  void paint(pw.Context context) {
+    super.paint(context);
+    if (child != null) {
+      final mat = Matrix4.identity();
+      mat.translateByDouble(box!.left, box!.bottom, 0, 1);
+      context.canvas.saveContext();
+      if (leftSide) {
+        // Top-left → top-right → bottom-right (5 % inset) → bottom-left
+        context.canvas
+          ..moveTo(box!.left, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width * 0.95, box!.bottom)
+          ..lineTo(box!.left, box!.bottom)
+          ..closePath();
+      } else {
+        // Top-left → top-right → bottom-right → bottom-left (7.5 % past left)
+        context.canvas
+          ..moveTo(box!.left, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom)
+          ..lineTo(box!.left - box!.width * 0.075, box!.bottom)
+          ..closePath();
+      }
+      context.canvas
+        ..clipPath()
+        ..setTransform(mat);
+      child!.paint(context);
+      context.canvas.restoreContext();
+    }
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal renderer — holds shared state (fonts, colours, data) and builds
 // each of the 7 pages plus the shared header / footer.
@@ -139,6 +190,40 @@ class _Renderer {
 
   late final PdfColor navy = PdfColor.fromHex(d.brandColorHex);
   late final PdfColor gold = PdfColor.fromHex(d.accentColorHex);
+
+  // ── Financial Summary Block palette ────────────────────────────────────────
+  static final PdfColor _fsNavyStart = PdfColor.fromHex('#14286B');
+  static final PdfColor _fsNavyEnd = PdfColor.fromHex('#1E3A8A');
+  static final PdfColor _fsYellowStart = PdfColor.fromHex('#FFC400');
+  static final PdfColor _fsYellowEnd = PdfColor.fromHex('#F5B000');
+  static final PdfColor _fsGreenStart = PdfColor.fromHex('#2E8B2E');
+  static final PdfColor _fsGreenEnd = PdfColor.fromHex('#5CB233');
+  static final PdfColor _fsLightGreenStart = PdfColor.fromHex('#DAF3D3');
+  static final PdfColor _fsLightGreenEnd = PdfColor.fromHex('#C1E3AF');
+  static final PdfColor _fsDarkGreen = PdfColor.fromHex('#1B4E1B');
+  static final PdfColor _fsLightBlue = PdfColor.fromHex('#E8F4FB');
+  static final PdfColor _fsLightBlueBorder = PdfColor.fromHex('#B3DFF7');
+
+  static final pw.LinearGradient _navyGrad = pw.LinearGradient(
+    colors: [_fsNavyStart, _fsNavyEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _yellowGrad = pw.LinearGradient(
+    colors: [_fsYellowStart, _fsYellowEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _greenGrad = pw.LinearGradient(
+    colors: [_fsGreenStart, _fsGreenEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _lightGreenGrad = pw.LinearGradient(
+    colors: [_fsLightGreenStart, _fsLightGreenEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
 
   // Unicode TTF font supporting Gujarati, ₹, em-dash, and other
   // characters that Helvetica (Type 1) cannot render.
@@ -170,6 +255,45 @@ class _Renderer {
       letterSpacing: letterSpacing,
     );
   }
+
+  // ── Financial Summary Block (Page 3) constants ───────────────────────────────
+
+  // SVG icon badges — used inside [pw.SvgImage] for the row icons.
+  static const String _iconRupee =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
+      '<text x="14" y="19" text-anchor="middle" font-size="10" '
+      'font-weight="bold" fill="#071440">Rs.</text></svg>';
+
+  static const String _iconHandCoin =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#88D675"/>'
+      '<path d="M9 8 C8 9 7 11 7 14 C7 17 9 19 12 19 C12 18 12 17 12 15 '
+      'C12 16 13 16 14 16 C15 16 16 15 16 14 C16 12 15 10 13 9 C13 8 12 8 '
+      '11 8 Z" fill="#1B4E1B"/>'
+      '<circle cx="16" cy="16" r="4" fill="#1B4E1B"/>'
+      '</svg>';
+
+  static const String _iconPerson =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
+      '<path d="M14 8 C12 8 10.5 9.5 10.5 11.5 C10.5 13 11.5 14.5 13 15.5 '
+      'L13 17 L15 17 L15 15.5 C16.5 14.5 17.5 13 17.5 11.5 C17.5 9.5 16 8 '
+      '14 8 Z" fill="#071440"/>'
+      '</svg>';
+
+  static const String _iconCheque =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<rect x="4" y="7" width="20" height="14" rx="2" fill="#7CB9E8" '
+      'stroke="#071440" stroke-width="1"/>'
+      '<line x1="4" y1="11" x2="24" y2="11" stroke="#071440" stroke-width="1"/>'
+      '<rect x="10" y="13" width="6" height="4" rx="1" fill="#071440"/>'
+      '<circle cx="16" cy="15" r="1.5" fill="#ffffff"/>'
+      '</svg>';
 
   // ── Shared header / footer ─────────────────────────────────────────────────
 
@@ -875,34 +999,30 @@ class _Renderer {
   /// Bottom section of the quotation page: amount-in-words + notes (left),
   /// totals + bank details + signature (right).
   pw.Widget _quotationBottom() {
-    return pw.Row(
+    return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        // ── Left: amount in words + notes ──
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
-              pw.SizedBox(height: 10),
-              _notesBox(),
-            ],
-          ),
+        // ── Amount in words ──
+        pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
+        pw.SizedBox(height: 14),
+
+        // ── Financial Summary Block (full-width, page 3) ──
+        _financialSummary(),
+        pw.SizedBox(height: 14),
+
+        // ── Notes + Bank Details (side by side) ──
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(child: _notesBox()),
+            pw.SizedBox(width: 24),
+            pw.Expanded(child: _bankBox()),
+          ],
         ),
-        pw.SizedBox(width: 24),
-        // ── Right: totals + bank + signature ──
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
-            children: [
-              _totalsBlock(),
-              pw.SizedBox(height: 14),
-              _bankBox(),
-              pw.SizedBox(height: 18),
-              _signatureBlock(),
-            ],
-          ),
-        ),
+        pw.SizedBox(height: 18),
+
+        // ── Signature ──
+        _signatureBlock(),
       ],
     );
   }
@@ -931,45 +1051,188 @@ class _Renderer {
     );
   }
 
-  pw.Widget _totalsBlock() {
-    pw.Widget row(String label, String amount,
-        {bool bold = false, bool isTotal = false}) {
-      return pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+  /// ── Financial Summary Block (replaces totals box, page 3) ─────────────────
+  /// Renders the 4-row angled-divider summary that mirrors the HTML template:
+  /// 1. System Amount w/ GST  (navy/yellow, highlighted total)
+  /// 2. Government Subsidy    (green, NOT highlighted — hidden when 0)
+  /// 3. Net Cost After Subsidy (navy/yellow, highlighted total)
+  /// 4. Payment Mode          (light-blue, no yellow block)
+  pw.Widget _financialSummary() {
+    final totalBeforeSubsidy = d.grandTotal + d.subsidyAmount;
+    final hasSubsidy = d.subsidyAmount > 0;
+    String tl(String en, String hinglish) => d.useHinglish ? hinglish : en;
+
+    return pw.Container(
+      width: double.infinity,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          // Caption
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Text(
+              'Financial Summary (Inclusive of GST)',
+              style: _t(7.5, bold: true, color: navy),
+              textAlign: pw.TextAlign.center,
+            ),
+          ),
+
+          // Row 1 — System Amount w/ GST (navy / yellow)
+          _fsRow(
+            leftGradient: _navyGrad,
+            rightGradient: _yellowGrad,
+            leftTextColor: PdfColors.white,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconRupee,
+            label: tl('कुल मूल्य (System Amount w/ GST)', 'System Amount w/ GST'),
+            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
+          ),
+
+          // Row 2 — Subsidy (green, NOT highlighted), hidden when 0
+          if (hasSubsidy)
+            _fsRow(
+              leftGradient: _greenGrad,
+              rightGradient: _lightGreenGrad,
+              leftTextColor: PdfColors.white,
+              rightTextColor: _fsDarkGreen,
+              iconSvg: _iconHandCoin,
+              label: tl('सरकारी सब्सिडी (Government Subsidy)',
+                  'Government Subsidy (PM Surya Ghar)'),
+              amount: ProposalPdf.moneyINR(d.subsidyAmount),
+            ),
+
+          // Row 3 — Net Cost After Subsidy (navy / yellow)
+          _fsRow(
+            leftGradient: _navyGrad,
+            rightGradient: _yellowGrad,
+            leftTextColor: PdfColors.white,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconPerson,
+            label: tl('अंतिम लागत (Net Cost After Subsidy)',
+                'Net Cost After Subsidy'),
+            amount: ProposalPdf.moneyINR(d.grandTotal),
+          ),
+
+          // Row 4 — Payment Mode (light-blue, no yellow block)
+          _fsRow(
+            leftColor: _fsLightBlue,
+            rightColor: _fsLightBlue,
+            leftBorderColor: _fsLightBlueBorder,
+            rightBorderColor: _fsLightBlueBorder,
+            leftTextColor: _fsNavyStart,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconCheque,
+            label: tl('नेट पेबेबल (Net payable by cheque/cash)',
+                'Net payable by cheque/cash'),
+            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
+            noDiagonal: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a single financial-summary row with the 60/40 angled divider.
+  /// When [noDiagonal] is `true` a flat light-blue row is produced (Row 4).
+  pw.Widget _fsRow({
+    pw.LinearGradient? leftGradient,
+    pw.LinearGradient? rightGradient,
+    PdfColor? leftColor,
+    PdfColor? rightColor,
+    PdfColor? leftBorderColor,
+    PdfColor? rightBorderColor,
+    required PdfColor leftTextColor,
+    required PdfColor rightTextColor,
+    required String iconSvg,
+    required String label,
+    required String amount,
+    bool noDiagonal = false,
+  }) {
+    // ── Left half content: icon badge + bilingual label ──
+    final leftContent = pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 8),
+          child: pw.SvgImage(svg: iconSvg, width: 24, height: 24),
+        ),
+        pw.SizedBox(width: 6),
+        pw.Expanded(
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.only(right: 10),
+            child: pw.Text(
+              label,
+              style: _t(7.5, bold: true, color: leftTextColor),
+              maxLines: 2,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // ── Right half content: very large amount ──
+    final rightContent = pw.Container(
+      alignment: pw.Alignment.centerRight,
+      padding: const pw.EdgeInsets.only(right: 14),
+      child: pw.Text(
+        amount,
+        style: _t(15, bold: true, color: rightTextColor),
+      ),
+    );
+
+    if (noDiagonal) {
+      // Row 4 — flat light-blue with thin border, no gradient
+      return pw.Container(
+        height: 48,
+        margin: const pw.EdgeInsets.only(bottom: 8),
+        decoration: pw.BoxDecoration(
+          color: leftColor,
+          borderRadius: pw.BorderRadius.circular(6),
+          border: pw.Border(
+            top: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            bottom: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            left: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            right: pw.BorderSide(color: rightBorderColor ?? _fsLightBlueBorder, width: 0.7),
+          ),
+        ),
         child: pw.Row(
-          mainAxisSize: pw.MainAxisSize.min,
-          mainAxisAlignment: pw.MainAxisAlignment.end,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            pw.Text(label, style: _t(isTotal ? 9 : 8, bold: bold)),
-            pw.SizedBox(width: 16),
-            pw.Text(amount,
-                style: _t(isTotal ? 10 : 8,
-                    bold: isTotal || bold, color: isTotal ? navy : gold)),
+            pw.Expanded(flex: 60, child: leftContent),
+            pw.Expanded(flex: 40, child: rightContent),
           ],
         ),
       );
     }
 
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: pw.BoxDecoration(
-        border: pw.Border(
-          top: pw.BorderSide(width: 0.7, color: gold),
-          bottom: pw.BorderSide(width: 0.7, color: gold),
-        ),
+    // Rows 1–3 — diagonal split with gradient backgrounds
+    final leftChild = _DiagonalClip(
+      leftSide: true,
+      child: pw.Container(
+        decoration: pw.BoxDecoration(gradient: leftGradient),
+        child: leftContent,
       ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
-        children: [
-          row('Sub Total', ProposalPdf.money(d.subTotal)),
-          row('CGST', ProposalPdf.money(d.cgstTotal)),
-          row('SGST', ProposalPdf.money(d.sgstTotal)),
-          pw.SizedBox(height: 4),
-          row('Tax (GST)', ProposalPdf.money(d.taxGst), bold: true),
-          pw.SizedBox(height: 6),
-          row('Grand Total', ProposalPdf.money(d.grandTotal),
-              bold: true, isTotal: true),
-        ],
+    );
+    final rightChild = _DiagonalClip(
+      leftSide: false,
+      child: pw.Container(
+        decoration: pw.BoxDecoration(gradient: rightGradient),
+        child: rightContent,
+      ),
+    );
+
+    return pw.Container(
+      height: 48,
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.ClipRRect(
+        horizontalRadius: 6,
+        verticalRadius: 6,
+        child: pw.Row(
+          children: [
+            pw.Expanded(flex: 60, child: leftChild),
+            pw.Expanded(flex: 40, child: rightChild),
+          ],
+        ),
       ),
     );
   }

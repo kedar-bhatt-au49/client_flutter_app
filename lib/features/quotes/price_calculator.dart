@@ -462,28 +462,11 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
     VoidCallback? onTap,
     bool enabled = true,
   }) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              value,
-              style: GSTextStyles.bodyMedium.copyWith(
-                color: valueColor,
-              ),
-            ),
-            if (onTap != null)
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: GSColors.ink.withValues(alpha: 0.3),
-              ),
-          ],
-        ),
-      ),
+    return GsSelectorTile(
+      value: value,
+      valueColor: valueColor,
+      onTap: onTap,
+      enabled: enabled,
     );
   }
 
@@ -509,15 +492,8 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
                 ))
             .toList(),
         onChanged: enabled ? onChanged : null,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.zero,
-          hintText: enabled
-              ? 'Select'
-              : (disabledHint ?? 'Select first'),
-          hintStyle: GSTextStyles.bodyMedium
-              .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
+        decoration: GSInputTheme.fieldDecoration(
+          hint: enabled ? 'Select' : (disabledHint ?? 'Select first'),
         ),
         style: GSTextStyles.bodyMedium.copyWith(
           color: enabled
@@ -525,7 +501,7 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
               : GSColors.ink.withValues(alpha: 0.4),
         ),
         icon: Icon(Icons.chevron_right,
-            size: 20, color: GSColors.ink.withValues(alpha: 0.3)),
+            size: 20, color: GSColors.ink.withValues(alpha: 0.5)),
         iconDisabledColor: GSColors.ink.withValues(alpha: 0.2),
         iconEnabledColor: GSColors.ink.withValues(alpha: 0.4),
         disabledHint: Text(
@@ -541,16 +517,24 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
     required String value,
     required String placeholder,
   }) {
+    final isPlaceholder = value == placeholder || value == '—';
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isPlaceholder ? GSColors.pageBg : GSColors.white,
+        borderRadius: BorderRadius.circular(GSInputTheme.fieldBorderRadius),
+        border: Border.all(
+          color: GSColors.ink.withValues(alpha: isPlaceholder ? 0.1 : 0.15),
+        ),
+      ),
       child: Text(
         value,
         style: GSTextStyles.bodyMedium.copyWith(
-          color: value == placeholder || value == '—'
+          color: isPlaceholder
               ? GSColors.ink.withValues(alpha: 0.4)
               : GSColors.navy900,
-          fontWeight:
-              value != placeholder && value != '—' ? FontWeight.w600 : null,
+          fontWeight: isPlaceholder ? null : FontWeight.w600,
         ),
       ),
     );
@@ -567,13 +551,8 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
         Expanded(
           child: TextFormField(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: GSTextStyles.bodyMedium
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
+            decoration: GSInputTheme.fieldDecoration(
+              hint: hint,
             ),
             style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
             keyboardType:
@@ -596,18 +575,10 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: EdgeInsets.zero,
+      decoration: GSInputTheme.fieldDecoration(
+        hint: hint,
         prefixText: '$currencySymbol ',
-        prefixStyle: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
         suffixText: suffix,
-        suffixStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
       ),
       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -699,16 +670,9 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
                         _buildInlineLabel('Percent'),
                         TextFormField(
                           controller: _insPercentCtrl,
-                          decoration: InputDecoration(
-                            hintText: '0',
-                            hintStyle: GSTextStyles.bodyMedium.copyWith(
-                                color: GSColors.ink.withValues(alpha: 0.4)),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                          decoration: GSInputTheme.fieldDecoration(
+                            hint: '0',
                             suffixText: '%',
-                            suffixStyle: GSTextStyles.bodyMedium.copyWith(
-                                color: GSColors.ink.withValues(alpha: 0.6)),
                           ),
                           style: GSTextStyles.bodyMedium
                               .copyWith(color: GSColors.navy900),
@@ -733,16 +697,9 @@ class _PriceCalculatorScreenState extends State<PriceCalculatorScreen> {
                         _buildInlineLabel('Or Amount'),
                         TextFormField(
                           controller: _insAmountCtrl,
-                          decoration: InputDecoration(
-                            hintText: '0',
-                            hintStyle: GSTextStyles.bodyMedium.copyWith(
-                                color: GSColors.ink.withValues(alpha: 0.4)),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                          decoration: GSInputTheme.fieldDecoration(
+                            hint: '0',
                             prefixText: '\u20B9 ',
-                            prefixStyle: GSTextStyles.bodyMedium
-                                .copyWith(color: GSColors.navy900),
                           ),
                           style: GSTextStyles.bodyMedium
                               .copyWith(color: GSColors.navy900),

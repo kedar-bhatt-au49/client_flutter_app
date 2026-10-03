@@ -200,34 +200,76 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: GSColors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Item'),
+        title: Text('Add Item',
+            style: GSTextStyles.headlineSmall.copyWith(color: GSColors.navy900)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextFormField(
               controller: descCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Description',
-                border: OutlineInputBorder(),
+                hintText: 'e.g. DC Wire',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
+                ),
+                labelStyle: GSTextStyles.bodyMedium
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+                hintStyle: GSTextStyles.bodyMedium
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
+              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextFormField(
               controller: qtyCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Qty',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
+                ),
+                labelStyle: GSTextStyles.bodyMedium
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
+              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextFormField(
               controller: rateCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Rate (₹)',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
+                ),
+                labelStyle: GSTextStyles.bodyMedium
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
                 prefixText: '₹ ',
+                prefixStyle:
+                    GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
+              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -235,12 +277,16 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel')),
+              child: Text('Cancel',
+                  style: GSTextStyles.labelLarge
+                      .copyWith(color: GSColors.navy900))),
           ElevatedButton(
             onPressed: () {
               final desc = descCtrl.text.trim();
               final qty = int.tryParse(qtyCtrl.text) ?? 1;
-              final rate = int.tryParse(rateCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              final rate = int.tryParse(
+                      rateCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0;
               if (desc.isNotEmpty) {
                 setState(() {
                   _estimate.lineItems.add(EstimateLineItem(
@@ -645,10 +691,12 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             label: 'Company Name',
             required: true,
             hint: 'e.g. Priya & Co.',
-            input: _textField(controller: _companyCtrl),
-            errorText: _estimate.clientType == 'business'
-                ? (_companyCtrl.text.trim().isEmpty ? 'Required' : null)
-                : null,
+            input: _textField(
+              controller: _companyCtrl,
+              errorText: _estimate.clientType == 'business'
+                  ? (_companyCtrl.text.trim().isEmpty ? 'Required' : null)
+                  : null,
+            ),
           ),
 
         // Name
@@ -656,9 +704,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           label: 'Name',
           required: true,
           hint: 'Full Name',
-          errorText:
-              _nameCtrl.text.trim().isEmpty ? 'Required' : null,
-          input: _textField(controller: _nameCtrl),
+          input: _textField(
+            controller: _nameCtrl,
+            errorText: _nameCtrl.text.trim().isEmpty ? 'Required' : null,
+          ),
         ),
 
         // Mobile Number
@@ -677,13 +726,13 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               // Trigger rebuild for error text
               if (mounted) setState(() {});
             },
+            errorText: _mobileCtrl.text.trim().isNotEmpty &&
+                    _mobileCtrl.text.trim().length >= 10
+                ? null
+                : (_mobileCtrl.text.trim().isNotEmpty
+                    ? 'Invalid number'
+                    : null),
           ),
-          errorText: _mobileCtrl.text.trim().isNotEmpty &&
-                  _mobileCtrl.text.trim().length >= 10
-              ? null
-              : (_mobileCtrl.text.trim().isNotEmpty
-                  ? 'Invalid number'
-                  : null),
         ),
 
         // WhatsApp Number
@@ -721,41 +770,22 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ),
 
-        // Lead Stage (read-only tag, tappable to change)
+        // Lead Stage (tappable selector)
         _fieldCard(
           label: 'Lead Stage',
           required: false,
-          input: GestureDetector(
-            onTap: _openLeadStageSelector,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _hexToColor(stage.dotColorHex),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        stage.label,
-                        style: GSTextStyles.bodyMedium
-                            .copyWith(color: GSColors.navy900),
-                      ),
-                    ],
-                  ),
-                  Icon(Icons.chevron_right,
-                      size: 20,
-                      color: GSColors.ink.withValues(alpha: 0.3)),
-                ],
+          input: GsSelectorTile(
+            value: stage.label,
+            valueColor: GSColors.navy900,
+            leading: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _hexToColor(stage.dotColorHex),
               ),
             ),
+            onTap: _openLeadStageSelector,
           ),
         ),
 
@@ -1093,7 +1123,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  Widget _buildNumberFieldWithSuffix({
+   Widget _buildNumberFieldWithSuffix({
     required TextEditingController controller,
     required String hint,
     required String suffix,
@@ -1104,13 +1134,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         Expanded(
           child: TextFormField(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: GSTextStyles.bodyMedium
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
+            decoration: GSInputTheme.fieldDecoration(
+              hint: hint,
             ),
             style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1144,16 +1169,17 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             hint: '0',
             currencySymbol: '\u20B9',
             suffix: '/kW',
+            errorText:
+                (double.tryParse(_discountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0) >
+                    _master!.discountCapPerKw
+                ? 'Exceeds max'
+                : null,
             onChanged: (v) {
               final val = double.tryParse(v.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
               _estimate.discountPerKw = val;
             },
           ),
           helperText: 'Max: \u20B9${_master!.discountCapPerKw.toInt()}/kW',
-          errorText: (double.tryParse(_discountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0) >
-                  _master!.discountCapPerKw
-              ? 'Exceeds max'
-              : null,
         ),
 
         // GST Profile
@@ -1299,24 +1325,24 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     Widget? suffixIcon,
     TextInputType? keyboardType,
     int? maxLines,
+    String? errorText,
     void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GSTextStyles.bodyMedium
-            .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: EdgeInsets.zero,
+      decoration: GSInputTheme.fieldDecoration(
+        hint: hint,
         prefixText: prefixText,
-        prefixStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-        suffixIcon: suffixIcon,
         suffixText: suffixText,
-        suffixStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20, color: GSColors.navy500) : null,
+        suffixIcon: suffixIcon,
+        errorText: errorText,
+      ).copyWith(
+        isDense: maxLines != null && maxLines > 1 ? false : true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: maxLines != null && maxLines > 1 ? 12 : 14,
+        ),
       ),
       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
       keyboardType: keyboardType,
@@ -1345,17 +1371,15 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                 ))
             .toList(),
         onChanged: onChanged,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.zero,
-          hintText: hint,
-          hintStyle: GSTextStyles.bodyMedium
-              .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
+        decoration: GSInputTheme.fieldDecoration(
+          hint: hint ?? 'Select',
+        ).copyWith(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
         icon: Icon(Icons.chevron_right,
-            size: 20, color: GSColors.ink.withValues(alpha: 0.3)),
+            size: 20, color: GSColors.ink.withValues(alpha: 0.5)),
       ),
     );
   }
@@ -1363,19 +1387,12 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   Widget _buildDateField() {
     final formatted = DateFormat('dd MMM yyyy').format(_estimate.expiryDate);
     return TextFormField(
-      decoration: InputDecoration(
-        hintText: DateFormat('dd MMM yyyy').format(
+      decoration: GSInputTheme.fieldDecoration(
+        hint: DateFormat('dd MMM yyyy').format(
           DateTime.now().add(Duration(days: _master!.expiryDays)),
         ),
-        hintStyle: GSTextStyles.bodyMedium
-            .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: EdgeInsets.zero,
         prefixIcon: const Icon(Icons.calendar_today,
             size: 20, color: GSColors.navy500),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        prefixText: ' ',
       ),
       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
       readOnly: true,
@@ -1399,23 +1416,16 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     required String hint,
     required String currencySymbol,
     required String suffix,
+    String? errorText,
     void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GSTextStyles.bodyMedium
-            .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: EdgeInsets.zero,
+      decoration: GSInputTheme.fieldDecoration(
+        hint: hint,
         prefixText: currencySymbol.isNotEmpty ? '$currencySymbol ' : null,
-        prefixStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
         suffixText: suffix,
-        suffixStyle:
-            GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+        errorText: errorText,
       ),
       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1424,13 +1434,19 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   }
 
   Widget _buildReadOnlyField({required String value}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        value,
-        style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-      ),
-    );
+   return Container(
+     width: double.infinity,
+     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+     decoration: BoxDecoration(
+       color: GSColors.pageBg,
+       borderRadius: BorderRadius.circular(GSInputTheme.fieldBorderRadius),
+       border: Border.all(color: GSColors.ink.withValues(alpha: 0.15)),
+     ),
+     child: Text(
+       value,
+       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
+     ),
+   );
   }
 
   // ── Field card wrapper ──

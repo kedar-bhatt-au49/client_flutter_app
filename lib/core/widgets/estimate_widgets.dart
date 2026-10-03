@@ -7,6 +7,67 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
+// ── Shared InputDecoration for professional form fields ───────────────
+
+class GSInputTheme {
+  GSInputTheme._();
+
+  static const double fieldBorderRadius = 12.0;
+
+  static InputDecoration fieldDecoration({
+    String? hint,
+    String? prefixText,
+    String? suffixText,
+    Widget? prefixIcon,
+    Widget? suffixIcon,
+    bool isDense = true,
+    String? errorText,
+  }) {
+    final hasError = errorText != null;
+    final baseBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(fieldBorderRadius),
+      borderSide: BorderSide(
+        color: hasError
+            ? GSColors.errorRed
+            : GSColors.ink.withValues(alpha: 0.2),
+        width: 1,
+      ),
+    );
+    final focusBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(fieldBorderRadius),
+      borderSide: const BorderSide(color: GSColors.gold500, width: 2),
+    );
+    final errorBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(fieldBorderRadius),
+      borderSide: const BorderSide(color: GSColors.errorRed, width: 2),
+    );
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle:
+          GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
+      prefixText: prefixText,
+      prefixStyle:
+          GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
+      suffixText: suffixText,
+      suffixStyle:
+          GSTextStyles.bodyMedium.copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+      isDense: isDense,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      filled: true,
+      fillColor: GSColors.white,
+      border: baseBorder,
+      enabledBorder: baseBorder,
+      focusedBorder: focusBorder,
+      errorBorder: errorBorder,
+      focusedErrorBorder: errorBorder,
+      errorStyle: GSTextStyles.bodySmall.copyWith(color: GSColors.errorRed),
+    );
+  }
+}
+
 // ── Segmented progress bar ─────────────────────────────────────────
 
 class EstimateProgressBar extends StatelessWidget {
@@ -179,6 +240,7 @@ class GsInputCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double borderRadius;
   final Widget? trailing;
+  final bool focused;
 
   const GsInputCard({
     super.key,
@@ -191,6 +253,7 @@ class GsInputCard extends StatelessWidget {
     this.padding,
     this.borderRadius = 16,
     this.trailing,
+    this.focused = false,
   });
 
   @override
@@ -198,21 +261,8 @@ class GsInputCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: GSColors.white,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: GSColors.ink.withValues(alpha: 0.08), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: GSColors.shadowLight,
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
       child: Padding(
-        padding: padding ??
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: padding ?? EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -404,6 +454,75 @@ class ActionBarButtonBar extends StatelessWidget {
                         style: GSTextStyles.labelLarge
                             .copyWith(color: GSColors.white)),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Selector tile: value + chevron inside a bordered box ─────────────
+// Used as a tappable dropdown-style field (e.g. Lead Stage).
+
+class GsSelectorTile extends StatelessWidget {
+  final String value;
+  final Color valueColor;
+  final VoidCallback? onTap;
+  final bool enabled;
+  final bool focused;
+  final String? errorText;
+  final Widget? leading;
+
+  const GsSelectorTile({
+    super.key,
+    required this.value,
+    required this.valueColor,
+    this.onTap,
+    this.enabled = true,
+    this.focused = false,
+    this.errorText,
+    this.leading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = errorText != null
+        ? GSColors.errorRed
+        : (focused
+            ? GSColors.gold500
+            : GSColors.ink.withValues(alpha: 0.15));
+    final borderWidth = errorText != null || focused ? 2.0 : 1.0;
+
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: enabled ? GSColors.white : GSColors.pageBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: borderWidth),
+        ),
+        child: Row(
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Text(
+                value,
+                style: GSTextStyles.bodyMedium.copyWith(color: valueColor),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: enabled
+                  ? GSColors.ink.withValues(alpha: 0.5)
+                  : GSColors.ink.withValues(alpha: 0.2),
             ),
           ],
         ),

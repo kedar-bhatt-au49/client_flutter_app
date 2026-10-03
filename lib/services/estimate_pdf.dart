@@ -64,12 +64,40 @@ class EstimatePdf {
     final bomItems = _bomFromMaster(e, master);
 
     // ── Totals come from the PriceBreakdown when available, otherwise
-    // recomputed from line items. ──
-    final int subTotal = b?.subtotal ??
+    // recomputed from line items. Base (pre-subsidy) values are captured
+    // here — before the subsidy adjustment line item is appended below —
+    // so the fold does not count the -Subsidy row. ──
+    final int baseSubTotal = b?.subtotal ??
         lineItems.fold(0, (s, i) => s + i.rate * int.parse(i.qty));
     final int cgstTotal = b?.cgstTotal ?? 0;
     final int sgstTotal = b?.sgstTotal ?? 0;
-    final int grandTotal = b?.grandTotal ?? (subTotal + cgstTotal + sgstTotal);
+    final int baseGrandTotal =
+        b?.grandTotal ?? (baseSubTotal + cgstTotal + sgstTotal);
+
+    // ── PM Surya Ghar residential subsidy (₹78,000) ──
+    final isResidential = e.clientType == 'individual';
+    final subsidy = isResidential ? GSTax.subsidyMax : 0;
+
+    // Subtract subsidy so grandTotal = final amount the customer pays.
+    // The PDF renderer (_totalsBlock) adds subsidy back to display the
+    // pre-subsidy "Total" (highlighted), shows the deduction row
+    // unstyled, and highlights the "Final Total".
+    final int subTotal = baseSubTotal - subsidy;
+    final int grandTotal = baseGrandTotal - subsidy;
+
+    // Add the subsidy adjustment line item so it appears in the quotation
+    // table and the per-line totals reconcile with the totals box.
+    if (subsidy > 0) {
+      lineItems.add(ProposalLineItem(
+        description: 'PM Surya Ghar Subsidy (Adjustment)',
+        specs: ['Government subsidy credit', 'Residential only'],
+        qty: '1',
+        unit: 'set',
+        rate: -subsidy,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ));
+    }
 
     return SolarProposalData(
       companyName: 'Global Solar 2.0',
@@ -114,7 +142,8 @@ class EstimatePdf {
       acWireSpecs: '2.5 sq.mm',
       earthingWireSpecs: '2.5 sq.mm',
       inverterKwValue: inverterKw,
-      effectiveUpfront: grandTotal,
+      effectiveUpfront: baseGrandTotal,
+      subsidyAmount: subsidy,
       warrantySections: _defaultWarrantySections,
       upiId: 'global.solar.2.0@oksbi',
       upiQrUpiId:

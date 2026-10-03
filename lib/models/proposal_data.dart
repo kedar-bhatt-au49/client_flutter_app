@@ -228,6 +228,7 @@ class SolarProposalData {
   final String earthingWireSpecs; // e.g. '2.5 sq.mm'
   final String inverterKwValue; // e.g. '3.6 kW'
   final int effectiveUpfront; // price after optional admin override
+  final int subsidyAmount;  // PM Surya Ghar subsidy (₹78,000 residential)
 
   // ── Warranty sections (pages 5–6) ─────────────────────────────────
   final List<WarrantySection> warrantySections;
@@ -292,6 +293,7 @@ class SolarProposalData {
     required this.earthingWireSpecs,
     required this.inverterKwValue,
     required this.effectiveUpfront,
+    required this.subsidyAmount,
     required this.warrantySections,
     required this.upiId,
     required this.upiQrUpiId,
@@ -460,6 +462,7 @@ class SolarProposalData {
       earthingWireSpecs: earthingWireSpecs ?? '2.5 sq.mm',
       inverterKwValue: inverterKwOverride ?? '3.6 kW',
       effectiveUpfront: upfront,
+      subsidyAmount: subsidy,
       warrantySections: _defaultWarranty,
       upiId: 'global.solar.2.0@oksbi',
       upiQrUpiId: 'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
@@ -545,6 +548,7 @@ class SolarProposalData {
         earthingWireSpecs: j['earthing_wire_specs'] as String? ?? '2.5 sq.mm',
         inverterKwValue: j['inverter_kw_value'] as String? ?? '3.6 kW',
         effectiveUpfront: j['effective_upfront'] as int? ?? 0,
+        subsidyAmount: j['subsidy_amount'] as int? ?? 0,
         warrantySections: (j['warranty_sections'] as List)
             .map((e) => WarrantySection.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -594,6 +598,7 @@ class SolarProposalData {
         'earthing_wire_specs': earthingWireSpecs,
         'inverter_kw_value': inverterKwValue,
         'effective_upfront': effectiveUpfront,
+        'subsidy_amount': subsidyAmount,
         'warranty_sections': warrantySections.map((e) => e.toJson()).toList(),
         'upi_id': upiId,
         'upi_qr_upi_id': upiQrUpiId,

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_colors.dart';
-import '../core/theme/app_gradients.dart';
-import '../core/widgets/gs_button.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/clients/client_list_screen.dart';
 import '../features/followups/followup_screen.dart';
@@ -11,7 +9,7 @@ import '../features/reports/reports_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../providers/data_hub.dart';
 
-/// Main app shell — bottom navigation with 5 tabs.
+/// Main app shell — glassmorphic floating bottom navigation with 5 tabs.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -32,127 +30,163 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: _BuildBottomNav(
+      backgroundColor: GSColors.sky100,
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      bottomNavigationBar: _BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
       ),
-      floatingActionButton: _buildFab(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
-  }
-
-  Widget? _buildFab() {
-    // FAB appears on Clients tab and Follow-ups tab
-    if (_currentIndex == 1) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 60),
-        child: GsButton(
-          text: '',
-          onPressed: () {
-            // Navigate to add client
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add Client screen')),
-              );
-            }
-          },
-          icon: Icons.add,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: GSColors.gold500,
-          foregroundColor: GSColors.navy900,
-        ),
-      );
-    }
-    return null;
   }
 }
 
-class _BuildBottomNav extends StatelessWidget {
+/// Floating glassmorphic bottom navigation bar — exact design.
+class _BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _BuildBottomNav({required this.currentIndex, required this.onTap});
-
-  static const _items = [
-    (Icons.dashboard_outlined, 'Dashboard'),
-    (Icons.group_outlined, 'Clients'),
-    (Icons.event_note_outlined, 'Follow-ups'),
-    (Icons.bar_chart_outlined, 'Reports'),
-    (Icons.settings_outlined, 'Settings'),
-  ];
+  const _BottomNavBar({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final unreadFollowUps = context.watch<DataHub>().todayFollowUps.length;
 
     return Container(
-      decoration: BoxDecoration(
-        color: GSColors.glassWhiteDark,
-        border: Border(
-          top: BorderSide(
-              color: GSColors.white.withValues(alpha: 0.2), width: 1),
+      decoration: const BoxDecoration(
+        color: Color(0xE6FFFFFF),
+        border: Border(top: BorderSide(color: Color(0xCCE2E8F0), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x14071440),
+            blurRadius: 20,
+            offset: Offset(0, -6),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navItem(
+                index: 0,
+                activeIcon: Icons.wb_sunny_rounded,
+                icon: Icons.wb_sunny_outlined,
+                label: 'Dashboard',
+                active: currentIndex == 0,
+              ),
+              _navItem(
+                index: 1,
+                activeIcon: Icons.group_rounded,
+                icon: Icons.group_outlined,
+                label: 'Clients',
+                active: currentIndex == 1,
+              ),
+              _navItem(
+                index: 2,
+                activeIcon: Icons.calendar_month_rounded,
+                icon: Icons.calendar_month_outlined,
+                label: 'Follow-ups',
+                active: currentIndex == 2,
+                showBadge: unreadFollowUps > 0,
+              ),
+              _navItem(
+                index: 3,
+                activeIcon: Icons.bar_chart_rounded,
+                icon: Icons.bar_chart_outlined,
+                label: 'Reports',
+                active: currentIndex == 3,
+              ),
+              _navItem(
+                index: 4,
+                activeIcon: Icons.settings_rounded,
+                icon: Icons.settings_outlined,
+                label: 'Settings',
+                active: currentIndex == 4,
+              ),
+            ],
+          ),
         ),
       ),
-      child: ClipRRect(
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(20)),
-        child: BottomNavigationBar(
-          currentIndex: currentIndex,
-          onTap: onTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: GSColors.glassWhiteDark,
-          selectedItemColor: GSColors.gold500,
-          unselectedItemColor: GSColors.ink.withValues(alpha: 0.4),
-          selectedLabelStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          items: List.generate(_items.length, (i) {
-            final (icon, label) = _items[i];
-            final selected = i == currentIndex;
-            final showBadge = i == 2 && unreadFollowUps > 0;
+    );
+  }
 
-            return BottomNavigationBarItem(
-              icon: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: selected ? GSGradients.sun : null,
-                      shape: BoxShape.circle,
-                      color: selected
-                          ? null
-                          : GSColors.ink.withValues(alpha: 0.05),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: selected
-                          ? GSColors.navy900
-                          : GSColors.ink.withValues(alpha: 0.5),
-                      size: 22,
-                    ),
+  Widget _navItem({
+    required int index,
+    required IconData activeIcon,
+    required IconData icon,
+    required String label,
+    required bool active,
+    bool showBadge = false,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onTap(index),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: active ? 36 : 32,
+                  height: active ? 36 : 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: active
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF9B417), Color(0xFFFFCA28), Color(0xFFFFE082)],
+                          )
+                        : null,
+                    color: active ? null : Colors.transparent,
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              color: GSColors.gold500.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : null,
                   ),
-                  if (showBadge)
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: GSColors.followupPending,
-                          shape: BoxShape.circle,
-                        ),
+                  child: Icon(
+                    active ? activeIcon : icon,
+                    color: active ? GSColors.navy900 : GSColors.ink.withValues(alpha: 0.45),
+                    size: active ? 22 : 24,
+                  ),
+                ),
+                if (showBadge)
+                  Positioned(
+                    top: 1,
+                    right: 1,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: GSColors.followupMissed,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                     ),
-                ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? GSColors.gold500 : GSColors.ink.withValues(alpha: 0.45),
+                letterSpacing: -0.2,
               ),
-              label: label,
-            );
-          }),
+            ),
+          ],
         ),
       ),
     );

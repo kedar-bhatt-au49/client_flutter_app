@@ -37,6 +37,10 @@ class WarrantyExpiry {
   String get panelFormatted => panel.toString();
   String get performanceFormatted => performance.toString();
   String get inverterFormatted => inverter.toString();
+
+  /// Duration in years from the install date to the expiry year.
+  int yearsTo(DateTime? installDate) =>
+      installDate == null ? om - DateTime.now().year : om - installDate.year;
 }
 
 /// Photo attached to an installation stage.

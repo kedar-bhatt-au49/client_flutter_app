@@ -171,9 +171,9 @@ class GlobalEnterpriseQuotation extends StatelessWidget {
 
   const GlobalEnterpriseQuotation({super.key, required this.data});
 
-  static GlobalEnterpriseQuotation withDefaultData({super.key}) =>
+  static GlobalEnterpriseQuotation withDefaultData({Key? key}) =>
       GlobalEnterpriseQuotation(
-        key: super.key,
+        key: key,
         data: QuotationData(
           date: DateTime.now(),
           consumerName: 'RAJDEPSINH',
@@ -251,7 +251,7 @@ class _Header extends StatelessWidget {
                     width: 3,
                   ),
                 ),
-                child: CustomPaint(
+                child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: CustomPaint(
                     painter: SolarLogoPainter(),
@@ -472,7 +472,7 @@ class _SolarInfoTable extends StatelessWidget {
       // DC KW — has the panel-count box in col 2
       _specRow(
         'DC KW :',
-        data.systemCapacity,
+        value: data.systemCapacity,
         extraWidget: _panelCountBox(data.solarPanelQuantity),
       ),
       // Solar Panel Manufacturer
@@ -480,7 +480,7 @@ class _SolarInfoTable extends StatelessWidget {
         'SOLAR PANEL COMPANY\nMANUFACTURER :',
         widget: BrandBadge(data.solarPanelBrand),
       ),
-      _specRow('Wattpeak :', '${data.solarPanelWattpeak}'),
+      _specRow('Wattpeak :', value: data.solarPanelWattpeak),
       // Inverter
       _specRow(
         'Available Inverter\nCOMPANY MANUFACTURER :',
@@ -488,7 +488,7 @@ class _SolarInfoTable extends StatelessWidget {
       ),
       _specRow(
         'Inverter - AC KW :',
-        data.inverterKw,
+        value: data.inverterKw,
         subLabel: 'COMPANY : GLOBAL ENTERPRISE',
       ),
       // Cables
@@ -522,7 +522,7 @@ class _SolarInfoTable extends StatelessWidget {
       ),
       _specRow(
         'LA (ALU.) Cable :',
-        rowChildren: [Text('${data.laCableSpecs}', style: _valueStyle)],
+        rowChildren: [Text(data.laCableSpecs, style: _valueStyle)],
         extra: data.laCableLengthFt,
       ),
       _specRow(
@@ -535,7 +535,7 @@ class _SolarInfoTable extends StatelessWidget {
       ),
       _specRow(
         '20 MM Conduct\nPVC :',
-        data.conduitPvc,
+        value: data.conduitPvc,
       ),
     ];
   }
@@ -547,8 +547,8 @@ class _SolarInfoTable extends StatelessWidget {
   );
 
   TableRow _specRow(
-    String label,
-    String? value, {
+    String label, {
+    String? value,
     String? subLabel,
     List<Widget>? rowChildren,
     Widget? widget,
@@ -581,9 +581,9 @@ class _SolarInfoTable extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (rowChildren != null)
-                Row(children: rowChildren!)
+                Row(children: rowChildren)
               else if (widget != null)
-                widget!
+                widget
               else if (value != null)
                 Text(
                   value,

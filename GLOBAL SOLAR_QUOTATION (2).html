@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quotation — Global Solar 2.0 Client Management App</title>
+  <style>
+    :root {
+      --navy-900: #071440;
+      --navy-700: #0B1F5C;
+      --blue-500: #1E5BD8;
+      --sky-100: #EAF4FF;
+      --green-600: #1E8E3E;
+      --green-400: #4CC46A;
+      --gold-500: #F9B417;
+      --gold-300: #FFD86B;
+      --ink: #0F1B3D;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(180deg, var(--sky-100) 0%, #ffffff 100%);
+      color: var(--ink);
+      line-height: 1.6;
+      padding: 32px 16px;
+    }
+    .sheet {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 16px 48px rgba(15, 27, 61, 0.14);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
+      color: #fff;
+      padding: 36px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: "";
+      position: absolute;
+      right: -60px;
+      top: -60px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(249,180,23,0.5), transparent 70%);
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--gold-300);
+    }
+    .title {
+      font-size: 30px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+    .subtitle {
+      margin-top: 6px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px 40px;
+      background: var(--sky-100);
+      border-bottom: 1px solid #dbe9fb;
+      font-size: 14px;
+    }
+    .meta .label { color: #5a6b8a; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta .value { font-weight: 700; color: var(--ink); }
+    .body { padding: 32px 40px; }
+    h2 {
+      font-size: 18px;
+      color: var(--navy-700);
+      margin: 28px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gold-500);
+      display: inline-block;
+    }
+    h2 .num {
+      display: inline-flex;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--navy-700);
+      color: var(--gold-300);
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      margin-right: 8px;
+    }
+    p.desc { font-size: 14px; color: #3a4a6b; margin-bottom: 12px; }
+    ul.include { list-style: none; }
+    ul.include li {
+      padding: 7px 0 7px 28px;
+      position: relative;
+      font-size: 14px;
+      color: #2c3a5a;
+      border-bottom: 1px dashed #e3edf9;
+    }
+    ul.include li::before {
+      content: "";
+      position: absolute;
+      left: 4px; top: 13px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--green-400), var(--green-600));
+    }
+    ul.exclude { list-style: none; }
+    ul.exclude li {
+      padding: 7px 0 7px 28px;
+      position: relative;
+      font-size: 14px;
+      color: #2c3a5a;
+      border-bottom: 1px dashed #f3e3dd;
+    }
+    ul.exclude li::before {
+      content: "✕";
+      position: absolute;
+      left: 4px; top: 9px;
+      color: #c0392b;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    table.cost {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    table.cost th {
+      background: var(--navy-700);
+      color: #fff;
+      text-align: left;
+      padding: 12px 14px;
+      font-weight: 700;
+    }
+    table.cost td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e3edf9;
+      vertical-align: top;
+    }
+    table.cost tr:nth-child(even) td { background: #f7faff; }
+    table.cost .amt { text-align: right; font-weight: 700; white-space: nowrap; }
+    table.cost .free { color: var(--green-600); font-weight: 800; }
+    .total-row td {
+      background: linear-gradient(135deg, var(--gold-300), var(--gold-500)) !important;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--navy-900);
+      border-bottom: none;
+    }
+    .total-row .amt { font-size: 20px; }
+    .renewal {
+      margin-top: 10px;
+      background: var(--sky-100);
+      border-left: 4px solid var(--blue-500);
+      border-radius: 0 14px 14px 0;
+      padding: 16px 20px;
+      font-size: 14px;
+    }
+    .renewal h3 { font-size: 15px; color: var(--navy-700); margin-bottom: 8px; }
+    .renewal table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .renewal td { padding: 6px 0; }
+    .renewal .amt { text-align: right; font-weight: 700; }
+    .renewal .zero { color: var(--green-600); font-weight: 700; }
+    .note-box {
+      margin-top: 20px;
+      background: #fff8e6;
+      border-left: 4px solid var(--gold-500);
+      border-radius: 0 14px 14px 0;
+      padding: 16px 20px;
+      font-size: 13.5px;
+      color: #5a4a1a;
+    }
+    .note-box b { color: var(--navy-700); }
+    .footer {
+      background: var(--navy-900);
+      color: rgba(255,255,255,0.8);
+      text-align: center;
+      padding: 18px;
+      font-size: 13px;
+    }
+    .footer b { color: var(--gold-300); }
+    .print-btn {
+      display: flex;
+      justify-content: center;
+      margin: 24px auto 0;
+      max-width: 820px;
+    }
+    .print-btn button {
+      background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
+      color: var(--navy-900);
+      border: none;
+      font-size: 15px;
+      font-weight: 800;
+      padding: 12px 36px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(249,180,23,0.45);
+      min-height: 48px;
+    }
+    .print-btn button:hover { transform: scale(1.03); }
+    @media (max-width: 640px) {
+      .header, .meta, .body { padding-left: 20px; padding-right: 20px; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .sheet { box-shadow: none; border-radius: 0; }
+      .print-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+
+    <div class="header">
+      <div class="brand">☀ Global Solar 2.0</div>
+      <div class="title">Quotation — Client Management App</div>
+      <div class="subtitle">Android App for Clients, Follow-ups, Quotes, Payments & Installation Tracking</div>
+    </div>
+
+    <div class="meta">
+      <div>
+        <div class="label">Quotation No.</div>
+        <div class="value">GS-APP-2026-001</div>
+      </div>
+      <div>
+        <div class="label">Date</div>
+        <div class="value">30-09-2026</div>
+      </div>
+      <div>
+        <div class="label">Quotation To</div>
+        <div class="value">Global Solar 2.0 (Rooftop Solar)</div>
+      </div>
+      <div>
+        <div class="label">Attn.</div>
+        <div class="value">Mr. Jayrajsinh S. Umat (Founder)</div>
+      </div>
+      <div>
+        <div class="label">Validity</div>
+        <div class="value">15 days</div>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <h2><span class="num">1</span>Project Overview</h2>
+      <p class="desc">
+        Development of a <b>private Android Client Management App</b> for Global Solar 2.0 to manage:
+      </p>
+      <ul class="include">
+        <li>Client / Lead management (Talaja, Bhavnagar & nearby villages)</li>
+        <li>Follow-ups & reminders</li>
+        <li>Quotes based on Adani TOPCon package pricing</li>
+        <li>Payments & documents (₹10,000 registration, balance, Aadhaar / Electricity Bill / Cancelled Cheque)</li>
+        <li>Installation stage tracking (Fitting → PGVCL Inspection → Net Meter → Subsidy)</li>
+        <li>Reports & analytics dashboard</li>
+        <li>Access restricted to <b>only 2 admin users</b> (Founder & Co-Founder) — not a public app</li>
+      </ul>
+
+      <h2><span class="num">2</span>Cost Breakdown</h2>
+      <p class="desc">
+        <b>Our development charges are ₹0 (free of cost).</b> This quotation covers only the <b>paid third-party services</b> (database, APIs and AI model usage) required to run the app, and the domain — these are one-time setup costs, passed on to you at cost.
+      </p>
+      <table class="cost">
+        <thead>
+          <tr>
+            <th style="width:36px;">Sr.</th>
+            <th>Item</th>
+            <th>Description</th>
+            <th style="width:110px;" class="amt">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><b>Database</b></td>
+            <td>Cloud database to store clients, follow-ups, quotes, payments & installation data</td>
+            <td class="amt">7,200</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><b>APIs & Cloud Services</b></td>
+            <td>Authentication, photo storage, push notifications & cloud functions</td>
+            <td class="amt">4,800</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><b>AI Model Usage</b></td>
+            <td>AI-powered automation & assistant services used during development & operation</td>
+            <td class="amt">3,782</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><b>Domain Registration</b></td>
+            <td><b>globalsolar.co.in</b> domain (GoDaddy) including <b>Full Domain Protection</b></td>
+            <td class="amt">600</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><b>App Development</b></td>
+            <td>Design, development & testing — <b>FREE of cost</b></td>
+            <td class="amt free">₹0</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="3"><b>Total</b></td>
+            <td class="amt"><b>₹16,382</b></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="renewal">
+        <h3>Annual Renewals (From Year 2 onwards)</h3>
+        <table>
+          <tr><td>Domain <b>globalsolar.co.in</b> + <b>Full Domain Protection</b> (continuing both)</td><td class="amt">₹1,748 / year</td></tr>
+          <tr><td>Domain <b>globalsolar.co.in</b> only (without Full Domain Protection)</td><td class="amt">₹749 / year</td></tr>
+        </table>
+      </div>
+
+      <h2><span class="num">3</span>What Is Included</h2>
+      <ul class="include">
+        <li>Android APK of the Client Management App</li>
+        <li>Real-time cloud database — both Founder & Co-Founder access the <b>same live data</b></li>
+        <li>Secure login for 2 admin accounts only (no public registration)</li>
+        <li>Client management, follow-up reminders, quote generation, payment & document tracking</li>
+        <li>Installation stage tracking with photo uploads</li>
+        <li>Reports & analytics dashboard</li>
+        <li>Push notifications for follow-ups</li>
+        <li>Offline access — works even with weak internet, syncs when online</li>
+        <li>App icon, splash screen & branding matching the website</li>
+        <li><b>globalsolar.co.in</b> domain with Full Domain Protection</li>
+      </ul>
+
+      <h2><span class="num">4</span>What Is Not Included</h2>
+      <ul class="exclude">
+        <li>Google Play Store developer account fee (₹3,400 one-time) — <b>only if</b> you choose to publish publicly. For private use, the APK installs directly on your phones at no cost.</li>
+        <li>Any future feature additions beyond the agreed scope.</li>
+        <li>Maintenance / feature updates after delivery (can be quoted separately).</li>
+      </ul>
+
+<h2><span class="num">5</span>Payment Terms</h2>
+       <div class="note-box">
+         <b>Payment Schedule:</b><br />
+         • <b>40% Advance Payment</b> — Payable after proposal/approval accepted and work begins<br />
+         • <b>60% Balance Payment</b> — Payable on completion of the app<br /><br />
+         <b>Total Quotation Amount: ₹16,382</b>
+       </div>
+
+       <h2><span class="num">6</span>Notes</h2>
+       <div class="note-box">
+         <b>Development charges are ₹0.</b> This quotation covers only paid third-party services (database, APIs & AI model usage) and the domain, which are billed to the respective providers and passed on at cost.<br /><br />
+         Prices shown for the database, APIs and GoDaddy are subject to the respective providers' pricing policies and may change at renewal time. We will inform you before any renewal.<br /><br />
+         The app is built for <b>2 admin users</b>; adding more users may increase the database/API charges.<br /><br />
+         Final scope is as described in Section 1.
+       </div>
+
+    </div>
+
+    <div class="footer">
+      Prepared by <b>Madhav Mehta</b> &amp; <b>Kedar Bhatt</b> · Global Solar 2.0 Client Management App · Quotation No. GS-APP-2026-001
+    </div>
+  </div>
+
+  <div class="print-btn">
+    <button onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div>
+</body>
+</html>

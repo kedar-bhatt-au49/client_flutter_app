@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -14,9 +15,10 @@ import '../../core/widgets/gs_button.dart';
 import '../../core/widgets/gs_card.dart';
 import '../../core/widgets/solar_grid_divider.dart';
 import '../../models/client.dart';
+import '../../models/proposal_data.dart';
 import '../../models/quote.dart';
 import '../../providers/data_hub.dart';
-import '../../services/pdf_service.dart';
+import '../../services/proposal_pdf.dart';
 
 /// Standalone screen to create a client quotation from scratch.
 ///
@@ -36,9 +38,16 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
   final _villageController = TextEditingController();
   final _cityController = TextEditingController();
   final _mobileController = TextEditingController();
+  // Admin-editable overrides
+  final _dcCableSpecsController = TextEditingController(text: '4 sq.mm');
+  final _acWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _earthingWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _inverterKwController = TextEditingController(text: '3.6 kW');
+  final _customPriceController = TextEditingController();
 
   String _propertyType = GSPropertyType.residential;
   String _selectedPackageId = 'p3';
+  bool _useHinglish = false;
   bool _loading = false;
 
   @override
@@ -47,14 +56,25 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
     _villageController.dispose();
     _cityController.dispose();
     _mobileController.dispose();
+    _dcCableSpecsController.dispose();
+    _acWireSpecsController.dispose();
+    _earthingWireSpecsController.dispose();
+    _inverterKwController.dispose();
+    _customPriceController.dispose();
     super.dispose();
   }
 
   GSPackage get _pkg => gsPackageById(_selectedPackageId) ?? gsPackages.first;
   bool get _isResidential => _propertyType == GSPropertyType.residential;
+
+  int get _effectiveUpfront =>
+      _customPriceController.text.trim().isNotEmpty
+          ? int.tryParse(_customPriceController.text.trim()) ?? _pkg.upfront
+          : _pkg.upfront;
+
   int get _effectiveSubsidy => _isResidential ? GSTax.subsidyMax : 0;
-  int get _afterSubsidy => _pkg.upfront - _effectiveSubsidy;
-  int get _grandTotal => _pkg.upfront + GSTax.stampCharge;
+  int get _afterSubsidy => _effectiveUpfront - _effectiveSubsidy;
+  int get _grandTotal => _effectiveUpfront + GSTax.stampCharge;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +257,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                                 .copyWith(color: GSColors.statusLost)),
                       ),
                     const SizedBox(height: 16),
-                    _priceRow('Upfront (pre-subsidy)', _pkg.upfront),
+                    _priceRow('Upfront (pre-subsidy)', _effectiveUpfront),
                     _priceRow('Subsidy (PM Surya Ghar)', -_effectiveSubsidy,
                         color: _isResidential ? GSColors.green600 : GSColors.statusLost),
                     _priceRow('Structure Cost', _pkg.structureCost),
@@ -258,9 +278,103 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
                     .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
                 textAlign: TextAlign.center,
               ),
+               const SizedBox(height: 24),
+
+              // ── Advanced Editable Specs ───────────────────────────────
+              _sectionHeading('Advanced Specs (Manual Override)'),
+              Text(
+                'Override wiring gauge, inverter capacity, or price '
+                'before generating the quotation PDF.',
+                style: GSTextStyles.bodySmall
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+              ),
+              const SizedBox(height: 12),
+              GsCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _dcCableSpecsController,
+                      decoration: const InputDecoration(
+                        labelText: 'DC Cable (sq.mm)',
+                        hintText: 'e.g. 4 sq.mm',
+                        prefixIcon: Icon(Icons.cable, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _acWireSpecsController,
+                      decoration: const InputDecoration(
+                        labelText: 'AC Wire (sq.mm)',
+                        hintText: 'e.g. 2.5 sq.mm',
+                        prefixIcon: Icon(Icons.cable, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _earthingWireSpecsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Earthing Wire (sq.mm)',
+                        hintText: 'e.g. 2.5 sq.mm',
+                        prefixIcon: Icon(Icons.cable, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _inverterKwController,
+                      decoration: const InputDecoration(
+                        labelText: 'Inverter Capacity (kW)',
+                        hintText: 'e.g. 3.6 kW',
+                        prefixIcon: Icon(Icons.power_settings_new, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _customPriceController,
+                      decoration: InputDecoration(
+                        labelText: 'Custom Price (Optional)',
+                        hintText: 'Leave blank to use package price (₹${_pkg.upfront})',
+                        prefixIcon: Icon(Icons.currency_rupee, size: 20),
+                        prefixText: '₹ ',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // ── Language toggle ────────────────────────────────────
+              _sectionHeading('Document Language'),
+              Text(
+                'Choose English or Hinglish (Hindi+English) for the proposal PDF.',
+                style: GSTextStyles.bodySmall
+                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
+              ),
+              const SizedBox(height: 12),
+              ToggleButtons(
+                isSelected: [
+                  !_useHinglish,
+                  _useHinglish,
+                ],
+                onPressed: (i) =>
+                    setState(() => _useHinglish = i == 1),
+                borderRadius: BorderRadius.circular(12),
+                selectedColor: GSColors.navy900,
+                fillColor: GSColors.gold500,
+                color: GSColors.ink.withValues(alpha: 0.7),
+                children: const [
+                  Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('English')),
+                  Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('हिंग्लिश / Hinglish')),
+                ],
+              ),
               const SizedBox(height: 24),
 
-              // ── Generate & Share ────────────────────────────────────
               _sectionHeading('Generate & Share'),
               Text(
                 'Tap below to generate a PDF quotation and share it on WhatsApp.',
@@ -270,10 +384,17 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
               const SizedBox(height: 16),
 
               GsButton(
-                text: 'Generate PDF & Share',
+                text: 'Generate 7-Page Quote PDF & Share',
                 onPressed: _loading ? null : _generateAndShare,
                 isLoading: _loading,
                 icon: Icons.picture_as_pdf,
+              ),
+              const SizedBox(height: 16),
+
+              GsOutlinedButton(
+                text: 'Preview 7-Page Proposal PDF',
+                onPressed: _loading ? null : _previewPdf,
+                icon: Icons.visibility_outlined,
               ),
               const SizedBox(height: 16),
 
@@ -362,10 +483,10 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
         packageId: _pkg.id,
         kw: _pkg.kw,
         panels: _pkg.panels,
-        upfront: _pkg.upfront,
+        upfront: _effectiveUpfront,
         afterSubsidy: _afterSubsidy,
         structureCost: _pkg.structureCost,
-        total: _pkg.upfront,
+        total: _effectiveUpfront,
         status: GSQuoteStatus.sent,
         sentAt: now,
         isResidential: _isResidential,
@@ -375,11 +496,28 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       await hub.addClient(client);
       await hub.saveQuote(quote);
 
-      // Generate the PDF
-      final bytes = await PdfService.generateQuotation(
+      // Generate the 7-page "Roof Top Solar Proposal + Quotation" PDF
+      final proposalData = SolarProposalData.fromClientAndQuote(
         client: client,
         quote: quote,
+        dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+            ? _dcCableSpecsController.text.trim()
+            : null,
+        acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+            ? _acWireSpecsController.text.trim()
+            : null,
+        earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+            ? _earthingWireSpecsController.text.trim()
+            : null,
+        inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+            ? _inverterKwController.text.trim()
+            : null,
+        customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+            ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+            : null,
+        useHinglish: _useHinglish,
       );
+      final bytes = await ProposalPdf.generate(proposalData);
 
       final fileName =
           'GS_Quotation_${DateFormat('yyyyMMdd_HHmm').format(now)}.pdf';
@@ -394,14 +532,60 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
             XFile(file.path,
                 mimeType: 'application/pdf', name: fileName),
           ],
-          subject: 'Global Solar 2.0 — Solar Quotation',
+           subject: 'Global Solar 2.0 — 7-Page Roof Top Solar Proposal',
           text: _shareText,
         ),
       );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF generated and shared via WhatsApp')),
+        const SnackBar(content: Text('7-Page Proposal PDF generated and shared')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Opens the system PDF preview for the 7-page proposal — no saving, no sharing.
+  Future<void> _previewPdf() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+    try {
+      final pkg = gsPackageById(_selectedPackageId) ?? gsPackages.first;
+      final data = SolarProposalData.withDefaults(
+        customerName: _nameController.text.trim(),
+        customerMobile: '+91 ${_mobileController.text.trim()}',
+        customerLocation: _cityController.text.trim(),
+        leadName: _nameController.text.trim(),
+        quotationId: 'Q-${DateTime.now().millisecondsSinceEpoch}',
+        plantCapacityKw: pkg.kw.toStringAsFixed(2),
+        package: pkg,
+        dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+            ? _dcCableSpecsController.text.trim()
+            : null,
+        acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+            ? _acWireSpecsController.text.trim()
+            : null,
+        earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+            ? _earthingWireSpecsController.text.trim()
+            : null,
+        inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+            ? _inverterKwController.text.trim()
+            : null,
+        customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+            ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+            : null,
+        useHinglish: _useHinglish,
+      );
+      await Printing.layoutPdf(
+        onLayout: (_) => ProposalPdf.generate(data),
+        name: 'Solar Proposal ${data.quotationId}',
       );
     } catch (e) {
       if (!mounted) return;
@@ -417,7 +601,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       'Hello ${_nameController.text.trim()},\n\n'
       'Here is your solar quotation from Global Solar 2.0:\n\n'
       '${_pkg.kw} kW System (${_pkg.panels} panels)\n'
-      'Upfront: ₹${_pkg.upfront.formatWithComma()}\n'
+      'Upfront: ₹${_effectiveUpfront.formatWithComma()}\n'
       'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
       'Structure cost: ₹${_pkg.structureCost.formatWithComma()}\n'
       'Stamp charge: ₹${GSTax.stampCharge}\n'
@@ -425,6 +609,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       'TOTAL (incl. stamp): ₹${_grandTotal.formatWithComma()}\n\n'
       'Final quote after free site survey.\n'
       'Price valid for 1 week.\n\n'
+      '📎 A detailed 7-page Rooftop Solar Proposal + Quotation PDF is attached.\n\n'
       '- Jayrajsinh S. Umat & Gopalsinh J. Parmar\n'
       'Global Solar 2.0';
 

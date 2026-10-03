@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
 import '../../models/client.dart';
+import '../../models/proposal_data.dart';
 import '../../models/quote.dart';
 import '../../providers/data_hub.dart';
+import '../../services/proposal_pdf.dart';
 
 /// Quote builder — select a package, see prices, save & share (exact design).
 class QuoteBuilderScreen extends StatefulWidget {
@@ -37,6 +43,12 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   final _notesController = TextEditingController(
     text: 'Free site survey • Installation in 7 days • 1-year service support included.',
   );
+  // Admin-editable overrides
+  final _dcCableSpecsController = TextEditingController(text: '4 sq.mm');
+  final _acWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _earthingWireSpecsController = TextEditingController(text: '2.5 sq.mm');
+  final _inverterKwController = TextEditingController(text: '3.6 kW');
+  final _customPriceController = TextEditingController();
 
   @override
   void initState() {
@@ -54,15 +66,25 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _dcCableSpecsController.dispose();
+    _acWireSpecsController.dispose();
+    _earthingWireSpecsController.dispose();
+    _inverterKwController.dispose();
+    _customPriceController.dispose();
     super.dispose();
   }
 
   GSPackage get _pkg => gsPackageById(_selectedPackageId) ?? gsPackages.first;
   bool get _isEdit => widget.existing != null;
 
+  int get _effectiveUpfront =>
+      _customPriceController.text.trim().isNotEmpty
+          ? int.tryParse(_customPriceController.text.trim()) ?? _pkg.upfront
+          : _pkg.upfront;
+
   int get _effectiveSubsidy => _residential ? GSTax.subsidyMax : 0;
-  int get _afterSubsidy => _pkg.upfront - _effectiveSubsidy;
-  int get _grandTotal => _pkg.upfront + GSTax.stampCharge;
+  int get _afterSubsidy => _effectiveUpfront - _effectiveSubsidy;
+  int get _grandTotal => _effectiveUpfront + GSTax.stampCharge;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +108,8 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
                   _buildPropertyType(),
                   const SizedBox(height: 14),
                   _buildBreakdown(),
+                  const SizedBox(height: 14),
+                  _buildAdvancedSpecs(),
                   const SizedBox(height: 14),
                   _buildNotes(),
                   const SizedBox(height: 10),
@@ -551,7 +575,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _breakdownRow('Upfront (pre-subsidy)', '₹${_pkg.upfront.formatWithComma()}', _dark),
+          _breakdownRow('Upfront (pre-subsidy)', '₹${_effectiveUpfront.formatWithComma()}', _dark),
           _breakdownRow(
             'PM Surya Ghar Subsidy',
             _residential
@@ -669,6 +693,149 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       ),
     );
   }
+
+  // ── Advanced Specs ─────────────────────────────────────────────
+  Widget _buildAdvancedSpecs() {
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _iconTile(Icons.tune_rounded),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Advanced Specs',
+                    style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _dark)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text('Optional',
+                    style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 10,
+                        color: _slate)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Override wiring gauge, inverter kW, or price before sharing.',
+            style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 11.5,
+                color: _slate),
+          ),
+          const SizedBox(height: 12),
+          _specField('DC Cable (sq.mm)', _dcCableSpecsController),
+          _specField('AC Wire (sq.mm)', _acWireSpecsController),
+          _specField('Earthing Wire (sq.mm)', _earthingWireSpecsController),
+          _specField('Inverter Capacity', _inverterKwController),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _customPriceController,
+            style: const TextStyle(fontSize: 12, color: _dark, height: 1.5),
+            decoration: InputDecoration(
+              labelText: 'Custom Price (Optional)',
+              hintText: 'Leave blank to use package price (₹${_pkg.upfront})',
+              prefixIcon: Icon(Icons.currency_rupee, size: 20, color: _navyDeep),
+              prefixText: '₹ ',
+              labelStyle: TextStyle(color: _navyDeep),
+              hintStyle: TextStyle(color: _slate),
+              filled: true,
+              fillColor: _sky,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _skyBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _navyDeep, width: 1.2),
+              ),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+          ),
+          if (_isEdit)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: DropdownButtonFormField<String>(
+                initialValue: _status,
+                decoration: InputDecoration(
+                  labelText: 'Quote Status',
+                  labelStyle: TextStyle(color: _navyDeep),
+                  filled: true,
+                  fillColor: _sky,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: _skyBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: _navyDeep, width: 1.2),
+                  ),
+                ),
+                items: GSQuoteStatus.all
+                    .map((s) => DropdownMenuItem(
+                        value: s, child: Text(GSQuoteStatus.labelOf(s))))
+                    .toList(),
+                onChanged: (v) => setState(() => _status = v ?? 'draft'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _specField(String label, TextEditingController controller) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: TextFormField(
+          controller: controller,
+          style: const TextStyle(fontSize: 12, color: _dark, height: 1.5),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(color: _navyDeep),
+            hintStyle: TextStyle(color: _slate),
+            filled: true,
+            fillColor: _sky,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _skyBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _navyDeep, width: 1.2),
+            ),
+          ),
+        ),
+      );
 
   // ── Special notes ──────────────────────────────────────────────
   Widget _buildNotes() {
@@ -805,44 +972,91 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            InkWell(
-              onTap: _loading ? null : _saveQuote,
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [_gold, _goldLight, _goldDark],
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _loading ? null : _saveQuote,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [_gold, _goldLight, _goldDark],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: _gold.withValues(alpha: 0.35), blurRadius: 18),
+                        ],
+                      ),
+                      child: Center(
+                        child: _loading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: _navy))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_circle_rounded,
+                                      size: 20, color: _navy),
+                                  const SizedBox(width: 8),
+                                  Text(_isEdit ? 'Update Quote' : 'Save & Share Quote',
+                                      style: const TextStyle(
+                                          fontFamily: 'Outfit',
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: _navy)),
+                                ],
+                              ),
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(color: _gold.withValues(alpha: 0.35), blurRadius: 18),
-                  ],
                 ),
-                child: Center(
-                  child: _loading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: _navy))
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.check_circle_rounded,
-                                size: 20, color: _navy),
-                            const SizedBox(width: 8),
-                            Text(_isEdit ? 'Update & Share Quote' : 'Save & Share Quote',
-                                style: const TextStyle(
-                                    fontFamily: 'Outfit',
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: _navy)),
+                if (!_isEdit)
+                  const SizedBox(width: 12),
+                if (!_isEdit)
+                  Expanded(
+                    child: InkWell(
+                      onTap: _loading ? null : _sharePdf,
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _navyDeep.withValues(alpha: 0.2)),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x0A071440), blurRadius: 8),
                           ],
                         ),
-                ),
-              ),
+                        child: Center(
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: _navy))
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.picture_as_pdf,
+                                        size: 20, color: _navyDeep),
+                                    const SizedBox(width: 8),
+                                    Text('Share PDF',
+                                        style: TextStyle(
+                                            fontFamily: 'Outfit',
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: _navyDeep)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             const Text(
@@ -929,10 +1143,10 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       packageId: _selectedPackageId,
       kw: _pkg.kw,
       panels: _pkg.panels,
-      upfront: _pkg.upfront,
+      upfront: _effectiveUpfront,
       afterSubsidy: _afterSubsidy,
       structureCost: _pkg.structureCost,
-      total: _pkg.upfront,
+      total: _effectiveUpfront,
       status: _status,
       sentAt: now,
       isResidential: _residential,
@@ -952,7 +1166,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       'Hello,\n\n'
       'Here is your solar quote from Global Solar 2.0:\n\n'
       '${pkg.kw} kW System (${pkg.panels} panels)\n'
-      'Total (pre-subsidy): ₹${pkg.upfront.formatWithComma()}\n'
+      'Total (pre-subsidy): ₹${_effectiveUpfront.formatWithComma()}\n'
       'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
       'Structure cost: ₹${pkg.structureCost.formatWithComma()}\n'
       'Stamp charge: ₹${GSTax.stampCharge}\n'
@@ -964,6 +1178,100 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     );
     final url = 'https://wa.me/${GSUsers.whatsappNumber}?text=$message';
     launchUrl(Uri.parse(url));
+  }
+
+  Future<void> _sharePdf() async {
+    setState(() => _loading = true);
+    try {
+      final hub = context.read<DataHub>();
+      final quote = QuoteModel(
+        id: hub.generateId(),
+        clientId: widget.client?.id ?? '',
+        packageId: _selectedPackageId,
+        kw: _pkg.kw,
+        panels: _pkg.panels,
+        upfront: _effectiveUpfront,
+        afterSubsidy: _afterSubsidy,
+        structureCost: _pkg.structureCost,
+        total: _effectiveUpfront,
+        status: 'draft',
+        sentAt: DateTime.now(),
+        isResidential: _residential,
+      );
+
+      final SolarProposalData proposalData;
+      if (widget.client != null) {
+        proposalData = SolarProposalData.fromClientAndQuote(
+          client: widget.client!,
+          quote: quote,
+          dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+              ? _dcCableSpecsController.text.trim()
+              : null,
+          acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+              ? _acWireSpecsController.text.trim()
+              : null,
+          earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+              ? _earthingWireSpecsController.text.trim()
+              : null,
+          inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+              ? _inverterKwController.text.trim()
+              : null,
+          customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+              ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+              : null,
+        );
+      } else {
+        proposalData = SolarProposalData.withDefaults(
+          quotationId: quote.id,
+          plantCapacityKw: _pkg.kw.toStringAsFixed(2),
+          package: _pkg,
+          dcCableSpecs: _dcCableSpecsController.text.trim().isNotEmpty
+              ? _dcCableSpecsController.text.trim()
+              : null,
+          acWireSpecs: _acWireSpecsController.text.trim().isNotEmpty
+              ? _acWireSpecsController.text.trim()
+              : null,
+          earthingWireSpecs: _earthingWireSpecsController.text.trim().isNotEmpty
+              ? _earthingWireSpecsController.text.trim()
+              : null,
+          inverterKwOverride: _inverterKwController.text.trim().isNotEmpty
+              ? _inverterKwController.text.trim()
+              : null,
+          customUpfrontPrice: _customPriceController.text.trim().isNotEmpty
+              ? int.tryParse(_customPriceController.text.trim().replaceAll(RegExp(r'[\s,₹]'), ''))
+              : null,
+        );
+      }
+
+      final bytes = await ProposalPdf.generate(proposalData);
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/gs_proposal_${quote.id}.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: 'Global Solar 2.0 — Roof Top Solar Proposal',
+          text: '${_pkg.kw} kW System (${_pkg.panels} panels)\n'
+              'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
+              'Total: ₹${_grandTotal.formatWithComma()}\n'
+              '7-page detailed proposal PDF attached.',
+        ),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('7-Page Proposal PDF shared')),
+      );
+    } catch (e) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to generate PDF: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 }
 

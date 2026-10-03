@@ -1,0 +1,5 @@
+"const fs=require('fs');" 
+"let c=fs.readFileSync('lib/services/proposal_pdf.dart','utf8');" 
+"const nav='color: navy';" 
+"const gol='color: gold';" 
+"console.log('Script ready');" 

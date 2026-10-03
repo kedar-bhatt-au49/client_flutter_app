@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
+import 'features/quotes/create_estimate_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/data_hub.dart';
 import 'services/auth_service_impl.dart';
@@ -54,6 +55,7 @@ class GlobalSolarApp extends StatelessWidget {
         routes: {
           '/login': (_) => const LoginScreen(),
           '/home': (_) => const MainShell(),
+          '/create-estimate': (_) => const CreateEstimateScreen(),
         },
       ),
     );

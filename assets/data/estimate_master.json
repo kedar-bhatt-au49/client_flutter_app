@@ -1,0 +1,113 @@
+{
+  "estimate_number_prefix": "EST",
+  "default_currency": "INR",
+  "default_lead_stage": "new",
+  "expiry_days": 7,
+  "module_count_range": [2, 9],
+  "discount_cap_per_kw": 1500,
+  "insurance_cap_percent": 2.0,
+  "insurance_max_amount": 5000,
+
+  "currencies": [
+    { "code": "INR", "name": "Indian Rupee", "symbol": "\u20B9" },
+    { "code": "USD", "name": "US Dollar", "symbol": "$" },
+    { "code": "EUR", "name": "Euro", "symbol": "\u20AC" }
+  ],
+
+  "lead_stages": [
+    { "id": "new", "label": "New Lead", "dot_color": "#2196F3" },
+    { "id": "contacted", "label": "Contacted", "dot_color": "#9C27B0" },
+    { "id": "site-visit", "label": "Site Visit", "dot_color": "#2196F3" },
+    { "id": "quoted", "label": "Quoted", "dot_color": "#FF9800" },
+    { "id": "booked", "label": "Booked", "dot_color": "#F44336" },
+    { "id": "installed", "label": "Installed", "dot_color": "#1E8E3E" },
+    { "id": "lost", "label": "Lost", "dot_color": "#9E9E9E" }
+  ],
+
+  "panels": [
+    {
+      "id": "adani-dcr-perc-bifacial",
+      "name": "Adani-DCR-PERC-Bifacial",
+      "brand": "Adani",
+      "warranties": ["12yr Product", "25yr Performance"],
+      "wattages": [450, 540, 600, 610, 615],
+      "wattage_rates": { "450": 18, "540": 20, "600": 21, "610": 22, "615": 22 }
+    },
+    {
+      "id": "adani-monocrystalline",
+      "name": "Adani-Monocrystalline",
+      "brand": "Adani",
+      "warranties": ["12yr Product", "25yr Performance"],
+      "wattages": [450, 540, 600],
+      "wattage_rates": { "450": 18, "540": 20, "600": 21 }
+    },
+    {
+      "id": "renewsys-bifacial",
+      "name": "Renewsys-Bifacial",
+      "brand": "Renewsys",
+      "warranties": ["12yr Product", "20yr Performance"],
+      "wattages": [450, 500, 540, 600],
+      "wattage_rates": { "450": 17, "500": 18, "540": 19, "600": 20 }
+    },
+    {
+      "id": "vikram-monoper",
+      "name": "Vikram-Monoper",
+      "brand": "Vikram",
+      "warranties": ["10yr Product", "25yr Performance"],
+      "wattages": [540, 600, 610],
+      "wattage_rates": { "540": 19, "600": 20, "610": 21 }
+    }
+  ],
+
+  "inverters": [
+    {
+      "id": "polycab-string",
+      "name": "Polycab-String",
+      "brand": "Polycab",
+      "compatible_ratings": [3.6, 5.0, 6.0, 8.0],
+      "rating_prices": { "3.6": 28000, "5.0": 38000, "6.0": 45000, "8.0": 65000 }
+    },
+    {
+      "id": "fronius-symo",
+      "name": "Fronius-Symo",
+      "brand": "Fronius",
+      "compatible_ratings": [3.6, 5.0, 6.0, 8.0, 10.0, 15.0, 17.5],
+      "rating_prices": { "3.6": 35000, "5.0": 48000, "6.0": 62000, "8.0": 85000, "10.0": 110000, "15.0": 180000, "17.5": 220000 }
+    },
+    {
+      "id": "sma-sunny-boy",
+      "name": "SMA-Sunny-Boy",
+      "brand": "SMA",
+      "compatible_ratings": [3.6, 5.0, 6.0, 8.0],
+      "rating_prices": { "3.6": 38000, "5.0": 52000, "6.0": 68000, "8.0": 92000 }
+    }
+  ],
+
+  "structure_pipes": [
+    { "label": "40402 MM", "description": "40x40x2 mm Hot-Dip Galvanized", "rate_per_meter": 650 },
+    { "label": "60402 MM", "description": "60x40x2 mm Hot-Dip Galvanized", "rate_per_meter": 850 },
+    { "label": "80402 MM", "description": "80x40x2 mm Hot-Dip Galvanized", "rate_per_meter": 1200 }
+  ],
+
+  "bos_items": [
+    { "name": "DC Cable 4 sq.mm", "qty": 65, "unit": "mtr", "rate": 12 },
+    { "name": "AC Wire 2.5 sq.mm", "qty": 80, "unit": "mtr", "rate": 8 },
+    { "name": "MC4 Connectors & Extensions", "qty": 10, "unit": "Nos", "rate": 150 },
+    { "name": "Chemical Earthing", "qty": 2, "unit": "Nos", "rate": 800 },
+    { "name": "Net Meter Application", "qty": 1, "unit": "set", "rate": 1500 },
+    { "name": "GEDA Registration", "qty": 1, "unit": "set", "rate": 2000 }
+  ],
+
+  "gst_profiles": [
+    { "label": "GST18 [18%]", "cgst": 9.0, "sgst": 9.0 },
+    { "label": "GST8.9 [8.9%]", "cgst": 4.5, "sgst": 4.5 },
+    { "label": "GST5 [5%]", "cgst": 2.5, "sgst": 2.5 },
+    { "label": "GST3 [3%]", "cgst": 1.5, "sgst": 1.5 },
+    { "label": "GST0 [0%]", "cgst": 0.0, "sgst": 0.0 }
+  ],
+
+  "default_panel": "adani-dcr-perc-bifacial",
+  "default_panel_wattage": 610,
+  "default_inverter": "polycab-string",
+  "default_inverter_kw": 3.6
+}

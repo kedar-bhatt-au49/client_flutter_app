@@ -361,73 +361,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     return false;
   }
 
-  // ── Ensure pricing data exists for the PDF ──
-
-  /// If the Price Calculator was never run, populate line items from the
-  /// nearest solar package so that page 3 of the PDF always shows pricing.
-  void _ensureLineItems() {
-    if (_estimate.lineItems.isNotEmpty) return;
-
-    final capacity =
-        double.tryParse(_capacityCtrl.text.trim()) ?? _estimate.capacityKw;
-
-    // Nearest package by capacity — default to p5 (4.31 kW "Best Value")
-    final pkg = capacity != null && capacity > 0
-        ? (gsPackages.reduce(
-            (a, b) => (capacity - a.kw).abs() < (capacity - b.kw).abs()
-                ? a
-                : b))
-        : gsPackages.firstWhere((p) => p.id == 'p5');
-
-    const gstRate = 6; // 6 % CGST + 6 % SGST
-
-    _estimate.lineItems.addAll([
-      EstimateLineItem(
-        description: '${pkg.kw.toStringAsFixed(2)} kW Solar PV System',
-        specs: '${pkg.panels} × Adani TOPCon 610/615Wp solar panels, '
-            'Polycab ${pkg.kw.toStringAsFixed(2)}kW string inverter, '
-            'Elevated MS structure, ACDB/DCDB combo, MC4 connectors & extensions, '
-            'DC cable 4 sq.mm, AC wire 2.5 sq.mm, Earthing wire 2.5 sq.mm '
-            '+ 40ft GI strip, Chemical earthing (2 nos), Cable ties & accessories',
-        qty: 1,
-        rate: pkg.upfront,
-        cgstPercent: gstRate.toDouble(),
-        sgstPercent: gstRate.toDouble(),
-      ),
-      EstimateLineItem(
-        description: 'Structure & Mounting (Elevated)',
-        specs: 'Hot-dip galvanized MS structure, 80×40×2 mm (leg & rafter), '
-            '40×40×2 mm (purlin)',
-        qty: 1,
-        rate: pkg.structureCost,
-        cgstPercent: gstRate.toDouble(),
-        sgstPercent: gstRate.toDouble(),
-      ),
-      EstimateLineItem(
-        description: 'Meter Charge & Agreement',
-        qty: 1,
-        rate: 1500,
-        cgstPercent: gstRate.toDouble(),
-        sgstPercent: gstRate.toDouble(),
-      ),
-      EstimateLineItem(
-        description: 'GEDA Registration Charge',
-        qty: 1,
-        rate: 2000,
-        cgstPercent: gstRate.toDouble(),
-        sgstPercent: gstRate.toDouble(),
-      ),
-      EstimateLineItem(
-        description: 'Stamp Charge',
-        qty: 1,
-        rate: GSTax.stampCharge,
-        cgstPercent: 0,
-        sgstPercent: 0,
-        taxable: false,
-      ),
-    ]);
-  }
-
   // ── Navigation ──
 
   void _onBack() {
@@ -449,10 +382,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   }
 
   Future<void> _saveEstimate() async {
-    // Auto-populate line items if the Price Calculator was never run,
-    // so that page 3 of the PDF always shows real pricing.
-    _ensureLineItems();
-
     final hub = context.read<DataHub>();
 
     // Sync all controller values into the model

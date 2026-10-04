@@ -892,11 +892,11 @@ class _Renderer {
     );
   }
 
-  /// The 8-column line-items table.
+  /// The 8-column line-items table (Image column removed per request).
   pw.Widget _lineItemsTable() {
     final headerCells = [
-      '#', 'Item & Description', 'Qty', 'Rate',
-      'Discount', 'CGST', 'SGST', 'Total'
+      '#', 'Item & Description', 'Qty',
+      'Rate', 'Discount', 'CGST', 'SGST', 'Total'
     ];
 
     final tableRows = <pw.TableRow>[
@@ -925,6 +925,7 @@ class _Renderer {
     for (int i = 0; i < d.lineItems.length; i++) {
       final item = d.lineItems[i];
       final isAlt = i.isEven;
+      final isFirst = i == 0;
       tableRows.add(pw.TableRow(
         decoration: pw.BoxDecoration(
           color: isAlt ? PdfColors.white : PdfColors.grey100,
@@ -936,18 +937,26 @@ class _Renderer {
             padding: const pw.EdgeInsets.all(4),
             child: pw.Text('${i + 1}', style: _t(8), textAlign: pw.TextAlign.center),
           )),
-          // 1 — Description
+          // 1 — Description (+ component sub-list for first row)
           pw.Padding(
             padding: const pw.EdgeInsets.all(4),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(_s(item.description), style: _t(8, bold: true)),
-                for (final spec in item.specs)
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.only(top: 1.5),
-                    child: _bullet(_s(spec), _t(7), navy),
-                  ),
+                if (isFirst) ...[
+                  for (final spec in item.specs)
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.only(top: 1.5),
+                      child: pw.Text(_s(spec), style: _t(7, color: PdfColors.grey700)),
+                    ),
+                ] else ...[
+                  for (final spec in item.specs)
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.only(top: 1.5),
+                      child: _bullet(_s(spec), _t(7), navy),
+                    ),
+                ],
               ],
             ),
           ),
@@ -957,20 +966,20 @@ class _Renderer {
           pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.rate), style: _t(8.5), textAlign: pw.TextAlign.center)),
           // 4 — Discount
           pw.Center(child: pw.Text(item.discount == 0 ? '-' : ProposalPdf.money(item.discount), style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 5 — CGST
+          // 5 — CGST (amount + % in two lines)
           pw.Center(child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text('${item.cgstPercent}%', style: _t(7.5)),
               pw.Text(ProposalPdf.money(item.cgstAmount), style: _t(7.5)),
+              pw.Text('${item.cgstPercent}%', style: _t(6.5, color: PdfColors.grey600)),
             ],
           )),
-          // 6 — SGST
+          // 6 — SGST (amount + % in two lines)
           pw.Center(child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text('${item.sgstPercent}%', style: _t(7.5)),
               pw.Text(ProposalPdf.money(item.sgstAmount), style: _t(7.5)),
+              pw.Text('${item.sgstPercent}%', style: _t(6.5, color: PdfColors.grey600)),
             ],
           )),
           // 7 — Total
@@ -983,47 +992,136 @@ class _Renderer {
       border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.4),
       defaultVerticalAlignment: pw.TableCellVerticalAlignment.top,
       columnWidths: {
-        0: pw.FixedColumnWidth(20),
-        1: pw.FlexColumnWidth(2.5),
-        2: pw.FixedColumnWidth(28),
-        3: pw.FixedColumnWidth(50),
-        4: pw.FixedColumnWidth(46),
-        5: pw.FixedColumnWidth(44), // CGST — wider for 'Rs. X,XXX' amounts
-        6: pw.FixedColumnWidth(44), // SGST — wider for 'Rs. X,XXX' amounts
-        7: pw.FixedColumnWidth(50),
+        0: pw.FixedColumnWidth(20),      // # (4%)
+        1: pw.FlexColumnWidth(2.5),      // Item & Description (32%)
+        2: pw.FixedColumnWidth(36),      // Qty (10%)
+        3: pw.FixedColumnWidth(50),      // Rate (10%)
+        4: pw.FixedColumnWidth(46),      // Discount (9%)
+        5: pw.FixedColumnWidth(44),      // CGST (10%)
+        6: pw.FixedColumnWidth(44),      // SGST (10%)
+        7: pw.FixedColumnWidth(50),      // Total (12%)
       },
       children: tableRows,
     );
   }
 
-  /// Bottom section of the quotation page: amount-in-words + notes (left),
-  /// totals + bank details + signature (right).
+  /// Bottom section of the quotation page (matches HTML spec):
+  /// amount-in-words (left, italic) + totals box (right, bordered) on same line,
+  /// then Notes + Bank Details + Signature as 3-column footer section.
   pw.Widget _quotationBottom() {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        // ── Amount in words ──
-        pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
-        pw.SizedBox(height: 14),
-
         // ── Financial Summary Block (full-width, page 3) ──
         _financialSummary(),
+        pw.SizedBox(height: 12),
+
+        // ── Amount in words + Totals box (same row) ──
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Text(_s(d.amountInWords),
+                  style: _t(8.5, color: PdfColors.grey700)),
+            ),
+            pw.SizedBox(width: 16),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(8),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey600, width: 0.5),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  // ── Sub Total (highlighted) ──
+                  _highlightedTotalRow(
+                    'Sub Total: ',
+                    ProposalPdf.money(d.subTotal),
+                  ),
+                  pw.SizedBox(height: 3),
+                  // ── Subsidy (highlighted) ──
+                  _highlightedTotalRow(
+                    'Subsidy: ',
+                    '-${ProposalPdf.money(d.subsidyAmount)}',
+                    amountColor: _fsGreenStart,
+                  ),
+                  pw.SizedBox(height: 3),
+                  // Tax(GST) (normal, not highlighted)
+                  pw.Row(
+                    mainAxisSize: pw.MainAxisSize.min,
+                    children: [
+                      pw.Text('Tax(GST): ', style: _t(8)),
+                      pw.Text(ProposalPdf.money(d.taxGst),
+                          style: _t(8, bold: true)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 3),
+                  // ── Grand Total (highlighted) ──
+                  _highlightedTotalRow(
+                    'Grand Total: ',
+                    ProposalPdf.money(d.grandTotal),
+                    isTotal: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         pw.SizedBox(height: 14),
 
-        // ── Notes + Bank Details (side by side) ──
+        // ── Notes + Bank Details + Signature (3-column footer section) ──
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Expanded(child: _notesBox()),
-            pw.SizedBox(width: 24),
+            pw.SizedBox(width: 16),
             pw.Expanded(child: _bankBox()),
+            pw.SizedBox(width: 16),
+            pw.Expanded(child: _signatureBlock()),
           ],
         ),
-        pw.SizedBox(height: 18),
-
-        // ── Signature ──
-        _signatureBlock(),
       ],
+    );
+  }
+
+  /// Renders a totals row with a highlighted background so key amounts
+  /// (Sub Total, Subsidy, Grand Total) stand out below the quotation table.
+  pw.Widget _highlightedTotalRow(
+    String label,
+    String amount, {
+    PdfColor? amountColor,
+    bool isTotal = false,
+  }) {
+    final PdfColor bg = isTotal
+        ? PdfColor.fromHex('#FFF8E1') // light gold — final total
+        : PdfColor.fromHex('#E8F4FB'); // light blue — subtotal / subsidy
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: pw.BoxDecoration(
+        color: bg,
+        borderRadius: pw.BorderRadius.circular(3),
+        border: pw.Border.all(color: gold, width: 0.5),
+      ),
+      child: pw.Row(
+        mainAxisSize: pw.MainAxisSize.min,
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: _t(isTotal ? 9 : 8, bold: true, color: navy),
+          ),
+          pw.Text(
+            amount,
+            style: _t(
+              isTotal ? 11 : 9,
+              bold: true,
+              color: amountColor ?? (isTotal ? navy : gold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1051,82 +1149,85 @@ class _Renderer {
     );
   }
 
-  /// ── Financial Summary Block (replaces totals box, page 3) ─────────────────
-  /// Renders the 4-row angled-divider summary that mirrors the HTML template:
-  /// 1. System Amount w/ GST  (navy/yellow, highlighted total)
-  /// 2. Government Subsidy    (green, NOT highlighted — hidden when 0)
-  /// 3. Net Cost After Subsidy (navy/yellow, highlighted total)
-  /// 4. Payment Mode          (light-blue, no yellow block)
+  /// ── Financial Summary Block (page 3) ─────────────────
+  /// Shows Sub Total + Tax(GST) = Total in a bordered container
+  /// with colored rows (navy/yellow highlighting).  Uses a simple
+  /// layout — no _DiagonalClip — to avoid paint failures.
   pw.Widget _financialSummary() {
-    final totalBeforeSubsidy = d.grandTotal + d.subsidyAmount;
-    final hasSubsidy = d.subsidyAmount > 0;
-    String tl(String en, String hinglish) => d.useHinglish ? hinglish : en;
+    String tl(String hinglish, String en) => d.useHinglish ? hinglish : en;
 
     return pw.Container(
       width: double.infinity,
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: navy, width: 0.75),
+      ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
           // Caption
           pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 8),
+            padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
             child: pw.Text(
-              'Financial Summary (Inclusive of GST)',
-              style: _t(7.5, bold: true, color: navy),
+              tl('वितनीय सारांश (Financial Summary)', 'Financial Summary'),
+              style: _t(8, bold: true, color: navy),
               textAlign: pw.TextAlign.center,
             ),
           ),
-
-          // Row 1 — System Amount w/ GST (navy / yellow)
-          _fsRow(
-            leftGradient: _navyGrad,
-            rightGradient: _yellowGrad,
-            leftTextColor: PdfColors.white,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconRupee,
-            label: tl('कुल मूल्य (System Amount w/ GST)', 'System Amount w/ GST'),
-            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
+          _fsRowSimple(
+            label: tl('उपयोगिता (Sub Total)', 'Sub Total'),
+            amount: ProposalPdf.moneyINR(d.subTotal),
+            bgColor: navy,
+            amountColor: gold,
           ),
-
-          // Row 2 — Subsidy (green, NOT highlighted), hidden when 0
-          if (hasSubsidy)
-            _fsRow(
-              leftGradient: _greenGrad,
-              rightGradient: _lightGreenGrad,
-              leftTextColor: PdfColors.white,
-              rightTextColor: _fsDarkGreen,
-              iconSvg: _iconHandCoin,
-              label: tl('सरकारी सब्सिडी (Government Subsidy)',
-                  'Government Subsidy (PM Surya Ghar)'),
-              amount: ProposalPdf.moneyINR(d.subsidyAmount),
-            ),
-
-          // Row 3 — Net Cost After Subsidy (navy / yellow)
-          _fsRow(
-            leftGradient: _navyGrad,
-            rightGradient: _yellowGrad,
-            leftTextColor: PdfColors.white,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconPerson,
-            label: tl('अंतिम लागत (Net Cost After Subsidy)',
-                'Net Cost After Subsidy'),
+          _fsRowSimple(
+            label: tl('कर (Tax(GST))', 'Tax(GST)'),
+            amount: ProposalPdf.moneyINR(d.taxGst),
+            bgColor: navy,
+            amountColor: gold,
+          ),
+          _fsRowSimple(
+            label: tl('कुल योग (Total)', 'Total'),
             amount: ProposalPdf.moneyINR(d.grandTotal),
+            bgColor: navy,
+            amountColor: gold,
+            isTotal: true,
           ),
+        ],
+      ),
+    );
+  }
 
-          // Row 4 — Payment Mode (light-blue, no yellow block)
-          _fsRow(
-            leftColor: _fsLightBlue,
-            rightColor: _fsLightBlue,
-            leftBorderColor: _fsLightBlueBorder,
-            rightBorderColor: _fsLightBlueBorder,
-            leftTextColor: _fsNavyStart,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconCheque,
-            label: tl('नेट पेबेबल (Net payable by cheque/cash)',
-                'Net payable by cheque/cash'),
-            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
-            noDiagonal: true,
-          ),
+  /// Simplified financial-summary row — two-column, solid background.
+  pw.Widget _fsRowSimple({
+    required String label,
+    required String amount,
+    required PdfColor bgColor,
+    required PdfColor amountColor,
+    bool isTotal = false,
+  }) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        gradient: pw.LinearGradient(
+          colors: [bgColor, PdfColor.fromHex('#1E3A8A')],
+          begin: pw.Alignment.topLeft,
+          end: pw.Alignment.bottomRight,
+        ),
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.grey400, width: 0.3),
+        ),
+      ),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label,
+              style: _t(isTotal ? 9 : 8,
+                  bold: isTotal, color: PdfColors.white)),
+          pw.Text(amount,
+              style: _t(isTotal ? 10 : 9,
+                  bold: isTotal, color: amountColor)),
         ],
       ),
     );

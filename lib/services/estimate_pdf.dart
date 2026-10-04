@@ -68,9 +68,11 @@ class EstimatePdf {
     // here — before the subsidy adjustment line item is appended below —
     // so the fold does not count the -Subsidy row. ──
     final int baseSubTotal = b?.subtotal ??
-        lineItems.fold(0, (s, i) => s + i.rate * int.parse(i.qty));
-    final int cgstTotal = b?.cgstTotal ?? 0;
-    final int sgstTotal = b?.sgstTotal ?? 0;
+        lineItems.fold(0, (s, i) => s + i.taxableAmount);
+    final int cgstTotal = b?.cgstTotal ??
+        lineItems.fold(0, (s, i) => s + i.cgstAmount);
+    final int sgstTotal = b?.sgstTotal ??
+        lineItems.fold(0, (s, i) => s + i.sgstAmount);
     final int baseGrandTotal =
         b?.grandTotal ?? (baseSubTotal + cgstTotal + sgstTotal);
 

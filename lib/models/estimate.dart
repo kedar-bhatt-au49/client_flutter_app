@@ -704,6 +704,10 @@ class EstimateModel {
   DateTime expiryDate;
   String currency; // currency code, default 'INR'
   double? capacityKw; // auto-filled from Price Calculator
+  String? systemId; // selected system (gsQuoteSystems), drives pricing + panel image
+  String? wiringSqMm; // manual wiring size (e.g. "4 sq.mm")
+  double? inverterKwManual; // manual inverter kW capacity
+  int? totalPayableOverride; // manual price override (GST-inclusive)
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
 
@@ -737,6 +741,10 @@ class EstimateModel {
     DateTime? expiryDate,
     this.currency = 'INR',
     this.capacityKw,
+    this.systemId,
+    this.wiringSqMm,
+    this.inverterKwManual,
+    this.totalPayableOverride,
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
     Map<String, int>? structureQuantities,
@@ -821,6 +829,10 @@ class EstimateModel {
         'expiry_date': expiryDate.toIso8601String(),
         'currency': currency,
         'capacity_kw': capacityKw,
+        'system_id': systemId,
+        'wiring_sq_mm': wiringSqMm,
+        'inverter_kw_manual': inverterKwManual,
+        'total_payable_override': totalPayableOverride,
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
         'structure_quantities': structureQuantities,
@@ -856,6 +868,10 @@ class EstimateModel {
           : null,
       currency: j['currency'] as String? ?? 'INR',
       capacityKw: (j['capacity_kw'] as num?)?.toDouble(),
+      systemId: j['system_id'] as String?,
+      wiringSqMm: j['wiring_sq_mm'] as String?,
+      inverterKwManual: (j['inverter_kw_manual'] as num?)?.toDouble(),
+      totalPayableOverride: j['total_payable_override'] as int?,
       taxMode: j['tax_mode'] as String? ?? 'exclusive',
       lineItems: (j['line_items'] as List? ?? [])
           .map((e) =>

@@ -8,7 +8,7 @@ import '../../core/widgets/solar_visuals.dart';
 import '../../features/followups/add_follow_up_screen.dart';
 import '../../features/installations/installation_screen.dart';
 import '../../features/payments/payment_screen.dart';
-import '../../features/quotes/quote_builder_screen.dart';
+import '../../features/quotes/create_estimate_screen.dart';
 import '../../models/client.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
@@ -65,7 +65,7 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildQuickActions(context, dataHub),
                   const SizedBox(height: 12),
-                  _buildQuotationCard(context, dataHub),
+                  _buildQuotationCard(context),
                   const SizedBox(height: 12),
                   _buildPipeline(context, dataHub),
                   const SizedBox(height: 12),
@@ -489,7 +489,7 @@ class DashboardScreen extends StatelessWidget {
   }
 
   // ── Quotation card ─────────────────────────────────────────────
-  Widget _buildQuotationCard(BuildContext context, DataHub dataHub) {
+  Widget _buildQuotationCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -556,7 +556,7 @@ class DashboardScreen extends StatelessWidget {
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Generate and share a solar quotation for a new client.',
+              'Build a detailed solar estimate & quotation with the price calculator.',
               style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), height: 1.4),
             ),
           ),
@@ -564,12 +564,10 @@ class DashboardScreen extends StatelessWidget {
           // Gold button
           InkWell(
             onTap: () {
-              _pickClient(context, dataHub, (client) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => QuoteBuilderScreen(client: client)),
-                );
-              });
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const CreateEstimateScreen()),
+              );
             },
             child: Container(
               height: 44,

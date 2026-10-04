@@ -6,8 +6,7 @@
 ///
 ///   Page 1 — Cover (hero image + company details)
 ///   Page 2 — Solar Plant Design Showcase
-/// Page 3 — Estimate Creation Form (4-step wizard: Lead Details, Estimate Details,
-///   Structure Details, Financial Details)
+///   Page 3 — Quotation Table (line items w/ CGST/SGST, totals, notes, bank)
 ///   Page 4 — Terms & Conditions + Bill of Materials
 ///   Page 5 — Warranty Terms (Part 1)
 ///   Page 6 — Warranty Terms (Part 2)
@@ -93,7 +92,7 @@ class ProposalPdf {
     final doc = pw.Document();
     doc.addPage(r._cover());
     doc.addPage(r._designShowcase());
-    doc.addPage(r._estimateForm());
+    doc.addPage(r._quotation());
     doc.addPage(r._termsBom());
     doc.addPage(r._warrantyA());
     doc.addPage(r._warrantyB());
@@ -134,6 +133,50 @@ class ProposalPdf {
   }
 }
 
+/// Clips a child to a trapezoid that produces the angled 60/40 divider
+/// seen in the financial summary rows.
+///
+/// When [leftSide] is `true` the right edge is angled inward (for the
+/// left 60 % half). When `false` the left edge is angled outward (for the
+/// right 40 % half), so the two halves meet on a clean diagonal.
+class _DiagonalClip extends pw.SingleChildWidget {
+  final bool leftSide;
+
+  _DiagonalClip({required this.leftSide, super.child});
+
+  @override
+  void paint(pw.Context context) {
+    super.paint(context);
+    if (child != null) {
+      final mat = Matrix4.identity();
+      mat.translateByDouble(box!.left, box!.bottom, 0, 1);
+      context.canvas.saveContext();
+      if (leftSide) {
+        // Top-left → top-right → bottom-right (5 % inset) → bottom-left
+        context.canvas
+          ..moveTo(box!.left, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width * 0.95, box!.bottom)
+          ..lineTo(box!.left, box!.bottom)
+          ..closePath();
+      } else {
+        // Top-left → top-right → bottom-right → bottom-left (7.5 % past left)
+        context.canvas
+          ..moveTo(box!.left, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
+          ..lineTo(box!.left + box!.width, box!.bottom)
+          ..lineTo(box!.left - box!.width * 0.075, box!.bottom)
+          ..closePath();
+      }
+      context.canvas
+        ..clipPath()
+        ..setTransform(mat);
+      child!.paint(context);
+      context.canvas.restoreContext();
+    }
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal renderer — holds shared state (fonts, colours, data) and builds
 // each of the 7 pages plus the shared header / footer.
@@ -148,15 +191,36 @@ class _Renderer {
   late final PdfColor navy = PdfColor.fromHex(d.brandColorHex);
   late final PdfColor gold = PdfColor.fromHex(d.accentColorHex);
 
-  // ── Form palette (matches create_estimate_screen.dart + proposal template) ────
-  static final PdfColor _gsTeal = PdfColor.fromHex('#2BBFA4');
-  static final PdfColor _gsInk = PdfColor.fromHex('#0F1B3D');
-  static final PdfColor _gsError = PdfColor.fromHex('#ED1C24');
-  static final PdfColor _gsBorder = PdfColor.fromHex('#D1D5DB');
-  static final PdfColor _gsMuted = PdfColor.fromHex('#6B7280');
+  // ── Financial Summary Block palette ────────────────────────────────────────
+  static final PdfColor _fsNavyStart = PdfColor.fromHex('#14286B');
+  static final PdfColor _fsNavyEnd = PdfColor.fromHex('#1E3A8A');
+  static final PdfColor _fsYellowStart = PdfColor.fromHex('#FFC400');
+  static final PdfColor _fsYellowEnd = PdfColor.fromHex('#F5B000');
+  static final PdfColor _fsGreenStart = PdfColor.fromHex('#2E8B2E');
+  static final PdfColor _fsGreenEnd = PdfColor.fromHex('#5CB233');
+  static final PdfColor _fsLightGreenStart = PdfColor.fromHex('#DAF3D3');
+  static final PdfColor _fsLightGreenEnd = PdfColor.fromHex('#C1E3AF');
+  static final PdfColor _fsDarkGreen = PdfColor.fromHex('#1B4E1B');
+  static final PdfColor _fsLightBlue = PdfColor.fromHex('#E8F4FB');
+  static final PdfColor _fsLightBlueBorder = PdfColor.fromHex('#B3DFF7');
 
-  late final pw.LinearGradient _goldGrad = pw.LinearGradient(
-    colors: [gold, _gsError],
+  static final pw.LinearGradient _navyGrad = pw.LinearGradient(
+    colors: [_fsNavyStart, _fsNavyEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _yellowGrad = pw.LinearGradient(
+    colors: [_fsYellowStart, _fsYellowEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _greenGrad = pw.LinearGradient(
+    colors: [_fsGreenStart, _fsGreenEnd],
+    begin: pw.Alignment.topLeft,
+    end: pw.Alignment.bottomRight,
+  );
+  static final pw.LinearGradient _lightGreenGrad = pw.LinearGradient(
+    colors: [_fsLightGreenStart, _fsLightGreenEnd],
     begin: pw.Alignment.topLeft,
     end: pw.Alignment.bottomRight,
   );
@@ -191,6 +255,45 @@ class _Renderer {
       letterSpacing: letterSpacing,
     );
   }
+
+  // ── Financial Summary Block (Page 3) constants ───────────────────────────────
+
+  // SVG icon badges — used inside [pw.SvgImage] for the row icons.
+  static const String _iconRupee =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
+      '<text x="14" y="19" text-anchor="middle" font-size="10" '
+      'font-weight="bold" fill="#071440">Rs.</text></svg>';
+
+  static const String _iconHandCoin =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#88D675"/>'
+      '<path d="M9 8 C8 9 7 11 7 14 C7 17 9 19 12 19 C12 18 12 17 12 15 '
+      'C12 16 13 16 14 16 C15 16 16 15 16 14 C16 12 15 10 13 9 C13 8 12 8 '
+      '11 8 Z" fill="#1B4E1B"/>'
+      '<circle cx="16" cy="16" r="4" fill="#1B4E1B"/>'
+      '</svg>';
+
+  static const String _iconPerson =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
+      '<path d="M14 8 C12 8 10.5 9.5 10.5 11.5 C10.5 13 11.5 14.5 13 15.5 '
+      'L13 17 L15 17 L15 15.5 C16.5 14.5 17.5 13 17.5 11.5 C17.5 9.5 16 8 '
+      '14 8 Z" fill="#071440"/>'
+      '</svg>';
+
+  static const String _iconCheque =
+      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
+      'xmlns="http://www.w3.org/2000/svg">'
+      '<rect x="4" y="7" width="20" height="14" rx="2" fill="#7CB9E8" '
+      'stroke="#071440" stroke-width="1"/>'
+      '<line x1="4" y1="11" x2="24" y2="11" stroke="#071440" stroke-width="1"/>'
+      '<rect x="10" y="13" width="6" height="4" rx="1" fill="#071440"/>'
+      '<circle cx="16" cy="15" r="1.5" fill="#ffffff"/>'
+      '</svg>';
 
   // ── Shared header / footer ─────────────────────────────────────────────────
 
@@ -380,6 +483,16 @@ class _Renderer {
       ],
     );
   }
+
+  /// Certain line items (Meter Charge, GEDA Registration, Stamp Charge) are
+  /// administrative fees that should not show a Rate or Total value.
+  static bool _hideRateTotal(String description) {
+    final d = description.toLowerCase();
+    return d.contains('meter charge') ||
+        d.contains('geda') ||
+        d.contains('stamp charge');
+  }
+
 
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 1 — Cover (split: left hero photo / right details)
@@ -680,19 +793,10 @@ class _Renderer {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 3 — Estimate Creation Form (4-step wizard)
-  // Mirrors create_estimate_screen.dart from the main branch:
-  //   Step 1: Lead Details  (type toggle, name, mobile, WhatsApp, lead stage, desc)
-  //   Step 2: Estimate Details (estimate #, reference, expiry, currency, capacity,
-  //           tax mode, price calculator, item list, price breakdown)
-  //   Step 3: Structure Details (pipe quantities)
-  //   Step 4: Financial Details (discount, GST profile, insurance, system size)
-  // =============================================================================================
+  // PAGE 3 — Quotation Table
+  // ════════════════════════════════════════════════════════════════════════════
 
-  // ── Bilingual helper: returns Hindi label when [d.useHinglish] is true ──
-  String _t2(String en, String hi) => d.useHinglish ? hi : en;
-
-  pw.Page _estimateForm() {
+  pw.Page _quotation() {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(28, 36, 28, 48),
@@ -701,101 +805,15 @@ class _Renderer {
         children: [
           _header(),
           pw.SizedBox(height: 18),
-
-          // Title
-          pw.Center(child: pw.Text(
-            _t2('CREATE ESTIMATE', 'अनुमान बनाएं'),
-            style: _t(18, bold: true, color: navy),
-          )),
+          pw.Text('Quotation', style: _t(18, bold: true, color: navy)),
           pw.SizedBox(height: 6),
-          pw.Center(child: pw.Container(
-            width: 40, height: 4,
-            decoration: pw.BoxDecoration(
-              color: gold,
-              borderRadius: pw.BorderRadius.circular(2),
-            ),
-          )),
-          pw.SizedBox(height: 16),
-
-          // Progress bar — 4 steps, step 1 active
-          _estimateProgressBar(4, 1),
-          pw.SizedBox(height: 6),
-
-          // ── Step 1: Lead Details ──
-          _formSection('👤', _t2('Lead Details', 'लीड विवरण'), [
-            _formRadioGroup(_t2('TYPE', 'प्रकार'), [
-              _t2('व्यक्तिगत (Individual)', 'Individual'),
-              _t2('व्यवसाय (Business)', 'Business'),
-            ], 0),
-            _formInputCard(_t2('COMPANY NAME *', 'कंपनी का नाम *'), _s(d.companyName)),
-            _formInputCard(_t2('NAME *', 'नाम *'), _s(d.customerName)),
-            _formPhoneInput(_t2('MOBILE NUMBER *', 'मोबाइल नंबर *'), _s(d.customerMobile)),
-            _formPhoneInput(_t2('WHATSAPP NUMBER', 'व्हाट्सऐप नंबर'), _s(d.customerMobile)),
-            _formToggle(_t2('Auto-fill WhatsApp from mobile', 'व्हाट्सऐप ऑटो-भरें'), true),
-            _formSelectorTile(_t2('LEAD STAGE', 'लीड स्टेज'), _s(d.leadName)),
-            _formTextarea(_t2('DESCRIPTION', 'विवरण'),
-              _t2('e.g. Customer is a regular buyer', 'जैसे Customer is a regular buyer')),
-          ]),
-
-          // ── Step 2: Estimate Details ──
-          _formSection('📊', _t2('Estimate Details', 'अनुमान विवरण'), [
-            _formInputCard(_t2('ESTIMATE NUMBER *', 'अनुमान संख्या *'), _s(d.quotationId)),
-            _formInputCard(_t2('REFERENCE NO.', 'रेफ़रेंस नंबर'), ''),
-            _formInputCard(_t2('EXPIRY DATE', 'समाप्ति तारीख'), _s(d.expiryDate), readonly: true),
-            _formSelectCard(_t2('CURRENCY *', 'मुद्रा *'), ['INR - भारतीय रुपया (₹)']),
-            _formInputCard(_t2('CAPACITY KW', 'क्षमता kW'),
-              d.plantCapacityKw, suffix: 'kW'),
-            _formRadioGroup(_t2('ITEM RATES', 'आइटम दरें'), [
-              _t2('कर अलग (Tax Exclusive)', 'Tax Exclusive'),
-              _t2('कर समावेश (Tax Inclusive)', 'Tax Inclusive'),
-            ], 0),
-            _formActionBtn('💰 ${_t2('PRICE CALCULATOR', 'मूल्य गणक')}'),
-            _formCard(
-              _t2('Item Details (0)', 'आइटम विवरण (0)'),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    _t2('No items yet. Use the Price Calculator or tap + Add Item.',
-                        'कोई आइटम नहीं हैं। Price Calculator का उपयोग करें या + Add Item दबाएँ।'),
-                    style: _t(7, color: _gsMuted),
-                  ),
-                ],
-              ),
-            ),
-          ]),
-
-          // ── Step 3: Structure Details ──
-          _formSection('🛠', _t2('Structure Details', 'संरचना विवरण'), [
-            _formInputCard(_t2('TOP HAT (MTR)', 'टॉप हैट (MTR)'), '', suffix: 'm'),
-            _formInputCard(_t2('RAFTER (MTR)', 'राफ़्टर (MTR)'), '', suffix: 'm'),
-            _formInputCard(_t2('PURIN (MTR)', 'पर्लिन (MTR)'), '', suffix: 'm'),
-          ]),
-
-          // ── Step 4: Financial Details ──
-          _formSection('₹', _t2('Financial Details', 'वित्तीय विवरण'), [
-            _formInputCard(_t2('DISCOUNT PER KW', 'प्रति kW छूट'),
-              _t2('0', '0'), prefix: '₹', suffix: '/kW'),
-            _formSelectCard(_t2('TAX (GST) *', 'कर (GST) *'),
-              [_t2('GST 12% (CGAT 6% + SGST 6%)', 'GST 12% (CGST 6% + SGST 6%)')]),
-            _formCard(
-              _t2('INSURANCE', 'बीमा'),
-              _formToggle(_t2('Click to include insurance', 'बीमा शामिल करने के लिए क्लिक करें'), false),
-            ),
-            _formInputCard(_t2('SYSTEM SIZE', 'सिस्टम साइज़'),
-              d.plantCapacityKw, suffix: 'kW', readonly: true),
-          ]),
-
-          // Navigation buttons
-          pw.SizedBox(height: 16),
-          pw.Row(
-            children: [
-              pw.Expanded(child: _formNavBtn(_t2('Close', 'बंद करें'))),
-              pw.SizedBox(width: 12),
-              pw.Expanded(child: _formNextBtn(_t2('Next', 'अगला'))),
-            ],
-          ),
+          pw.Divider(height: 4, thickness: 1, color: gold),
+          pw.SizedBox(height: 8),
+          _quotationHeaderBlock(),
+          pw.SizedBox(height: 12),
+          _lineItemsTable(),
+          pw.SizedBox(height: 14),
+          _quotationBottom(),
           pw.Spacer(),
           _footer(3),
         ],
@@ -803,325 +821,488 @@ class _Renderer {
     );
   }
 
-  // ── Form helper widgets ──────────────────────────────────────────────────
+  /// From / Bill To / Meta block above the table.
+  pw.Widget _quotationHeaderBlock() {
+    final metaLabels = ['Date', 'Expiry', 'Estimate#', 'Created by', 'Contact'];
+    final metaValues = [
+      d.quotationDate,
+      d.expiryDate,
+      d.quotationId,
+      d.preparedBy,
+      d.contactNumbers
+    ];
 
-  /// 4-step segmented progress bar. [current] is 1-indexed.
-  pw.Widget _estimateProgressBar(int steps, int current) {
     return pw.Container(
-      height: 8,
-      child: pw.Row(children: [
-        for (int i = 0; i < steps; i++)
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
           pw.Expanded(
-            child: pw.Container(
-              height: 8,
-              margin: const pw.EdgeInsets.symmetric(horizontal: 1),
-              decoration: pw.BoxDecoration(
-                color: i < current ? _gsTeal : _gsBorder,
-                borderRadius: pw.BorderRadius.circular(4),
-              ),
+            child: _billToColumn('From', [
+              d.companyName,
+              d.companyAddress,
+              'GSTIN: ${d.companyGstin}',
+            ]),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: _billToColumn('Bill To', [
+              d.customerName,
+              d.customerLocation,
+              'Mobile: ${d.customerMobile}',
+            ]),
+          ),
+          pw.SizedBox(
+            width: 170,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                for (int i = 0; i < metaLabels.length; i++)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                    child: pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: [
+                        pw.Text('${metaLabels[i]}: ', style: _t(7, bold: true, color: PdfColors.grey700)),
+                        pw.Text(metaValues[i], style: _t(7, color: PdfColors.grey700)),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
-      ]),
+        ],
+      ),
     );
   }
 
-  /// Section header: icon chip + bold title, followed by [children].
-  pw.Widget _formSection(String icon, String title, List<pw.Widget> children) {
+  pw.Widget _billToColumn(String label, List<String> lines) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Row(children: [
-          pw.Container(
-            width: 32, height: 32,
-            decoration: pw.BoxDecoration(
-              color: const PdfColor(0.03, 0.08, 0.25, 0.12),
-              borderRadius: pw.BorderRadius.circular(8),
-            ),
-            child: pw.Center(child: pw.Text(icon, style: _t(16))),
-          ),
-          pw.SizedBox(width: 8),
-          pw.Text(title, style: _t(12, bold: true, color: navy)),
-        ]),
-        pw.SizedBox(height: 12),
-        ...children,
+        pw.Text(label, style: _t(7.5, bold: true, color: navy)),
+        for (final l in lines)
+          pw.Text(l, style: _t(7.5, color: PdfColors.black)),
       ],
     );
   }
 
-  /// Labelled bordered input card.
-  pw.Widget _formInputCard(String label, String value, {
-    bool readonly = false,
-    String? prefix,
-    String? suffix,
-    String? placeholder,
-  }) {
-    final effectiveValue = value.isNotEmpty ? value : (placeholder ?? '');
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(label, style: _t(8.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: pw.BoxDecoration(
-              color: readonly ? PdfColors.grey100 : PdfColors.white,
-              border: pw.Border.all(color: _gsBorder, width: 0.75),
-              borderRadius: pw.BorderRadius.circular(12),
-            ),
-            child: pw.Row(children: [
-              if (prefix != null) ...[
-                pw.Text(prefix, style: _t(9, color: _gsMuted)),
-                pw.SizedBox(width: 6),
-              ],
-              pw.Expanded(
-                child: pw.Text(
-                  effectiveValue,
-                  style: _t(9, color: readonly ? _gsMuted : _gsInk),
-                  maxLines: 1,
-                ),
-              ),
-              if (suffix != null) ...[
-                pw.SizedBox(width: 6),
-                pw.Text(suffix, style: _t(9, color: _gsMuted)),
-              ],
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
+  /// The 8-column line-items table.
+  pw.Widget _lineItemsTable() {
+    final headerCells = [
+      '#', 'Item & Description', 'Qty', 'Rate',
+      'Discount', 'CGST', 'SGST', 'Total'
+    ];
 
-  /// Input card with +91 prefix (phone number).
-  pw.Widget _formPhoneInput(String label, String value) =>
-    _formInputCard(label, value, prefix: '+91 ');
-
-  /// Textarea-style labelled card.
-  pw.Widget _formTextarea(String label, String placeholder) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+    final tableRows = <pw.TableRow>[
+      // Header row
+      pw.TableRow(
+        decoration: pw.BoxDecoration(color: navy),
+        verticalAlignment: pw.TableCellVerticalAlignment.middle,
         children: [
-          pw.Text(label, style: _t(8.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.all(10),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              border: pw.Border.all(color: _gsBorder, width: 0.75),
-              borderRadius: pw.BorderRadius.circular(12),
-            ),
-            child: pw.Text(
-              placeholder,
-              style: _t(8, color: _gsMuted),
-              maxLines: 3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Horizontal radio-group row.
-  pw.Widget _formRadioGroup(String label, List<String> options, int selected) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(label, style: _t(8.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          pw.Row(children: [
-            for (int i = 0; i < options.length; i++)
-              pw.Expanded(
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                  decoration: pw.BoxDecoration(
-                    color: i == selected ? _gsTeal : PdfColors.white,
-                    border: pw.Border.all(
-                      color: i == selected ? _gsTeal : _gsBorder,
-                      width: 0.75,
-                    ),
-                    borderRadius: pw.BorderRadius.circular(12),
-                  ),
-                  child: pw.Center(child: pw.Text(
-                    options[i],
-                    style: _t(8.5, color: i == selected ? PdfColors.white : _gsMuted),
-                    textAlign: pw.TextAlign.center,
-                    maxLines: 1,
-                  )),
-                ),
-              ),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  /// Selector tile — dot + value + chevron.
-  pw.Widget _formSelectorTile(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(label, style: _t(8.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              border: pw.Border.all(color: _gsBorder, width: 0.75),
-              borderRadius: pw.BorderRadius.circular(12),
-            ),
-            child: pw.Row(children: [
-              pw.Container(
-                width: 8, height: 8,
-                decoration: const pw.BoxDecoration(
-                  shape: pw.BoxShape.circle,
-                  color: PdfColor(0.13, 0.58, 0.95),
-                ),
-              ),
-              pw.SizedBox(width: 8),
-              pw.Text(value.isNotEmpty ? value : label,
-                style: _t(9, color: _gsMuted)),
-              pw.Spacer(),
-              pw.Text('›', style: _t(12, color: PdfColors.grey400)),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Toggle switch row — label on left, switch on right.
-  pw.Widget _formToggle(String label, bool value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 8),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: _t(9, color: _gsMuted)),
-          pw.Container(
-            width: 40, height: 22,
-            decoration: pw.BoxDecoration(
-              color: value ? _gsTeal : PdfColors.grey300,
-              borderRadius: pw.BorderRadius.circular(22),
-            ),
-            child: pw.Align(
-              alignment: value ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
-              child: pw.Container(
-                width: 18, height: 18,
-                decoration: const pw.BoxDecoration(
-                  shape: pw.BoxShape.circle,
-                  color: PdfColors.white,
-                ),
+          for (int c = 0; c < headerCells.length; c++)
+            pw.Center(
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.all(4),
+                child: pw.Text(headerCells[c],
+                   textAlign: pw.TextAlign.center,
+                   style: _t(
+                     c == 7 ? 8 : 7.5,
+                     bold: true,
+                     color: c == 7 ? gold : PdfColors.white,
+                   )),
               ),
             ),
-          ),
         ],
       ),
-    );
-  }
+    ];
 
-  /// Gold-gradient action button.
-  pw.Widget _formActionBtn(String text) {
-    return pw.Container(
-      width: double.infinity,
-      alignment: pw.Alignment.center,
-      padding: const pw.EdgeInsets.symmetric(vertical: 12),
-      decoration: pw.BoxDecoration(
-        gradient: _goldGrad,
-        borderRadius: pw.BorderRadius.circular(14),
-      ),
-      child: pw.Text(text, style: _t(9, bold: true, color: PdfColors.white)),
-    );
-  }
-
-  /// Generic white card with a title and child content.
-  pw.Widget _formCard(String title, pw.Widget child) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Container(
-        width: double.infinity,
-        padding: const pw.EdgeInsets.all(12),
+    for (int i = 0; i < d.lineItems.length; i++) {
+      final item = d.lineItems[i];
+      final isAlt = i.isEven;
+      tableRows.add(pw.TableRow(
         decoration: pw.BoxDecoration(
-          color: PdfColors.white,
-          border: pw.Border.all(color: _gsBorder, width: 0.75),
-          borderRadius: pw.BorderRadius.circular(16),
+          color: isAlt ? PdfColors.white : PdfColors.grey100,
         ),
-        child: pw.Column(
+        verticalAlignment: pw.TableCellVerticalAlignment.top,
+        children: [
+          // 0 — #
+          pw.Center(child: pw.Padding(
+            padding: const pw.EdgeInsets.all(4),
+            child: pw.Text('${i + 1}', style: _t(8), textAlign: pw.TextAlign.center),
+          )),
+          // 1 — Description
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(4),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(_s(item.description), style: _t(8, bold: true)),
+                for (final spec in item.specs)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 1.5),
+                    child: _bullet(_s(spec), _t(7), navy),
+                  ),
+              ],
+            ),
+          ),
+          // 2 — Qty
+          pw.Center(child: pw.Text(item.qty, style: _t(8.5), textAlign: pw.TextAlign.center)),
+          // 3 — Rate
+          pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.rate), style: _t(8.5), textAlign: pw.TextAlign.center)),
+          // 4 — Discount
+          pw.Center(child: pw.Text(item.discount == 0 ? '-' : ProposalPdf.money(item.discount), style: _t(8.5), textAlign: pw.TextAlign.center)),
+          // 5 — CGST
+          pw.Center(child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text('${item.cgstPercent}%', style: _t(7.5)),
+              pw.Text(ProposalPdf.money(item.cgstAmount), style: _t(7.5)),
+            ],
+          )),
+          // 6 — SGST
+          pw.Center(child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text('${item.sgstPercent}%', style: _t(7.5)),
+              pw.Text(ProposalPdf.money(item.sgstAmount), style: _t(7.5)),
+            ],
+          )),
+          // 7 — Total
+          pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.total), style: _t(8, bold: true, color: navy), textAlign: pw.TextAlign.center)),
+        ],
+      ));
+    }
+
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.4),
+      defaultVerticalAlignment: pw.TableCellVerticalAlignment.top,
+      columnWidths: {
+        0: pw.FixedColumnWidth(20),
+        1: pw.FlexColumnWidth(2.5),
+        2: pw.FixedColumnWidth(28),
+        3: pw.FixedColumnWidth(50),
+        4: pw.FixedColumnWidth(46),
+        5: pw.FixedColumnWidth(44), // CGST — wider for 'Rs. X,XXX' amounts
+        6: pw.FixedColumnWidth(44), // SGST — wider for 'Rs. X,XXX' amounts
+        7: pw.FixedColumnWidth(50),
+      },
+      children: tableRows,
+    );
+  }
+
+  /// Bottom section of the quotation page: amount-in-words + notes (left),
+  /// totals + bank details + signature (right).
+  pw.Widget _quotationBottom() {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // ── Amount in words ──
+        pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
+        pw.SizedBox(height: 14),
+
+        // ── Financial Summary Block (full-width, page 3) ──
+        _financialSummary(),
+        pw.SizedBox(height: 14),
+
+        // ── Notes + Bank Details (side by side) ──
+        pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(title, style: _t(9.5, bold: true, color: navy)),
-            pw.SizedBox(height: 4),
-            child,
+            pw.Expanded(child: _notesBox()),
+            pw.SizedBox(width: 24),
+            pw.Expanded(child: _bankBox()),
+          ],
+        ),
+        pw.SizedBox(height: 18),
+
+        // ── Signature ──
+        _signatureBlock(),
+      ],
+    );
+  }
+
+  pw.Widget _notesBox() {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: gold, width: 0.75),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Notes & Required Documents',
+              style: _t(7.5, bold: true, color: navy)),
+          pw.SizedBox(height: 4),
+          for (final note in d.notes)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 1.5),
+              child: _bullet(_s(note), _t(6.5), gold),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// ── Financial Summary Block (replaces totals box, page 3) ─────────────────
+  /// Renders the 4-row angled-divider summary that mirrors the HTML template:
+  /// 1. System Amount w/ GST  (navy/yellow, highlighted total)
+  /// 2. Government Subsidy    (green, NOT highlighted — hidden when 0)
+  /// 3. Net Cost After Subsidy (navy/yellow, highlighted total)
+  /// 4. Payment Mode          (light-blue, no yellow block)
+  pw.Widget _financialSummary() {
+    final totalBeforeSubsidy = d.grandTotal + d.subsidyAmount;
+    final hasSubsidy = d.subsidyAmount > 0;
+    String tl(String en, String hinglish) => d.useHinglish ? hinglish : en;
+
+    return pw.Container(
+      width: double.infinity,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          // Caption
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Text(
+              'Financial Summary (Inclusive of GST)',
+              style: _t(7.5, bold: true, color: navy),
+              textAlign: pw.TextAlign.center,
+            ),
+          ),
+
+          // Row 1 — System Amount w/ GST (navy / yellow)
+          _fsRow(
+            leftGradient: _navyGrad,
+            rightGradient: _yellowGrad,
+            leftTextColor: PdfColors.white,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconRupee,
+            label: tl('कुल मूल्य (System Amount w/ GST)', 'System Amount w/ GST'),
+            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
+          ),
+
+          // Row 2 — Subsidy (green, NOT highlighted), hidden when 0
+          if (hasSubsidy)
+            _fsRow(
+              leftGradient: _greenGrad,
+              rightGradient: _lightGreenGrad,
+              leftTextColor: PdfColors.white,
+              rightTextColor: _fsDarkGreen,
+              iconSvg: _iconHandCoin,
+              label: tl('सरकारी सब्सिडी (Government Subsidy)',
+                  'Government Subsidy (PM Surya Ghar)'),
+              amount: ProposalPdf.moneyINR(d.subsidyAmount),
+            ),
+
+          // Row 3 — Net Cost After Subsidy (navy / yellow)
+          _fsRow(
+            leftGradient: _navyGrad,
+            rightGradient: _yellowGrad,
+            leftTextColor: PdfColors.white,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconPerson,
+            label: tl('अंतिम लागत (Net Cost After Subsidy)',
+                'Net Cost After Subsidy'),
+            amount: ProposalPdf.moneyINR(d.grandTotal),
+          ),
+
+          // Row 4 — Payment Mode (light-blue, no yellow block)
+          _fsRow(
+            leftColor: _fsLightBlue,
+            rightColor: _fsLightBlue,
+            leftBorderColor: _fsLightBlueBorder,
+            rightBorderColor: _fsLightBlueBorder,
+            leftTextColor: _fsNavyStart,
+            rightTextColor: _fsNavyStart,
+            iconSvg: _iconCheque,
+            label: tl('नेट पेबेबल (Net payable by cheque/cash)',
+                'Net payable by cheque/cash'),
+            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
+            noDiagonal: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a single financial-summary row with the 60/40 angled divider.
+  /// When [noDiagonal] is `true` a flat light-blue row is produced (Row 4).
+  pw.Widget _fsRow({
+    pw.LinearGradient? leftGradient,
+    pw.LinearGradient? rightGradient,
+    PdfColor? leftColor,
+    PdfColor? rightColor,
+    PdfColor? leftBorderColor,
+    PdfColor? rightBorderColor,
+    required PdfColor leftTextColor,
+    required PdfColor rightTextColor,
+    required String iconSvg,
+    required String label,
+    required String amount,
+    bool noDiagonal = false,
+  }) {
+    // ── Left half content: icon badge + bilingual label ──
+    final leftContent = pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 8),
+          child: pw.SvgImage(svg: iconSvg, width: 24, height: 24),
+        ),
+        pw.SizedBox(width: 6),
+        pw.Expanded(
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.only(right: 10),
+            child: pw.Text(
+              label,
+              style: _t(7.5, bold: true, color: leftTextColor),
+              maxLines: 2,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // ── Right half content: very large amount ──
+    final rightContent = pw.Container(
+      alignment: pw.Alignment.centerRight,
+      padding: const pw.EdgeInsets.only(right: 14),
+      child: pw.Text(
+        amount,
+        style: _t(15, bold: true, color: rightTextColor),
+      ),
+    );
+
+    if (noDiagonal) {
+      // Row 4 — flat light-blue with thin border, no gradient
+      return pw.Container(
+        height: 48,
+        margin: const pw.EdgeInsets.only(bottom: 8),
+        decoration: pw.BoxDecoration(
+          color: leftColor,
+          borderRadius: pw.BorderRadius.circular(6),
+          border: pw.Border(
+            top: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            bottom: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            left: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
+            right: pw.BorderSide(color: rightBorderColor ?? _fsLightBlueBorder, width: 0.7),
+          ),
+        ),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Expanded(flex: 60, child: leftContent),
+            pw.Expanded(flex: 40, child: rightContent),
+          ],
+        ),
+      );
+    }
+
+    // Rows 1–3 — diagonal split with gradient backgrounds
+    final leftChild = _DiagonalClip(
+      leftSide: true,
+      child: pw.Container(
+        decoration: pw.BoxDecoration(gradient: leftGradient),
+        child: leftContent,
+      ),
+    );
+    final rightChild = _DiagonalClip(
+      leftSide: false,
+      child: pw.Container(
+        decoration: pw.BoxDecoration(gradient: rightGradient),
+        child: rightContent,
+      ),
+    );
+
+    return pw.Container(
+      height: 48,
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.ClipRRect(
+        horizontalRadius: 6,
+        verticalRadius: 6,
+        child: pw.Row(
+          children: [
+            pw.Expanded(flex: 60, child: leftChild),
+            pw.Expanded(flex: 40, child: rightChild),
           ],
         ),
       ),
     );
   }
 
-  /// Select dropdown card.
-  pw.Widget _formSelectCard(String label, List<String> options) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
+  pw.Widget _bankBox() {
+    final b = d.bankDetails;
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: navy, width: 0.75),
+      ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(label, style: _t(8.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              border: pw.Border.all(color: _gsBorder, width: 0.75),
-              borderRadius: pw.BorderRadius.circular(12),
-            ),
-            child: pw.Row(children: [
-              pw.Expanded(child: pw.Text(
-                options.isNotEmpty ? options[0] : '',
-                style: _t(9, color: _gsInk),
-              )),
-              pw.SizedBox(width: 6),
-              pw.Text('▼', style: _t(8, color: _gsMuted)),
-            ]),
-          ),
+          pw.Text('Bank Details',
+              style: _t(7.5, bold: true, color: navy)),
+          pw.SizedBox(height: 6),
+          _kv('Bank Name', b.bankName),
+          _kv('A/c Name', b.accountName),
+          _kv('A/c No.', b.accountNo),
+          _kv('IFSC', b.ifsc),
+          _kv('Branch', b.branch),
         ],
       ),
     );
   }
 
-  /// Back / Close button (outline style).
-  pw.Widget _formNavBtn(String text) {
-    return pw.Container(
-      alignment: pw.Alignment.center,
-      padding: const pw.EdgeInsets.symmetric(vertical: 14),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        border: pw.Border.all(color: _gsBorder, width: 0.75),
-        borderRadius: pw.BorderRadius.circular(14),
-      ),
-      child: pw.Text(text, style: _t(10, bold: true, color: navy)),
-    );
-  }
+  pw.Widget _kv(String k, String v) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(
+              width: 60,
+              child: pw.Text('$k:', style: _t(7, bold: true, color: navy)),
+            ),
+            pw.Text(v, style: _t(7)),
+          ],
+        ),
+      );
 
-  /// Next / Create button (solid navy).
-  pw.Widget _formNextBtn(String text) {
-    return pw.Container(
-      alignment: pw.Alignment.center,
-      padding: const pw.EdgeInsets.symmetric(vertical: 14),
-      decoration: pw.BoxDecoration(
-        color: navy,
-        borderRadius: pw.BorderRadius.circular(14),
-      ),
-      child: pw.Text(text, style: _t(10, bold: true, color: PdfColors.white)),
+  pw.Widget _signatureBlock() {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Container(
+          width: 160,
+          height: 50,
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(
+              color: PdfColors.grey600,
+              width: 0.75,
+              style: pw.BorderStyle.dashed,
+            ),
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Center(
+            child: pw.Text(
+              'AUTHORIZED\nSIGNATURE & STAMP',
+              textAlign: pw.TextAlign.center,
+              style: _t(6, bold: true, color: PdfColors.grey600),
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(d.preparedBy, style: _t(8, bold: true)),
+        pw.Text('For ${d.companyName}', style: _t(7, color: PdfColors.grey700)),
+      ],
     );
   }
 

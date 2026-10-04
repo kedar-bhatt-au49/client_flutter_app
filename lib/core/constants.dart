@@ -239,6 +239,82 @@ GSPackage? gsPackageById(String id) {
   return null;
 }
 
+/// Official quotation system table (rooftop solar).
+///
+/// [totalPayable] is **GST-inclusive** (CGST 4.45% + SGST 4.45% = 8.9%).
+/// [afterSubsidy] = totalPayable − PM Surya Ghar subsidy (₹78,000).
+class GSQuoteSystem {
+  final String id;
+  final double kw;
+  final int panels;
+  final int panelWatt;
+  final int structureCost; // GST-excluded
+  final int totalPayable; // GST-inclusive, pre-subsidy
+  final int subsidy;
+  final int afterSubsidy;
+
+  const GSQuoteSystem({
+    required this.id,
+    required this.kw,
+    required this.panels,
+    required this.panelWatt,
+    required this.structureCost,
+    required this.totalPayable,
+    this.subsidy = GSTax.subsidyMax,
+    required this.afterSubsidy,
+  });
+
+  int get stampCharge => GSTax.stampCharge;
+
+  /// e.g. "3.27 kW • 6 panels"
+  String get label => '${kw.toStringAsFixed(2)} kW  •  $panels panels';
+
+  /// Existing panel-count image (assets/images/solar_pannel_N.jpg).
+  String get panelImageAsset => 'assets/images/solar_pannel_$panels.jpg';
+}
+
+/// Master quotation systems — the 5 standard offerings.
+final List<GSQuoteSystem> gsQuoteSystems = const [
+  GSQuoteSystem(
+      id: 's6', kw: 3.27, panels: 6, panelWatt: 545,
+      structureCost: 10000, totalPayable: 163000, afterSubsidy: 85000),
+  GSQuoteSystem(
+      id: 's7', kw: 3.81, panels: 7, panelWatt: 545,
+      structureCost: 12000, totalPayable: 193000, afterSubsidy: 115000),
+  GSQuoteSystem(
+      id: 's8', kw: 4.36, panels: 8, panelWatt: 545,
+      structureCost: 13000, totalPayable: 216000, afterSubsidy: 138000),
+  GSQuoteSystem(
+      id: 's9', kw: 4.90, panels: 9, panelWatt: 545,
+      structureCost: 15000, totalPayable: 244000, afterSubsidy: 166000),
+  GSQuoteSystem(
+      id: 's10', kw: 5.45, panels: 10, panelWatt: 545,
+      structureCost: 16000, totalPayable: 266000, afterSubsidy: 188000),
+];
+
+GSQuoteSystem? gsQuoteSystemById(String id) {
+  for (final s in gsQuoteSystems) {
+    if (s.id == id) return s;
+  }
+  return null;
+}
+
+/// GST for rooftop solar — CGST 4.45% + SGST 4.45% = 8.9% (GST-inclusive).
+class GSGst {
+  static const cgstPercent = 4.45;
+  static const sgstPercent = 4.45;
+  static const totalPercent = 8.9;
+
+  /// Splits a GST-inclusive [total] into base + CGST + SGST such that
+  /// `base + cgst + sgst == total` exactly (rounding noise absorbed by base).
+  static ({int base, int cgst, int sgst}) splitInclusive(int total) {
+    final cgst = (total * cgstPercent / (100 + totalPercent)).round();
+    final sgst = (total * sgstPercent / (100 + totalPercent)).round();
+    final base = total - cgst - sgst;
+    return (base: base, cgst: cgst, sgst: sgst);
+  }
+}
+
 /// Subsidy & tax constants (mirrors siteConfig).
 class GSTax {
   static const subsidyMax = 78000; // ₹78,000 (PM Surya Ghar)

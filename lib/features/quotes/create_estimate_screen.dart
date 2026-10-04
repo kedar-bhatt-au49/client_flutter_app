@@ -63,7 +63,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _estimateNumberCtrl = TextEditingController();
   final _referenceCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController();
-  bool _priceCalcRan = false;
+  final _wiringCtrl = TextEditingController();
+  final _inverterKwCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
 
   // ── Controllers: Step 3 — Structure Details ───
   final Map<String, TextEditingController> _structureCtrls = {};
@@ -91,6 +93,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _estimateNumberCtrl.dispose();
     _referenceCtrl.dispose();
     _capacityCtrl.dispose();
+    _wiringCtrl.dispose();
+    _inverterKwCtrl.dispose();
+    _priceCtrl.dispose();
     _discountCtrl.dispose();
     _insPercentCtrl.dispose();
     _insAmountCtrl.dispose();
@@ -176,7 +181,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     if (result != null) {
       setState(() {
         _estimate.applyPriceCalculation(result);
-        _priceCalcRan = true;
         _capacityCtrl.text = result.capacityKw.toStringAsFixed(2);
         // Sync structure controllers
         for (final entry in result.structureQuantities.entries) {
@@ -188,6 +192,78 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             : '';
       });
     }
+  }
+
+  GSQuoteSystem? get _selectedSystem => _estimate.systemId != null
+      ? gsQuoteSystemById(_estimate.systemId!)
+      : null;
+
+  void _selectSystem(GSQuoteSystem s) {
+    setState(() {
+      _estimate.systemId = s.id;
+      _estimate.capacityKw = s.kw;
+      _capacityCtrl.text = s.kw.toStringAsFixed(2);
+    });
+  }
+
+  void _openSystemSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Select Solar System',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F1B3D))),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: gsQuoteSystems
+                    .map((s) => ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: GSColors.sky100,
+                            child: Text('${s.panels}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: GSColors.navy900)),
+                          ),
+                          title: Text(s.label,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                              'Total ₹${s.totalPayable}  •  After subsidy ₹${s.afterSubsidy}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF627193))),
+                          trailing: _estimate.systemId == s.id
+                              ? const Icon(Icons.check_circle,
+                                  color: GSColors.green600)
+                              : null,
+                          onTap: () {
+                            _selectSystem(s);
+                            Navigator.pop(sheetContext);
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   void _addLineItem() {
@@ -911,20 +987,111 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ),
 
-        // Capacity KW
+        // Solar System (drives capacity, pricing & panel-count image)
         _fieldCard(
-          label: 'Capacity KW',
+          label: 'Solar System',
+          required: true,
+          input: GsSelectorTile(
+            value: _selectedSystem?.label ?? 'Select a system',
+            valueColor: _selectedSystem != null
+                ? GSColors.navy900
+                : GSColors.ink.withValues(alpha: 0.4),
+            onTap: _openSystemSelector,
+          ),
+        ),
+
+        // Panel-count design image preview (existing assets/images/solar_pannel_N.jpg)
+        if (_selectedSystem != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                _selectedSystem!.panelImageAsset,
+                height: 170,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  height: 170,
+                  color: GSColors.sky100,
+                  alignment: Alignment.center,
+                  child: Text('Image for ${_selectedSystem!.panels} panels',
+                      style: GSTextStyles.bodySmall),
+                ),
+              ),
+            ),
+          ),
+
+        // Wiring size (manual)
+        _fieldCard(
+          label: 'Wiring Size',
           required: false,
-          hint: 'Auto-filled from Price Calculator',
+          hint: 'e.g. 4',
+          input: _textField(
+            controller: _wiringCtrl,
+            suffixText: 'sq.mm',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (v) =>
+                _estimate.wiringSqMm = v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+          ),
+        ),
+
+        // Inverter kW capacity (manual)
+        _fieldCard(
+          label: 'Inverter Capacity',
+          required: false,
+          hint: 'e.g. 3.6',
+          input: _textField(
+            controller: _inverterKwCtrl,
+            suffixText: 'kW',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (v) => _estimate.inverterKwManual = double.tryParse(v.trim()),
+          ),
+        ),
+
+        // Total Payable price (manual override)
+        _fieldCard(
+          label: 'Total Payable',
+          required: false,
+          hint: _selectedSystem != null
+              ? 'Default: ₹${_selectedSystem!.totalPayable}'
+              : 'Auto from system',
+          input: _textField(
+            controller: _priceCtrl,
+            prefixText: '₹ ',
+            keyboardType: TextInputType.number,
+            onChanged: (v) =>
+                _estimate.totalPayableOverride = int.tryParse(v.trim()),
+          ),
+        ),
+
+        // GST (fixed for rooftop solar: CGST 4.45% + SGST 4.45%)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: GsCard(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt_long, size: 18, color: GSColors.teal500),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('GST — CGST 4.45% + SGST 4.45%  (8.9% incl.)',
+                      style: GSTextStyles.bodySmall.copyWith(color: GSColors.ink)),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Capacity (kW) — driven by the selected system
+        _fieldCard(
+          label: 'Capacity',
+          required: false,
           input: _textField(
             controller: _capacityCtrl,
-            hint: _priceCalcRan ? null : 'Auto-filled from Price Calculator',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            readOnly: true,
+            hint: 'Select a system above',
             suffixText: 'kW',
-            onChanged: (v) {
-              final val = double.tryParse(v);
-              if (val != null) _estimate.capacityKw = val;
-            },
           ),
         ),
 
@@ -1326,10 +1493,12 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     TextInputType? keyboardType,
     int? maxLines,
     String? errorText,
+    bool readOnly = false,
     void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
       decoration: GSInputTheme.fieldDecoration(
         hint: hint,
         prefixText: prefixText,

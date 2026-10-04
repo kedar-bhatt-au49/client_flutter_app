@@ -24,8 +24,8 @@ class ProposalLineItem {
   final String unit;
   final int rate; // per unit, before tax
   final int discount; // absolute discount
-  final int cgstPercent;
-  final int sgstPercent;
+  final double cgstPercent;
+  final double sgstPercent;
 
   const ProposalLineItem({
     required this.description,
@@ -52,8 +52,8 @@ class ProposalLineItem {
         unit: j['unit'] as String,
         rate: j['rate'] as int,
         discount: j['discount'] as int? ?? 0,
-        cgstPercent: j['cgst_percent'] as int? ?? 6,
-        sgstPercent: j['sgst_percent'] as int? ?? 6,
+        cgstPercent: (j['cgst_percent'] as num?)?.toDouble() ?? 6,
+        sgstPercent: (j['sgst_percent'] as num?)?.toDouble() ?? 6,
       );
 
   Map<String, dynamic> toJson() => {
@@ -339,7 +339,7 @@ class SolarProposalData {
     final stamp = GSTax.stampCharge; // 300
     final meterCharge = 1500;
     final gedaCharge = 2000;
-    const gstRate = 6; // % each of CGST & SGST => 12 % total
+    const gstRate = 6.0; // % each of CGST & SGST => 12 % total
 
     final lineItems = [
       ProposalLineItem(

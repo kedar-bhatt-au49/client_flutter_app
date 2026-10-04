@@ -52,6 +52,20 @@ class EstimatePdf {
     final e = record.data;
     final b = e.priceBreakdown;
 
+    // ── Standard quotation system selected? ──
+    // Build the exact table-based quotation (GST-inclusive totals) instead
+    // of the raw price-calculator line items.
+    final system = e.systemId != null ? gsQuoteSystemById(e.systemId!) : null;
+    if (system != null) {
+      return _fromSystem(
+        e: e,
+        system: system,
+        record: record,
+        useHinglish: useHinglish,
+        logoImage: logoImage,
+      );
+    }
+
     // ── Convert estimate line items → proposal line items ──
     final lineItems = e.lineItems.map(_toProposalLineItem).toList();
 
@@ -154,6 +168,166 @@ class EstimatePdf {
     );
   }
 
+  // ── Standard quotation system → proposal ───────────────────────────
+
+  static SolarProposalData _fromSystem({
+    required EstimateModel e,
+    required GSQuoteSystem system,
+    required EstimateRecord record,
+    bool useHinglish = false,
+    Uint8List? logoImage,
+  }) {
+    // Total payable is GST-INCLUSIVE (CGST 4.45% + SGST 4.45% = 8.9%).
+    final totalPayable = e.totalPayableOverride ?? system.totalPayable;
+    final subsidy = system.subsidy;
+    final afterSubsidy = totalPayable - subsidy;
+    final gstMul = 1 + GSGst.totalPercent / 100; // 1.089
+
+    // GST-exclusive PV-system amount so that
+    // pvTaxable + structure + stamp + (pvTaxable × 8.9%) == totalPayable.
+    final pvTaxable = ((totalPayable - system.structureCost - system.stampCharge) /
+            gstMul)
+        .round();
+    final cgst = (pvTaxable * GSGst.cgstPercent / 100).round();
+    final sgst = (pvTaxable * GSGst.sgstPercent / 100).round();
+
+    final lineItems = <ProposalLineItem>[
+      ProposalLineItem(
+        description: '${system.kw.toStringAsFixed(2)} kW Solar PV System',
+        specs: [
+          '${system.panels} × ${system.panelWatt} Wp Adani TOPCon solar panels',
+          '${system.panels} × MC4 connectors & MC4 extensions',
+        ],
+        qty: '1',
+        unit: 'set',
+        rate: pvTaxable,
+        cgstPercent: GSGst.cgstPercent,
+        sgstPercent: GSGst.sgstPercent,
+      ),
+      ProposalLineItem(
+        description: 'Structure & Mounting (Elevated)',
+        specs: ['Hot-dip galvanized MS structure'],
+        qty: '1',
+        unit: 'set',
+        rate: system.structureCost,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ),
+      ProposalLineItem(
+        description: 'Stamp Charge',
+        specs: ['Govt. stamp paper for agreement'],
+        qty: '1',
+        unit: 'set',
+        rate: system.stampCharge,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ),
+      ProposalLineItem(
+        description: 'PM Surya Ghar Subsidy (Adjustment)',
+        specs: ['Government subsidy credit', 'Residential only'],
+        qty: '1',
+        unit: 'set',
+        rate: -subsidy,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ),
+    ];
+
+    return SolarProposalData(
+      companyName: 'Global Solar 2.0',
+      companyTagline: siteConfigTagline,
+      companyAddress: siteConfigAddress,
+      companyEmail: siteConfigEmail,
+      companyPhone: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      companyGstin: '24AABCG1234C1Z0',
+      brandColorHex: '#071440',
+      accentColorHex: '#F9B417',
+      customerName: e.leadName,
+      customerLocation: e.address ?? 'Bhavnagar, Gujarat',
+      customerMobile: '+91 ${e.mobileNumber}',
+      state: 'Gujarat',
+      leadName: e.leadName,
+      quotationId: e.estimateNumber,
+      quotationDate: _dateFmt.format(record.createdAt),
+      expiryDate: _dateFmt.format(e.expiryDate),
+      preparedBy: 'Jayrajsinh S. Umat & Gopalsinh J. Parmar',
+      contactNumbers: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      plantCapacityKw: system.kw.toStringAsFixed(2),
+      lineItems: lineItems,
+      subTotal: pvTaxable + system.structureCost + system.stampCharge,
+      taxGst: cgst + sgst,
+      cgstTotal: cgst,
+      sgstTotal: sgst,
+      grandTotal: afterSubsidy,
+      amountInWords: 'Indian Rupee ${_numberToWords(afterSubsidy)} Only',
+      notes: _estimateNotes(e, useHinglish),
+      bankDetails: const BankDetails(
+        bankName: 'Bank of Baroda',
+        accountName: 'Global Solar 2.0',
+        accountNo: '25980500000094',
+        ifsc: 'BARBOSSIBHA',
+        branch: 'Bhavnagar',
+      ),
+      bomItems: [
+        BomItem(
+          item: 'Solar Panels (PV Modules)',
+          qty: '${system.panels}',
+          unit: 'Nos.',
+          brand: 'Adani TOPCon',
+          category: 'Solar Panels',
+        ),
+        BomItem(
+          item: 'Solar String Inverter',
+          qty: '1',
+          unit: 'Nos.',
+          brand: e.inverterKwManual != null
+              ? 'Polycab ${e.inverterKwManual}kW'
+              : 'Polycab 3.6kW',
+          category: 'Inverters',
+        ),
+        BomItem(
+          item: 'Mounting Structure (GI)',
+          qty: '1',
+          unit: 'Set',
+          brand: 'MS Steel',
+          category: 'Structure',
+        ),
+        BomItem(
+          item: 'DC / AC Cables & MC4',
+          qty: '1',
+          unit: 'Lot',
+          brand: 'Polycab',
+          category: 'BOS',
+        ),
+        BomItem(
+          item: 'Earthing & LA Kit',
+          qty: '1',
+          unit: 'Set',
+          brand: 'Global Solar',
+          category: 'BOS',
+        ),
+      ],
+      panelCount: system.panels,
+      panelWattpeak: system.panelWatt.toString(),
+      panelBrand: 'Adani TOPCon',
+      dcCableSpecs: e.wiringSqMm ?? '4 sq.mm',
+      acWireSpecs: e.wiringSqMm ?? '2.5 sq.mm',
+      earthingWireSpecs: e.wiringSqMm ?? '2.5 sq.mm',
+      inverterKwValue: e.inverterKwManual != null
+          ? '${e.inverterKwManual} kW'
+          : '3.6 kW',
+      effectiveUpfront: totalPayable,
+      subsidyAmount: subsidy,
+      warrantySections: _defaultWarrantySections,
+      upiId: 'global.solar.2.0@oksbi',
+      upiQrUpiId:
+          'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+      useHinglish: useHinglish,
+      socialLinks: _defaultSocialLinks,
+      logoImage: logoImage,
+    );
+  }
+
   // ── Line-item conversion ───────────────────────────────────────────
 
   static ProposalLineItem _toProposalLineItem(EstimateLineItem item) {
@@ -164,21 +338,33 @@ class EstimatePdf {
       unit: 'set',
       rate: item.rate,
       discount: item.discount,
-      cgstPercent: item.cgstPercent.toInt(),
-      sgstPercent: item.sgstPercent.toInt(),
+      cgstPercent: item.cgstPercent.toDouble(),
+      sgstPercent: item.sgstPercent.toDouble(),
     );
   }
 
   // ── Panel / inverter extraction ───────────────────────────────────
 
   static int _extractPanelCount(EstimateModel e, MasterData master) {
+    // Prefer the explicit quantity on the "Solar Panels" line item — this is
+    // the exact module count chosen for the selected system, so the correct
+    // panel-count design image is used (5..10 panels).
+    final panelItem = e.lineItems.firstWhere(
+      (i) => i.description == 'Solar Panels',
+      orElse: () =>
+          EstimateLineItem(description: '', specs: '', qty: 0, rate: 0),
+    );
+    if (panelItem.qty > 0) return panelItem.qty;
+
+    // Fallback: derive from capacity / per-panel wattage. Use round() (not
+    // ceil()) so floating-point noise like 5.0000001 does not become 6.
     final (_, wattage) = _extractPanelInfo(e);
     final w = int.tryParse(RegExp(r'(\d+)').firstMatch(wattage)?.group(1) ?? '');
-    if (w == null || w == 0) {
-      return ((e.capacityKw ?? 0) * 1000 / master.defaultPanelWattage).ceil();
-    }
     final cap = e.capacityKw ?? 0;
-    return (cap * 1000 / w).ceil();
+    if (w == null || w == 0) {
+      return (cap * 1000 / master.defaultPanelWattage).round();
+    }
+    return (cap * 1000 / w).round();
   }
 
   static (String, String) _extractPanelInfo(EstimateModel e) {
@@ -295,6 +481,7 @@ class EstimatePdf {
             bullets: [
               'Subsidy of ₹78,000 is applicable for residential connections up to 10 kW.',
               'The subsidy is credited directly by the government to the beneficiary\'s bank account.',
+              'Global Solar 2.0 assists in the subsidy application but is not liable for any government delay.',
               'Commercial properties are not eligible for this subsidy.',
             ]),
         const WarrantySection(heading: '3. Structure Terms', bullets: [
@@ -302,18 +489,57 @@ class EstimatePdf {
           'Fabrication and erection work is warranted for 1 year against defects.',
         ]),
         const WarrantySection(
-            heading: '4. Solar Panel Warranty',
+            heading: '4. Solar Panel (PV Module) Performance Warranty',
             bullets: [
               'Product workmanship warranty: 12 years.',
-              'Performance warranty: 80% output guaranteed for 25 years.',
+              'Performance warranty: 80% output guaranteed for 25 years, 90% for 10 years.',
               'Linear power output warranty: 0.55% degradation per year.',
             ]),
         const WarrantySection(
-            heading: '5. Inverter Warranty',
+            heading: '5. Inverter Manufacturing Defect Warranty',
             bullets: [
               'String inverter: 5 + 5 years warranty (extendable up to 10 years).',
               'Workmanship defects covered for 2 years from commissioning.',
             ]),
+        const WarrantySection(heading: '6. Balance of System (BOS)', bullets: [
+          'MC4 connectors, cables, and DC/AC box: 5 years.',
+          'Chemical earthing: 5 years.',
+          'Lightning arrester: 2 years.',
+        ]),
+        const WarrantySection(heading: '7. Operation & Maintenance', bullets: [
+          'Free comprehensive O&M for the first year after commissioning.',
+          'AMC packages available from year 2 onwards at an additional cost.',
+          '24x7 customer care available.',
+        ]),
+        const WarrantySection(heading: '8. Warranty Notes', bullets: [
+          'Warranty is non-transferable but benefits the property owner.',
+          'Force majeure events (lightning, floods) are not covered under standard warranty.',
+          'Any unauthorised modification voids the warranty immediately.',
+        ]),
+        const WarrantySection(
+            heading: '9. Schedule for Site Completion',
+            bullets: [
+              'Material dispatch: within 3 working days of advance payment.',
+              'Site survey & installation: within 7 working days of material arrival.',
+              'Commissioning & net-meter application: within 15 working days of installation.',
+            ]),
+        const WarrantySection(heading: '10. Quotation Validity', bullets: [
+          'This quotation is valid for 15 days from the date of issue.',
+          'Prices are subject to revision if the quotation validity period is exceeded.',
+        ]),
+        const WarrantySection(heading: '11. Warranty Exclusions', bullets: [
+          'Damage caused by natural calamities, negligence, or misuse.',
+          'Performance degradation due to dust, bird droppings, or lack of cleaning.',
+          'Any tampering with equipment or wiring by unauthorised persons.',
+          'Normal wear and tear of consumable items (fuses, connectors).',
+        ]),
+        const WarrantySection(
+            heading: '12. Scope of Work For Customer', bullets: [
+          'Provide safe and clear access to the rooftop on the scheduled date.',
+          'Arrange 2-4 competent helpers for installation assistance (lifting panels).',
+          'Share a recent electricity bill and property ownership documents.',
+          'Coordinate with the local discom (PGVCL) for net-metering paperwork if required.',
+        ]),
       ];
 
   // ── Social links ───────────────────────────────────────────────────

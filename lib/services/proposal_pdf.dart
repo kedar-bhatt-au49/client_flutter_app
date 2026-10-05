@@ -1,16 +1,8 @@
 ﻿/// ---------------------------------------------------------------------------
 /// Roof Top Solar Proposal + Quotation — 7-page PDF generator.
-///
 /// Matches the "Global Solar 2.0 — Solar Quotation & Proposal (7-Page PDF Set)"
-/// design:
-///   Page 1 — Cover (hero + meta + highlights)
-///   Page 2 — Plant Design Showcase (design image + spec cards + generation)
-///   Page 3 — Official Quotation (from/bill-to, line items, financial summary,
-///            bank details, signature)
-///   Page 4 — Terms & Conditions + Comprehensive Bill of Material
-///   Page 5 — Warranty Terms (Sections 1–6)
-///   Page 6 — Warranty Terms (Sections 7–12)
-///   Page 7 — UPI Payment QR + Leadership contacts
+/// design (split-view cover, 2D plan + 3D axonometric page 2, quotation, terms
+/// + BOM, warranty x2, UPI payment).
 /// ---------------------------------------------------------------------------
 library;
 
@@ -26,7 +18,6 @@ class ProposalPdf {
 
   static final NumberFormat _fmt = NumberFormat.decimalPattern('en_IN');
 
-  /// Indian-style currency, e.g. `Rs. 1,40,800` or `-Rs. 78,000`.
   static String money(int amount) {
     final s = 'Rs. ${_fmt.format(amount.abs())}';
     return amount < 0 ? '-$s' : s;
@@ -42,8 +33,6 @@ class ProposalPdf {
     final hero =
         data.heroImage ?? await _asset('assets/images/hero_installation.jpg');
 
-    // Panel-count-specific design image for page 2.
-    // 6 panels uses the corrected PNG; others are JPGs.
     String panelAsset;
     switch (data.panelCount) {
       case 5:
@@ -112,8 +101,60 @@ final _s400 = PdfColor.fromHex('#94A3B8');
 final _s200 = PdfColor.fromHex('#E2E8F0');
 final _s100 = PdfColor.fromHex('#F1F5F9');
 final _white = PdfColors.white;
+final _blue = PdfColor.fromHex('#1D4ED8');
+final _blueDark = PdfColor.fromHex('#1E3A8A');
 
-// ── Renderer ───────────────────────────────────────────────────────────────
+// 3D axonometric SVG (matching the reference design).
+const String _isoSvg = '''
+<svg viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg" fill="none">
+<path d="M70 120 L210 180 L350 120 L210 65 Z" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.5"/>
+<path d="M70 120 L70 145 L210 205 L210 180 Z" fill="#CBD5E1" stroke="#94A3B8" stroke-width="1.5"/>
+<path d="M210 180 L210 205 L350 145 L350 120 Z" fill="#94A3B8" stroke="#64748B" stroke-width="1.5"/>
+<path d="M60 115 L210 178 L360 115 L210 58 Z" fill="none" stroke="#64748B" stroke-width="3"/>
+<ellipse cx="320" cy="110" rx="14" ry="7" fill="#38BDF8" stroke="#0284C7"/>
+<path d="M306 110 V122 C306 126 334 126 334 122 V110 Z" fill="#0284C7" stroke="#0369A1"/>
+<rect x="290" y="85" width="18" height="12" rx="1" fill="#F59E0B" stroke="#B45309"/>
+<line x1="140" y1="125" x2="140" y2="70" stroke="#475569" stroke-width="2.5"/>
+<line x1="180" y1="142" x2="180" y2="85" stroke="#475569" stroke-width="2.5"/>
+<line x1="240" y1="142" x2="240" y2="85" stroke="#475569" stroke-width="2.5"/>
+<line x1="280" y1="125" x2="280" y2="70" stroke="#475569" stroke-width="2.5"/>
+<g transform="translate(0,-10)">
+<polygon points="120,68 210,32 300,68 210,105" fill="#1E3A8A" stroke="#3B82F6" stroke-width="2"/>
+<polygon points="126,67 142,60 160,67 144,74" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="144,60 160,53 178,60 162,67" fill="#2563EB" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="162,53 178,46 196,53 180,60" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="180,46 196,39 214,46 198,53" fill="#2563EB" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="198,39 214,32 232,39 216,46" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="144,76 160,69 178,76 162,83" fill="#1E40AF" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="162,69 178,62 196,69 180,76" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="180,62 196,55 214,62 198,69" fill="#1E40AF" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="198,55 214,48 232,55 216,62" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.75"/>
+<polygon points="216,48 232,41 250,48 234,55" fill="#1E40AF" stroke="#93C5FD" stroke-width="0.75"/>
+<circle cx="210" cy="62" r="10" fill="#3B82F6" stroke="white" stroke-width="2"/>
+</g>
+<line x1="250" y1="42" x2="310" y2="28" stroke="#071440" stroke-width="1"/>
+<line x1="310" y1="28" x2="330" y2="28" stroke="#071440" stroke-width="1"/>
+<circle cx="250" cy="42" r="2" fill="#071440"/>
+<text x="333" y="30" fill="#071440" font-family="Helvetica" font-size="7.5" font-weight="700">SOLAR PV ARRAY (2x5)</text>
+<line x1="240" y1="95" x2="305" y2="52" stroke="#071440" stroke-width="1"/>
+<line x1="305" y1="52" x2="325" y2="52" stroke="#071440" stroke-width="1"/>
+<circle cx="240" cy="95" r="2" fill="#071440"/>
+<text x="328" y="54" fill="#071440" font-family="Helvetica" font-size="7.5" font-weight="700">GI ELEVATED STRUCTURE</text>
+<line x1="320" y1="120" x2="340" y2="150" stroke="#071440" stroke-width="1"/>
+<line x1="340" y1="150" x2="355" y2="150" stroke="#071440" stroke-width="1"/>
+<circle cx="320" cy="120" r="2" fill="#071440"/>
+<text x="358" y="152" fill="#071440" font-family="Helvetica" font-size="7" font-weight="700">WATER TANK</text>
+<line x1="300" y1="95" x2="320" y2="168" stroke="#071440" stroke-width="1"/>
+<line x1="320" y1="168" x2="340" y2="168" stroke="#071440" stroke-width="1"/>
+<circle cx="300" cy="95" r="2" fill="#071440"/>
+<text x="343" y="170" fill="#071440" font-family="Helvetica" font-size="7" font-weight="700">SOLAR WATER HEATER</text>
+<line x1="210" y1="190" x2="310" y2="185" stroke="#071440" stroke-width="1"/>
+<line x1="310" y1="185" x2="330" y2="185" stroke="#071440" stroke-width="1"/>
+<circle cx="210" cy="190" r="2" fill="#071440"/>
+<text x="333" y="187" fill="#071440" font-family="Helvetica" font-size="7" font-weight="700">PARAPET WALL</text>
+</svg>
+''';
+
 class _Renderer {
   final SolarProposalData d;
   final Uint8List logo;
@@ -132,7 +173,7 @@ class _Renderer {
       fontBold: pw.Font.helveticaBold(),
       fontSize: size,
       color: color ?? _s800,
-      height: height ?? 1.1,
+      height: height ?? 1.12,
       letterSpacing: spacing,
     );
   }
@@ -143,8 +184,26 @@ class _Renderer {
       double.tryParse(d.plantCapacityKw.replaceAll(RegExp(r'[^0-9.]'), '')) ??
           0;
 
-  // ── Shared header / footer ─────────────────────────────────────────────
-  pw.Widget _header(String sub) {
+  // ── Shared footer ──────────────────────────────────────────────────────
+  pw.Widget _footer(int page) {
+    return pw.Container(
+      color: _navy,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text('Global Solar 2.0 • Sukhsagar Complex, Kaliyabid, Bhavnagar',
+              style: _t(6, color: _s400)),
+          pw.Text('Page $page / 7',
+              style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
+          pw.Text('+91 84888 07797 • contact@globalsolar2.in',
+              style: _t(6, color: _s400)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _navyHeader(String sub) {
     return pw.Container(
       color: _navy,
       padding: const pw.EdgeInsets.symmetric(horizontal: 22, vertical: 8),
@@ -162,13 +221,13 @@ class _Renderer {
                     begin: pw.Alignment.topLeft,
                     end: pw.Alignment.bottomRight),
                 image: logo.isNotEmpty
-                    ? pw.DecorationImage(image: pw.MemoryImage(logo), fit: pw.BoxFit.cover)
+                    ? pw.DecorationImage(
+                        image: pw.MemoryImage(logo), fit: pw.BoxFit.cover)
                     : null,
               ),
               child: logo.isEmpty
                   ? pw.Center(
-                      child: pw.Text('GS',
-                          style: _t(8, bold: true, color: _navy)))
+                      child: pw.Text('GS', style: _t(8, bold: true, color: _navy)))
                   : null,
             ),
             pw.SizedBox(width: 7),
@@ -195,24 +254,6 @@ class _Renderer {
     );
   }
 
-  pw.Widget _footer(int page) {
-    return pw.Container(
-      color: _navy,
-      padding: const pw.EdgeInsets.symmetric(horizontal: 22, vertical: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text('Global Solar 2.0 • Sukhsagar Complex, Kaliyabid, Bhavnagar',
-              style: _t(6, color: _s400)),
-          pw.Text('Page $page / 7',
-              style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
-          pw.Text('+91 84888 07797 • contact@globalsolar2.in',
-              style: _t(6, color: _s400)),
-        ],
-      ),
-    );
-  }
-
   pw.Page _page(pw.Widget body, int n, String sub) {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
@@ -220,7 +261,7 @@ class _Renderer {
       build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          _header(sub),
+          _navyHeader(sub),
           pw.Expanded(child: body),
           _footer(n),
         ],
@@ -231,397 +272,472 @@ class _Renderer {
   pw.Widget _sectionTitle(String title) => pw.Row(children: [
         pw.Container(width: 8, height: 8, color: _gold),
         pw.SizedBox(width: 6),
-        pw.Text(title,
-            style: _t(11, bold: true, color: _navy, spacing: 0.3)),
+        pw.Text(title, style: _t(11, bold: true, color: _navy, spacing: 0.3)),
       ]);
 
   // ══════════════════════════════════════════════════════════════════════
-  // PAGE 1 — COVER
+  // PAGE 1 — COVER (split view)
   // ══════════════════════════════════════════════════════════════════════
   pw.Page cover() {
-    return _page(
-      pw.Column(
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.zero,
+      build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          // Hero
-          pw.Container(
-            height: 250,
-            color: _navy,
-            child: pw.Stack(children: [
-              if (hero.isNotEmpty)
-                pw.Positioned.fill(
-                    child: pw.Image(pw.MemoryImage(hero), fit: pw.BoxFit.cover)),
-              pw.Positioned.fill(
-                child: pw.Container(
-                  decoration: pw.BoxDecoration(
-                    gradient: pw.LinearGradient(
-                      begin: pw.Alignment.topCenter,
-                      end: pw.Alignment.bottomCenter,
-                      colors: [
-                        PdfColor.fromHex('#071440'),
-                        PdfColor.fromHex('#071440')
+          pw.Expanded(
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                // Left visual column (52%)
+                pw.Expanded(
+                  flex: 52,
+                  child: pw.Stack(children: [
+                    pw.Positioned.fill(
+                        child: pw.Container(
+                      color: _navy,
+                      child: hero.isNotEmpty
+                          ? pw.Image(pw.MemoryImage(hero), fit: pw.BoxFit.cover)
+                          : null,
+                    )),
+                    pw.Positioned(
+                      left: 16,
+                      top: 16,
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: pw.BoxDecoration(
+                            color: _white,
+                            borderRadius: pw.BorderRadius.circular(10)),
+                        child: pw.Row(children: [
+                          pw.Container(
+                            width: 24,
+                            height: 24,
+                            decoration: pw.BoxDecoration(
+                                shape: pw.BoxShape.circle,
+                                gradient: pw.LinearGradient(
+                                    colors: [_gold, _goldLight])),
+                            child: pw.Center(
+                                child: pw.Text('GS',
+                                    style: _t(8, bold: true, color: _navy))),
+                          ),
+                          pw.SizedBox(width: 6),
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Global Solar 2.0',
+                                  style: _t(11, bold: true, color: _navy)),
+                              pw.Text('SOLAR EPC SOLUTIONS',
+                                  style: _t(5.5,
+                                      bold: true, color: _s500, spacing: 0.5)),
+                            ],
+                          ),
+                        ]),
+                      ),
+                    ),
+                    pw.Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: pw.BoxDecoration(
+                          color: _navy,
+                          borderRadius: pw.BorderRadius.circular(10),
+                          border: pw.Border.all(color: _gold, width: 0.5),
+                        ),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Adani TOPCon Bi-Facial',
+                                style: _t(8, bold: true, color: _white)),
+                            pw.Text('30-YR WARRANTY',
+                                style: _t(7,
+                                    bold: true, color: _goldLight, spacing: 0.4)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+                // Right content column (48%)
+                pw.Expanded(
+                  flex: 48,
+                  child: pw.Container(
+                    color: _navy,
+                    padding: const pw.EdgeInsets.all(22),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: pw.BoxDecoration(
+                            color: _goldSoft,
+                            border: pw.Border.all(color: _gold, width: 0.5),
+                            borderRadius: pw.BorderRadius.circular(4),
+                          ),
+                          child: pw.Text('TURNKEY ENGINEERING PROPOSAL',
+                              style: _t(6,
+                                  bold: true, color: _navy, spacing: 0.6)),
+                        ),
+                        pw.SizedBox(height: 10),
+                        pw.RichText(
+                          text: pw.TextSpan(children: [
+                            pw.TextSpan(
+                                text: 'Roof Top\n',
+                                style: _t(22, bold: true, color: _white)),
+                            pw.TextSpan(
+                                text: 'Solar',
+                                style: _t(22, bold: true, color: _goldLight)),
+                            pw.TextSpan(
+                                text: ' Proposal',
+                                style: _t(22, bold: true, color: _white)),
+                          ]),
+                        ),
+                        pw.Text(
+                            'PM Surya Ghar: Muft Bijli Yojana Central Scheme',
+                            style: _t(8, color: _sky)),
+                        pw.SizedBox(height: 12),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(14),
+                          decoration: pw.BoxDecoration(
+                            color: _white,
+                            border: pw.Border(
+                                left: pw.BorderSide(color: _gold, width: 4)),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('PREPARED EXCLUSIVELY FOR',
+                                  style: _t(6,
+                                      bold: true, color: _s400, spacing: 0.5)),
+                              pw.SizedBox(height: 2),
+                              pw.Text(d.customerName.toUpperCase(),
+                                  style: _t(18, bold: true, color: _navy)),
+                              pw.SizedBox(height: 3),
+                              pw.Text('${d.state}  |  ${d.customerLocation}',
+                                  style: _t(8, color: _s600)),
+                            ],
+                          ),
+                        ),
+                        pw.SizedBox(height: 12),
+                        pw.Text('Global Solar 2.0',
+                            style: _t(13, bold: true, color: _white)),
+                        pw.SizedBox(height: 3),
+                        pw.Text(d.companyAddress, style: _t(7, color: _s400)),
+                        pw.SizedBox(height: 6),
+                        pw.Container(height: 0.6, color: _s500),
+                        pw.SizedBox(height: 6),
+                        pw.Row(children: [
+                          pw.Expanded(child: _metaCompact('LEAD', d.leadName)),
+                          pw.Expanded(child: _metaCompact('ID', d.quotationId)),
+                        ]),
+                        pw.SizedBox(height: 6),
+                        pw.Row(children: [
+                          pw.Expanded(
+                              child: _metaCompact('DATE', d.quotationDate)),
+                          pw.Expanded(
+                              child: _metaCompact(
+                                  'PLANT CAPACITY',
+                                  '${_capKw.toStringAsFixed(2)} kW')),
+                        ]),
+                        pw.SizedBox(height: 8),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: pw.BoxDecoration(
+                              color: _green,
+                              borderRadius: pw.BorderRadius.circular(6)),
+                          child: pw.Row(
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Direct DBT Subsidy:',
+                                  style: _t(8, bold: true, color: _white)),
+                              pw.Text('Rs. 78,000 Guaranteed',
+                                  style: _t(9, bold: true, color: _goldLight)),
+                            ],
+                          ),
+                        ),
                       ],
-                      stops: const [0.35, 1.0],
                     ),
                   ),
                 ),
-              ),
-              pw.Positioned(
-                top: 12,
-                right: 22,
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: pw.BoxDecoration(
-                    color: _navy,
-                    borderRadius: pw.BorderRadius.circular(999),
-                    border: pw.Border.all(color: _gold, width: 0.6),
-                  ),
-                  child: pw.Text('Adani TOPCon Bi-Facial  •  30-Yr Warranty',
-                      style: _t(7, bold: true, color: _goldLight)),
-                ),
-              ),
-            ]),
+              ],
+            ),
           ),
-          // Title band
+          _footer(1),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _metaCompact(String label, String value) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label, style: _t(6, bold: true, color: _s400, spacing: 0.4)),
+          pw.Text(value, style: _t(8.5, bold: true, color: _goldLight)),
+        ],
+      );
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 2 — PLANT DESIGN SHOWCASE (2D plan + 3D axonometric)
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page designShowcase() {
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.zero,
+      build: (pw.Context ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
           pw.Container(
-            color: _navyDeep,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+            color: _white,
+            padding: const pw.EdgeInsets.fromLTRB(26, 14, 26, 8),
             child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  color: _gold,
-                  child: pw.Text('OFFICIAL TURNKEY PROPOSAL SET',
-                      style: _t(6, bold: true, color: _navy, spacing: 0.6)),
-                ),
-                pw.SizedBox(height: 4),
-                pw.RichText(
-                  text: pw.TextSpan(children: [
-                    pw.TextSpan(
-                        text: 'Solar Power ',
-                        style: _t(24, bold: true, color: _white)),
-                    pw.TextSpan(
-                        text: 'Proposal',
-                        style: _t(24, bold: true, color: _goldLight)),
+                pw.Align(
+                  alignment: pw.Alignment.centerRight,
+                  child: pw.Row(mainAxisSize: pw.MainAxisSize.min, children: [
+                    pw.Container(
+                      width: 26,
+                      height: 26,
+                      decoration: pw.BoxDecoration(
+                          shape: pw.BoxShape.circle,
+                          gradient: pw.LinearGradient(
+                              colors: [_gold, _goldLight])),
+                      child: pw.Center(
+                          child:
+                              pw.Text('GS', style: _t(8, bold: true, color: _navy))),
+                    ),
+                    pw.SizedBox(width: 6),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('GLOBAL SOLAR 2.0',
+                            style: _t(9, bold: true, color: _gold)),
+                        pw.Text('Serving Talaja, Bhavnagar and nearby villages',
+                            style: _t(6, color: _s400)),
+                      ],
+                    ),
                   ]),
                 ),
-                pw.Text(
-                    'PM Surya Ghar 2.0 — Rooftop Solar Scheme • Engineering Design & Financial Plan',
-                    style: _t(8, color: _sky)),
+                pw.SizedBox(height: 6),
+                pw.Text('Solar Plants Designs You Have Previously',
+                    textAlign: pw.TextAlign.center,
+                    style: _t(16, bold: true, color: _s800)),
+                pw.Text('Solar Plant Photos & 3D Engineering Layout',
+                    textAlign: pw.TextAlign.center,
+                    style: _t(7.5, color: _s400)),
+                pw.SizedBox(height: 6),
+                pw.Container(height: 2, color: _gold),
               ],
             ),
           ),
           pw.Expanded(
             child: pw.Container(
-              color: _skySoft,
-              padding: const pw.EdgeInsets.fromLTRB(30, 16, 30, 12),
+              color: _s100,
+              padding: const pw.EdgeInsets.fromLTRB(26, 10, 26, 8),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  // Meta card
                   pw.Container(
-                    padding: const pw.EdgeInsets.all(14),
+                    padding: const pw.EdgeInsets.all(10),
                     decoration: pw.BoxDecoration(
                       color: _white,
-                      borderRadius: pw.BorderRadius.circular(10),
+                      borderRadius: pw.BorderRadius.circular(12),
                       border: pw.Border.all(color: _s200),
                     ),
-                    child: pw.Column(
+                    child: pw.Row(
                       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                       children: [
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Text('DOCUMENT IDENTIFIER',
-                                    style: _t(6, bold: true, color: _s400, spacing: 0.5)),
-                                pw.Text(d.quotationId,
-                                    style: _t(11, bold: true, color: _navy)),
-                              ],
-                            ),
-                            pw.Container(
-                              padding: const pw.EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 3),
-                              decoration: pw.BoxDecoration(
-                                color: _sky,
-                                borderRadius: pw.BorderRadius.circular(4),
-                                border: pw.Border.all(color: _border),
-                              ),
-                              child: pw.Text('Residential Grid-Tied System',
-                                  style: _t(8, bold: true, color: _navyDeep)),
-                            ),
-                          ],
-                        ),
-                        pw.SizedBox(height: 6),
-                        pw.Divider(color: _s200, height: 8, thickness: 0.6),
-                        pw.SizedBox(height: 4),
-                        _metaGrid([
-                          ['Proposal Date:', d.quotationDate, null],
-                          ['Valid Until (Expiry):', d.expiryDate, _green],
-                          ['Prepared By:', d.preparedBy, null],
-                          ['Authorized Channel:', 'Adani Solar Authorized Partner', null],
-                          ['Customer Name:', d.customerName, _navy],
-                          ['Contact Number:', d.customerMobile, null],
-                          ['Installation Site:', d.customerLocation, null],
-                          [
-                            'Proposed Capacity:',
-                            '${_capKw.toStringAsFixed(2)} kW (${d.panelCount} × ${d.panelWattpeak} Wp)',
-                            _navyDeep
-                          ],
-                        ]),
+                        pw.Expanded(flex: 5, child: _plan2D()),
+                        pw.SizedBox(width: 10),
+                        pw.Expanded(flex: 7, child: _iso3D()),
                       ],
                     ),
                   ),
+                  pw.SizedBox(height: 10),
+                  _sectionTitle('CORE ENGINEERING BILL OF HARDWARE'),
+                  pw.SizedBox(height: 6),
+                  _specGrid(),
                   pw.SizedBox(height: 12),
-                  // Highlights
-                  pw.Row(children: [
-                    _highlight('Government Subsidy', 'Rs. 78,000 Direct DBT', _green),
-                    pw.SizedBox(width: 8),
-                    _highlight('Est. Monthly Bill', 'Reduced to Rs. 0', _navy),
-                    pw.SizedBox(width: 8),
-                    _highlight('PGVCL Net-Meter', 'Fast-Track Liaison', _navyDeep),
-                  ]),
+                  pw.Container(
+                    padding:
+                        const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: pw.BoxDecoration(
+                      gradient: pw.LinearGradient(
+                          colors: [_navy, _navyDeep],
+                          begin: pw.Alignment.centerLeft,
+                          end: pw.Alignment.centerRight),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                            'Expected Daily Generation: 18.5 – 22.5 Units (kWh) / day',
+                            style: _t(7.5, bold: true, color: _goldLight)),
+                        pw.Text('Annual CO2 Offset: 4.2 Metric Tons / Year',
+                            style: _t(7.5, bold: true, color: _white)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
+          _footer(2),
         ],
       ),
-      1,
-      'PM Surya Ghar: Muft Bijli Yojana',
     );
   }
 
-  pw.Widget _metaGrid(List<List<Object?>> rows) {
-    final children = <pw.Widget>[];
-    for (var i = 0; i < rows.length; i += 2) {
-      final left = rows[i];
-      final right = i + 1 < rows.length ? rows[i + 1] : null;
-      children.add(pw.Row(children: [
-        pw.Expanded(child: _metaCell(left)),
-        pw.SizedBox(width: 18),
-        pw.Expanded(
-            child: right != null
-                ? _metaCell(right)
-                : pw.SizedBox()),
-      ]));
-      if (i + 2 < rows.length) children.add(pw.SizedBox(height: 6));
-    }
-    return pw.Column(children: children);
-  }
-
-  pw.Widget _metaCell(List<Object?> row) {
-    final color = row[2] as PdfColor?;
+  pw.Widget _plan2D() {
     return pw.Container(
-      padding: const pw.EdgeInsets.only(bottom: 3),
+      height: 240,
+      padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: _s100, width: 0.6)),
+        color: _skySoft,
+        borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: _s200),
       ),
       child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(row[0] as String, style: _t(7, color: _s500)),
-          pw.SizedBox(height: 1),
-          pw.Text(row[1] as String,
-              style: _t(9, bold: true, color: color ?? _s800)),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('N', style: _t(8, bold: true, color: _s600)),
+              pw.Text('18.5 FT WIDTH',
+                  style: _t(6, color: _s400, spacing: 0.4)),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          // Rooftop panel array (5 x 2)
+          pw.Container(
+            padding: const pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              color: _white,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: _s700, width: 1),
+            ),
+            child: pw.Column(children: [
+              pw.Row(children: [
+                for (var i = 0; i < 5; i++) ...[
+                  pw.Expanded(
+                      child: pw.Container(
+                          height: 34,
+                          color: _blue,
+                          margin: const pw.EdgeInsets.all(1))),
+                ],
+              ]),
+              pw.Row(children: [
+                for (var i = 0; i < 5; i++) ...[
+                  pw.Expanded(
+                      child: pw.Container(
+                          height: 34,
+                          color: _blueDark,
+                          margin: const pw.EdgeInsets.all(1))),
+                ],
+              ]),
+            ]),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Container(
+            alignment: pw.Alignment.center,
+            child: pw.Container(
+              width: 22,
+              height: 22,
+              alignment: pw.Alignment.center,
+              decoration: pw.BoxDecoration(
+                shape: pw.BoxShape.circle,
+                color: _white,
+                border: pw.Border.all(color: _navyDeep, width: 1.5),
+              ),
+              child:
+                  pw.Text('${d.panelCount}', style: _t(9, bold: true, color: _navyDeep)),
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('PARAPET BOUNDARY', style: _t(6, color: _s400)),
+              pw.Text('28.0 FT LENGTH', style: _t(6, color: _s400)),
+            ],
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text('2D ROOFTOP CIVIL PLAN VIEW',
+              textAlign: pw.TextAlign.center,
+              style: _t(8, bold: true, color: _navy)),
         ],
       ),
     );
   }
 
-  pw.Widget _highlight(String label, String value, PdfColor color) {
-    return pw.Expanded(
-      child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        decoration: pw.BoxDecoration(
-          color: _white,
-          borderRadius: pw.BorderRadius.circular(8),
-          border: pw.Border.all(color: _sky),
-        ),
-        child: pw.Column(children: [
-          pw.Text(label.toUpperCase(),
-              textAlign: pw.TextAlign.center,
-              style: _t(6, bold: true, color: _s400, spacing: 0.4)),
-          pw.SizedBox(height: 3),
-          pw.Text(value,
-              textAlign: pw.TextAlign.center,
-              style: _t(9, bold: true, color: color)),
-        ]),
+  pw.Widget _iso3D() {
+    return pw.Container(
+      height: 240,
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        gradient: pw.LinearGradient(
+            colors: [_s100, _white],
+            begin: pw.Alignment.topLeft,
+            end: pw.Alignment.bottomRight),
+        borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: _s200),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                color: _navy,
+                child: pw.Text('3D AXONOMETRIC STRUCTURAL MODEL',
+                    style: _t(6, bold: true, color: _goldLight, spacing: 0.4)),
+              ),
+              pw.Text('SCALE 1:50 • ELEVATED GI',
+                  style: _t(6, color: _s500)),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.SizedBox(
+            height: 150,
+            child: pw.Center(
+              child: pw.SvgImage(svg: _isoSvg, width: 300, height: 150),
+            ),
+          ),
+          pw.Row(children: [
+            pw.Expanded(child: _metric('CLEARANCE', '8.5 FT Walkway', _navy)),
+            pw.SizedBox(width: 4),
+            pw.Expanded(child: _metric('WIND LOAD', '160 km/h Tested', _navyDeep)),
+            pw.SizedBox(width: 4),
+            pw.Expanded(child: _metric('AZIMUTH/TILT', '22° True South', _green)),
+          ]),
+        ],
       ),
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════
-  // PAGE 2 — PLANT DESIGN SHOWCASE
-  // ══════════════════════════════════════════════════════════════════════
-  pw.Page designShowcase() {
-    return _page(
-      pw.Container(
+  pw.Widget _metric(String label, String value, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      decoration: pw.BoxDecoration(
         color: _white,
-        padding: const pw.EdgeInsets.fromLTRB(26, 12, 26, 10),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            // Title
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    color: _greenLight,
-                    child: pw.Text('ARCHITECTURAL & ELECTRICAL LAYOUT',
-                        style: _t(6, bold: true, color: _green, spacing: 0.5)),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text('Solar Plant Design & Technical Specifications',
-                      style: _t(16, bold: true, color: _navy)),
-                ]),
-                pw.Text('${_capKw.toStringAsFixed(2)} kW Config',
-                    style: _t(8, bold: true, color: _navyDeep)),
-              ],
-            ),
-            pw.SizedBox(height: 4),
-            pw.Divider(color: _s200, height: 6, thickness: 0.6),
-            pw.SizedBox(height: 8),
-            // Design image card
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: _sky,
-                borderRadius: pw.BorderRadius.circular(10),
-                border: pw.Border.all(color: _border),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('Your Solar Plant Design',
-                          style: _t(11, bold: true, color: _navy)),
-                      pw.Container(
-                        padding:
-                            const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: pw.BoxDecoration(
-                          color: _white,
-                          borderRadius: pw.BorderRadius.circular(999),
-                          border: pw.Border.all(color: _border),
-                        ),
-                        child: pw.Text('Computer-Aided 3D Shadow Analysis',
-                            style: _t(6.5, bold: true, color: _navyDeep)),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 6),
-                  pw.Container(
-                    height: 180,
-                    decoration: pw.BoxDecoration(
-                      color: _white,
-                      borderRadius: pw.BorderRadius.circular(8),
-                      border: pw.Border.all(color: _s200),
-                    ),
-                    child: pw.Stack(children: [
-                      if (design.isNotEmpty)
-                        pw.Positioned.fill(
-                            child: pw.Image(pw.MemoryImage(design),
-                                fit: pw.BoxFit.cover)),
-                      pw.Positioned(
-                        left: 8,
-                        top: 8,
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          color: _navy,
-                          child: pw.Text(
-                              'ORIENTATION: SOUTH-FACING (AZIMUTH 180° / TILT 22°)',
-                              style: _t(6, color: _white)),
-                        ),
-                      ),
-                      pw.Positioned(
-                        right: 8,
-                        top: 8,
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          color: _green,
-                          child: pw.Text('OPTIMAL ANNUAL SOLAR IRRADIATION',
-                              style: _t(6, bold: true, color: _white)),
-                        ),
-                      ),
-                      pw.Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 8,
-                        child: pw.Center(
-                          child: pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: pw.BoxDecoration(
-                              color: _navy,
-                              border: pw.Border.all(color: _gold, width: 0.6),
-                              borderRadius: pw.BorderRadius.circular(6),
-                            ),
-                            child: pw.Column(children: [
-                              pw.Text('ELEVATED G2G FRAMING GUARANTEE',
-                                  style: _t(6, bold: true, color: _goldLight)),
-                              pw.Text(
-                                  '8.5 ft Walkway Head Clearance • 100% Terrace Walkability Preserved',
-                                  style: _t(6.5, bold: true, color: _white)),
-                            ]),
-                          ),
-                        ),
-                      ),
-                    ]),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text(
-                          '*Note: Actual layout may vary slightly post physical site survey.',
-                          style: _t(6, color: _s500)),
-                      pw.Text('Wind Resistance Certified: Up to 160 km/h',
-                          style: _t(6, bold: true, color: _navy)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            _sectionTitle('CORE ENGINEERING BILL OF HARDWARE'),
-            pw.SizedBox(height: 6),
-            _specGrid(),
-            pw.Spacer(),
-            // Generation strip
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: pw.BoxDecoration(
-                gradient: pw.LinearGradient(
-                    colors: [_navy, _navyDeep],
-                    begin: pw.Alignment.centerLeft,
-                    end: pw.Alignment.centerRight),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Expected Daily Generation: 14.5 – 18.0 Units (kWh) per day',
-                      style: _t(7.5, bold: true, color: _goldLight)),
-                  pw.Text('Annual CO₂ Offset: 4.2 Metric Tons / Year',
-                      style: _t(7.5, bold: true, color: _white)),
-                ],
-              ),
-            ),
-          ],
-        ),
+        borderRadius: pw.BorderRadius.circular(4),
+        border: pw.Border.all(color: _s200),
       ),
-      2,
-      'Technical Plant Blueprint',
+      child: pw.Column(children: [
+        pw.Text(label.toUpperCase(),
+            style: _t(5.5, bold: true, color: _s400, spacing: 0.3)),
+        pw.Text(value, style: _t(7.5, bold: true, color: color)),
+      ]),
     );
   }
 
@@ -630,7 +746,7 @@ class _Renderer {
       ['TOTAL SYSTEM CAPACITY', '${_capKw.toStringAsFixed(2)} kWp', '#071440'],
       ['SOLAR PV MODULES', 'Adani TOPCon ${d.panelWattpeak} Wp', '#0B1F5C'],
       ['GRID-TIED SMART INVERTER', d.inverterKwValue, '#071440'],
-      ['MOUNTING STRUCTURE', 'Elevated Hot-Dip GI', '#0B1F5C'],
+      ['MOUNTING STRUCTURE', 'Elevated Hot-Dip GI (8.5ft)', '#0B1F5C'],
       ['DC & AC SOLAR CABLING', '${d.dcCableSpecs} UV Tinned Copper', '#071440'],
       ['PROTECTION & EARTHING', '3-Point Chemical Earthing + LA', '#0B1F5C'],
     ];
@@ -677,7 +793,6 @@ class _Renderer {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            // From / Bill To / Meta
             pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Expanded(
                 flex: 4,
@@ -697,8 +812,7 @@ class _Renderer {
                       pw.Text('Global Solar 2.0',
                           style: _t(9, bold: true, color: _navy)),
                       pw.SizedBox(height: 2),
-                      pw.Text(d.companyAddress,
-                          style: _t(6.5, color: _s600)),
+                      pw.Text(d.companyAddress, style: _t(6.5, color: _s600)),
                       pw.SizedBox(height: 2),
                       pw.Text('GSTIN: ${d.companyGstin}',
                           style: _t(6.5, bold: true, color: _s900)),
@@ -763,7 +877,6 @@ class _Renderer {
             pw.SizedBox(height: 8),
             _financialSummary(),
             pw.SizedBox(height: 6),
-            // Amount in words
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: pw.BoxDecoration(
@@ -775,14 +888,14 @@ class _Renderer {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text('Amount in Words (Effective Cost):',
-                      style: _t(7.5, bold: true, color: PdfColor.fromHex('#78350F'))),
+                      style:
+                          _t(7.5, bold: true, color: PdfColor.fromHex('#78350F'))),
                   pw.Text(_s(d.amountInWords),
                       style: _t(8, bold: true, color: _navy)),
                 ],
               ),
             ),
             pw.SizedBox(height: 8),
-            // Bank + signature
             pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Expanded(flex: 7, child: _bankBox()),
               pw.SizedBox(width: 8),
@@ -810,7 +923,16 @@ class _Renderer {
   }
 
   pw.Widget _lineItemsTable() {
-    final heads = ['#', 'Item & Technical Description', 'Qty', 'Rate (Rs.)', 'Disc.', 'CGST', 'SGST', 'Total (Rs.)'];
+    final heads = [
+      '#',
+      'Item & Technical Description',
+      'Qty',
+      'Rate (Rs.)',
+      'Disc.',
+      'CGST',
+      'SGST',
+      'Total (Rs.)'
+    ];
     final rows = <pw.TableRow>[
       pw.TableRow(
         decoration: pw.BoxDecoration(color: _navy),
@@ -820,7 +942,10 @@ class _Renderer {
               padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
               child: pw.Text(heads[c],
                   textAlign: (c == 1) ? pw.TextAlign.left : pw.TextAlign.center,
-                  style: _t(6.8, bold: true, color: c == 7 ? _goldLight : _white, spacing: 0.3)),
+                  style: _t(6.8,
+                      bold: true,
+                      color: c == 7 ? _goldLight : _white,
+                      spacing: 0.3)),
             ),
         ],
       ),
@@ -832,7 +957,8 @@ class _Renderer {
         decoration: pw.BoxDecoration(color: i.isEven ? _white : _s100),
         verticalAlignment: pw.TableCellVerticalAlignment.top,
         children: [
-          _cell('${i + 1}'.padLeft(2, '0'), align: pw.TextAlign.center, color: _s400),
+          _cell('${i + 1}'.padLeft(2, '0'),
+              align: pw.TextAlign.center, color: _s400),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
             child: pw.Column(
@@ -848,11 +974,14 @@ class _Renderer {
           ),
           _cell(it.qty, align: pw.TextAlign.center),
           _cell(ProposalPdf._fmt.format(it.rate), align: pw.TextAlign.right),
-          _cell(it.discount == 0 ? 'Rs. 0' : ProposalPdf.money(it.discount), align: pw.TextAlign.right),
+          _cell(it.discount == 0 ? 'Rs. 0' : ProposalPdf.money(it.discount),
+              align: pw.TextAlign.right),
           _cell('${_g(it.cgstPercent)}%', align: pw.TextAlign.right),
           _cell('${_g(it.sgstPercent)}%', align: pw.TextAlign.right),
           _cell(ProposalPdf._fmt.format(it.total),
-              align: pw.TextAlign.right, bold: true, color: subsidy ? _green : _navy),
+              align: pw.TextAlign.right,
+              bold: true,
+              color: subsidy ? _green : _navy),
         ],
       ));
     }
@@ -884,8 +1013,7 @@ class _Renderer {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       child: pw.Text(text,
-          textAlign: align,
-          style: _t(7, bold: bold, color: color ?? _s700)),
+          textAlign: align, style: _t(7, bold: bold, color: color ?? _s700)),
     );
   }
 
@@ -949,10 +1077,9 @@ class _Renderer {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(label,
-                  style: _t(big ? 9 : 7.5, bold: true,
-                      color: dark ? _navy : _white)),
-              pw.Text(sub,
-                  style: _t(6, color: dark ? _s500 : _s400)),
+                  style: _t(big ? 9 : 7.5,
+                      bold: true, color: dark ? _navy : _white)),
+              pw.Text(sub, style: _t(6, color: dark ? _s500 : _s400)),
             ],
           ),
         ),
@@ -1000,11 +1127,9 @@ class _Renderer {
         padding: const pw.EdgeInsets.symmetric(vertical: 1.2),
         child: pw.Row(children: [
           pw.SizedBox(
-              width: 74,
-              child: pw.Text(k, style: _t(6.5, color: _s500))),
+              width: 74, child: pw.Text(k, style: _t(6.5, color: _s500))),
           pw.Expanded(
-              child: pw.Text(v,
-                  style: _t(6.8, bold: true, color: _navy))),
+              child: pw.Text(v, style: _t(6.8, bold: true, color: _navy))),
         ]),
       );
 
@@ -1023,19 +1148,19 @@ class _Renderer {
               style: _t(6, bold: true, color: _s400, spacing: 0.4)),
         ),
         pw.SizedBox(height: 8),
-        pw.Text('Jayrajsinh S. Umat',
-            style: _t(11, bold: true, color: _navy)),
+        pw.Text('Jayrajsinh S. Umat', style: _t(11, bold: true, color: _navy)),
         pw.Container(
             width: 120,
             margin: const pw.EdgeInsets.symmetric(vertical: 3),
             decoration: pw.BoxDecoration(
                 border: pw.Border(
                     bottom: pw.BorderSide(
-                        color: _s400, width: 0.7, style: pw.BorderStyle.dashed)))),
+                        color: _s400,
+                        width: 0.7,
+                        style: pw.BorderStyle.dashed)))),
         pw.Text('Founder & Chief Technical Officer',
             style: _t(6.8, bold: true, color: _navy)),
-        pw.Text('Authorized EPC Signatory & Stamp',
-            style: _t(6, color: _s500)),
+        pw.Text('Authorized EPC Signatory & Stamp', style: _t(6, color: _s500)),
       ]),
     );
   }
@@ -1045,12 +1170,30 @@ class _Renderer {
   // ══════════════════════════════════════════════════════════════════════
   pw.Page termsBom() {
     final terms = [
-      ['Payment Milestones:', '10% booking token, 70% on material dispatch, 20% post PGVCL net-meter inspection.'],
-      ['Subsidy Disbursal:', 'Rs. 78,000 processed via the National PM Surya Ghar portal to the Aadhaar-linked bank account.'],
-      ['Statutory Clearances:', 'Global Solar 2.0 manages 100% of PGVCL documentation, CEIG approval and meter testing.'],
-      ['Installation Lead Time:', 'Mechanical & electrical installation completed within 5-7 days of site readiness.'],
-      ['Client Scope:', 'Shadow-free rooftop terrace, raw water connection and internet WiFi for inverter monitoring.'],
-      ['Price Validity:', 'Quoted prices guaranteed for 15 calendar days from issuance.'],
+      [
+        'Payment Milestones:',
+        '10% booking token, 70% on material dispatch, 20% post PGVCL net-meter inspection.'
+      ],
+      [
+        'Subsidy Disbursal:',
+        'Rs. 78,000 processed via the National PM Surya Ghar portal to the Aadhaar-linked bank account.'
+      ],
+      [
+        'Statutory Clearances:',
+        'Global Solar 2.0 manages 100% of PGVCL documentation, CEIG approval and meter testing.'
+      ],
+      [
+        'Installation Lead Time:',
+        'Mechanical & electrical installation completed within 5-7 days of site readiness.'
+      ],
+      [
+        'Client Scope:',
+        'Shadow-free rooftop terrace, raw water connection and internet WiFi for inverter monitoring.'
+      ],
+      [
+        'Price Validity:',
+        'Quoted prices guaranteed for 15 calendar days from issuance.'
+      ],
     ];
     return _page(
       pw.Container(
@@ -1092,7 +1235,8 @@ class _Renderer {
     );
   }
 
-  pw.Widget _pageHeading(String title, String right, {PdfColor? barColor}) {
+  pw.Widget _pageHeading(String title, String right,
+      {PdfColor? barColor}) {
     return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: [
       pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -1121,8 +1265,10 @@ class _Renderer {
             width: 13,
             height: 13,
             alignment: pw.Alignment.center,
-            decoration: pw.BoxDecoration(color: _navy, shape: pw.BoxShape.circle),
-            child: pw.Text('${i + 1}', style: _t(6, bold: true, color: _goldLight)),
+            decoration:
+                pw.BoxDecoration(color: _navy, shape: pw.BoxShape.circle),
+            child: pw.Text('${i + 1}',
+                style: _t(6, bold: true, color: _goldLight)),
           ),
           pw.SizedBox(width: 5),
           pw.Expanded(
@@ -1139,7 +1285,8 @@ class _Renderer {
       ));
       if (i != items.length - 1) children.add(pw.SizedBox(height: 6));
     }
-    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
+    return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
   }
 
   pw.Widget _bomTable() {
@@ -1230,8 +1377,8 @@ class _Renderer {
   pw.Page _warrantyPage(int page, String sub, String title, String tag,
       String count, int start, int end, String banner) {
     final all = d.warrantySections;
-    final slice = all.sublist(
-        start.clamp(0, all.length), end.clamp(0, all.length));
+    final slice =
+        all.sublist(start.clamp(0, all.length), end.clamp(0, all.length));
     return _page(
       pw.Container(
         color: _white,
@@ -1243,18 +1390,23 @@ class _Renderer {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
-                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    color: _sky,
-                    child: pw.Text(tag.toUpperCase(),
-                        style: _t(6, bold: true, color: _navyDeep, spacing: 0.5)),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(title, style: _t(15, bold: true, color: _navy)),
-                ]),
+                pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        color: _sky,
+                        child: pw.Text(tag.toUpperCase(),
+                            style: _t(6,
+                                bold: true, color: _navyDeep, spacing: 0.5)),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(title, style: _t(15, bold: true, color: _navy)),
+                    ]),
                 pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: pw.BoxDecoration(
                     color: _greenLight,
                     borderRadius: pw.BorderRadius.circular(999),
@@ -1271,7 +1423,7 @@ class _Renderer {
               _warrantyCard(start + i + 1, slice[i]),
               if (i != slice.length - 1) pw.SizedBox(height: 7),
             ],
-            pw.Spacer(),
+            pw.SizedBox(height: 12),
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: pw.BoxDecoration(
@@ -1308,7 +1460,8 @@ class _Renderer {
               alignment: pw.Alignment.center,
               decoration:
                   pw.BoxDecoration(color: _navy, shape: pw.BoxShape.circle),
-              child: pw.Text('$n', style: _t(7, bold: true, color: _goldLight)),
+              child: pw.Text('$n',
+                  style: _t(7, bold: true, color: _goldLight)),
             ),
             pw.SizedBox(width: 6),
             pw.Expanded(
@@ -1326,8 +1479,7 @@ class _Renderer {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('•  ', style: _t(7, color: _gold)),
-                  pw.Expanded(
-                      child: pw.Text(b, style: _t(7, color: _s600))),
+                  pw.Expanded(child: pw.Text(b, style: _t(7, color: _s600))),
                 ],
               ),
             ),
@@ -1381,7 +1533,7 @@ class _Renderer {
                       color: _greenLight,
                       borderRadius: pw.BorderRadius.circular(999),
                     ),
-                    child: pw.Text('✓  NPCI Verified Merchant Account',
+                    child: pw.Text('NPCI Verified Merchant Account',
                         style: _t(7, bold: true, color: _green)),
                   ),
                   pw.SizedBox(height: 10),
@@ -1404,7 +1556,8 @@ class _Renderer {
                   ),
                   pw.SizedBox(height: 10),
                   pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: pw.BoxDecoration(
                       color: _skySoft,
                       borderRadius: pw.BorderRadius.circular(6),
@@ -1421,7 +1574,8 @@ class _Renderer {
                   ),
                   pw.SizedBox(height: 8),
                   pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: pw.BoxDecoration(
                       gradient: pw.LinearGradient(
                           colors: [_navy, _navyDeep],
@@ -1437,7 +1591,8 @@ class _Renderer {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('BOOKING REGISTRATION ADVANCE',
-                                style: _t(6.5, bold: true, color: _goldLight, spacing: 0.4)),
+                                style: _t(6.5,
+                                    bold: true, color: _goldLight, spacing: 0.4)),
                             pw.Text('Token for Site Survey & Liaison',
                                 style: _t(7, color: _s400)),
                           ],
@@ -1451,7 +1606,6 @@ class _Renderer {
               ),
             ),
             pw.SizedBox(height: 10),
-            // Contacts
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(

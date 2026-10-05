@@ -269,8 +269,11 @@ class GSQuoteSystem {
   /// e.g. "3.27 kW • 6 panels"
   String get label => '${kw.toStringAsFixed(2)} kW  •  $panels panels';
 
-  /// Existing panel-count image (assets/images/solar_pannel_N.jpg).
-  String get panelImageAsset => 'assets/images/solar_pannel_$panels.jpg';
+  /// Panel-count design image (assets/images/solar_pannel_N).
+  /// 6 panels uses the corrected PNG; the others are JPGs.
+  String get panelImageAsset => panels == 6
+      ? 'assets/images/solar_pannel_6.png'
+      : 'assets/images/solar_pannel_$panels.jpg';
 }
 
 /// Master quotation systems — the 5 standard offerings.

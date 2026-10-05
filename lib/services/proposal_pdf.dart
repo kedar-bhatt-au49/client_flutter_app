@@ -55,9 +55,8 @@ class ProposalPdf {
     );
 
     // Panel-count-specific design image for page 2.
-    // 5 panels → solar_pannel_5.jpg, 6 → solar_pannel_6.jpg,
-    // 7 → solar_pannel_7.jpg, 8 → solar_pannel_8.jpg,
-    // 9 → solar_pannel_9.jpg, 10 → solar_pannel_10.jpg,
+    // 5 → solar_pannel_5.jpg, 6 → solar_pannel_6.png, 7 → solar_pannel_7.jpg,
+    // 8 → solar_pannel_8.jpg, 9 → solar_pannel_9.jpg, 10 → solar_pannel_10.jpg,
     // any other count → default overview image.
     String panelImageAsset;
     switch (data.panelCount) {
@@ -65,7 +64,7 @@ class ProposalPdf {
         panelImageAsset = 'assets/images/solar_pannel_5.jpg';
         break;
       case 6:
-        panelImageAsset = 'assets/images/solar_pannel_6.jpg';
+        panelImageAsset = 'assets/images/solar_pannel_6.png';
         break;
       case 7:
         panelImageAsset = 'assets/images/solar_pannel_7.jpg';

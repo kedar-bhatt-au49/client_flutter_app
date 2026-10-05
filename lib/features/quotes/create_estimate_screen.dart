@@ -1,24 +1,19 @@
-/// ---------------------------------------------------------------------------
-/// Create Estimate — multi-step wizard (Steps 1-4).
+﻿/// ---------------------------------------------------------------------------
+/// Create Estimate â€” multi-step wizard (Steps 1-4).
 ///
-/// Step 1: Lead Details  (👤)
-/// Step 2: Estimate Details (📊) — opens Price Calculator (Step 2a)
-/// Step 3: Structure Details (🛠)
-/// Step 4: Financial Details (₹)
+/// Step 1: Lead Details  (ðŸ‘¤)
+/// Step 2: Estimate Details (ðŸ“Š) â€” opens Price Calculator (Step 2a)
+/// Step 3: Structure Details (ðŸ› )
+/// Step 4: Financial Details (â‚¹)
 ///
 /// State is held in the [EstimateModel] and survives back/forth navigation.
 /// Master data is loaded from `assets/data/estimate_master.json`.
 /// ---------------------------------------------------------------------------
 library;
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -28,7 +23,7 @@ import '../../core/widgets/gs_card.dart';
 import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
 import '../../providers/data_hub.dart';
-import '../../services/estimate_pdf.dart';
+import 'quotation_preview_screen.dart';
 
 class CreateEstimateScreen extends StatefulWidget {
   const CreateEstimateScreen({super.key});
@@ -38,16 +33,16 @@ class CreateEstimateScreen extends StatefulWidget {
 }
 
 class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
-  // ── Master data (loaded async from JSON) ───
+  // â”€â”€ Master data (loaded async from JSON) â”€â”€â”€
   MasterData? _master;
   bool _ready = false;
   String? _loadError;
 
-  // ── Wizard state ───
+  // â”€â”€ Wizard state â”€â”€â”€
   int _currentStep = 0;
   final EstimateModel _estimate = EstimateModel();
 
-  // ── Controllers: Step 1 — Lead Details ───
+  // â”€â”€ Controllers: Step 1 â€” Lead Details â”€â”€â”€
   final _companyCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
@@ -58,7 +53,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _emailCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
 
-  // ── Controllers: Step 2 — Estimate Details ───
+  // â”€â”€ Controllers: Step 2 â€” Estimate Details â”€â”€â”€
   final _estimateNumberCtrl = TextEditingController();
   final _referenceCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController();
@@ -68,10 +63,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _structureCostCtrl = TextEditingController();
   final _stampCtrl = TextEditingController();
 
-  // ── Controllers: Step 3 — Structure Details ───
+  // â”€â”€ Controllers: Step 3 â€” Structure Details â”€â”€â”€
   final Map<String, TextEditingController> _structureCtrls = {};
 
-  // ── Controllers: Step 4 — Financial Details ───
+  // â”€â”€ Controllers: Step 4 â€” Financial Details â”€â”€â”€
   final _discountCtrl = TextEditingController();
   final _insPercentCtrl = TextEditingController();
   final _insAmountCtrl = TextEditingController();
@@ -106,7 +101,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     super.dispose();
   }
 
-  // ── Master data loading ──────────────────────────────────────────
+  // â”€â”€ Master data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _loadMaster() async {
     _loadError = null;
@@ -143,7 +138,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
   }
 
-  // ── Step 1 helpers ──
+  // â”€â”€ Step 1 helpers â”€â”€
 
   void _toggleAutoFillWhatsApp(bool? v) {
     setState(() {
@@ -168,7 +163,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Step 2 helpers ──
+  // â”€â”€ Step 2 helpers â”€â”€
 
   GSQuoteSystem? get _selectedSystem => _estimate.systemId != null
       ? gsQuoteSystemById(_estimate.systemId!)
@@ -224,7 +219,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                              'Total ₹${s.totalPayable}  •  After subsidy ₹${s.afterSubsidy}',
+                              'Total â‚¹${s.totalPayable}  â€¢  After subsidy â‚¹${s.afterSubsidy}',
                               style: const TextStyle(
                                   fontSize: 12, color: Color(0xFF627193))),
                           trailing: _estimate.systemId == s.id
@@ -339,7 +334,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         children: [
           Expanded(
             child: Text(
-                '${item.description}  •  ${item.qty} × Rs.${item.rate}  •  GST $g%',
+                '${item.description}  â€¢  ${item.qty} Ã— Rs.${item.rate}  â€¢  GST $g%',
                 style: GSTextStyles.bodySmall
                     .copyWith(color: GSColors.navy900)),
           ),
@@ -354,7 +349,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Step 3 helpers ──
+  // â”€â”€ Step 3 helpers â”€â”€
 
   TextEditingController _getStructureCtrl(String label) {
     var c = _structureCtrls[label];
@@ -366,7 +361,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     return c;
   }
 
-  // ── Step 4 helpers ──
+  // â”€â”€ Step 4 helpers â”€â”€
 
   void _setGstProfile(String? label) {
     setState(() => _estimate.gstProfileLabel = label ?? '');
@@ -380,7 +375,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     setState(() => _estimate.insuranceType = t ?? 'percent');
   }
 
-  // ── Validation ──
+  // â”€â”€ Validation â”€â”€
 
   bool _validateStep(int step) {
     if (step == 0) {
@@ -412,7 +407,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     return false;
   }
 
-  // ── Navigation ──
+  // â”€â”€ Navigation â”€â”€
 
   void _onBack() {
     if (_currentStep == 0) {
@@ -461,7 +456,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           int.tryParse(_insAmountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
               0;
 
-    // ── Save the estimate ──
+    // â”€â”€ Save the estimate â”€â”€
     late EstimateRecord record;
     try {
       record = await hub.addEstimate(_estimate);
@@ -474,101 +469,19 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
     if (!mounted) return;
 
-    // ── Generate the estimate PDF and save it to a temp file ──
-    File? pdfFile;
-    try {
-      final pdfBytes = await EstimatePdf.generate(
-        record: record,
-        master: _master!,
-      );
-      final dir = await getTemporaryDirectory();
-      pdfFile = File('${dir.path}/GS_Estimate_${record.id}.pdf');
-      await pdfFile.writeAsBytes(pdfBytes, flush: true);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate PDF: $e')),
-      );
-      Navigator.of(context).popUntil((r) => r.isFirst);
-      return;
-    }
-
-    // Show a dialog with preview / share options for the 7-page PDF
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: GSColors.white,
-        title: Text('${_estimate.estimateNumber} saved!',
-            style: GSTextStyles.headlineSmall.copyWith(color: GSColors.navy900)),
-        content: const Text('7-page estimate PDF generated. '
-            'Preview, share, or go back to the dashboard.'),
-        actions: [
-          TextButton(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.visibility_outlined, size: 18),
-                SizedBox(width: 8),
-                Text('View PDF'),
-              ],
-            ),
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              Printing.layoutPdf(
-                onLayout: (_) => EstimatePdf.generate(
-                  record: record,
-                  master: _master!,
-                ),
-              );
-            },
-          ),
-          TextButton(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.share_outlined, size: 18),
-                SizedBox(width: 8),
-                Text('Share PDF'),
-              ],
-            ),
-            onPressed: () async {
-              Navigator.of(dialogCtx).pop();
-              final f = pdfFile;
-              if (f != null) {
-                await SharePlus.instance.share(
-                  ShareParams(
-                    files: [
-                      XFile(
-                        f.path,
-                        mimeType: 'application/pdf',
-                        name: 'GS_Estimate_${record.id}.pdf',
-                      ),
-                    ],
-                    subject: 'Global Solar 2.0 — Solar Estimate',
-                    text: '${_estimate.estimateNumber} • '
-                        '${_estimate.capacityKw?.toStringAsFixed(2) ?? '-'} kW',
-                  ),
-                );
-              }
-              if (!mounted) return;
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-          ),
-          TextButton(
-            child: const Text('Done'),
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              if (mounted) {
-                Navigator.of(context).popUntil((r) => r.isFirst);
-              }
-            },
-          ),
-        ],
+    // Open the full-screen quotation preview (Share + Download).
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuotationPreviewScreen(
+          record: record,
+          master: _master!,
+        ),
       ),
     );
   }
 
-  // ── Build ──
+  // â”€â”€ Build â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -700,7 +613,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
   }
 
-  // ── Step 1: Lead Details ─────────────────────────────────────────
+  // â”€â”€ Step 1: Lead Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildLeadDetails() {
     final stage = _master!.stageById(_estimate.leadStage);
@@ -910,7 +823,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Step 2: Estimate Details ─────────────────────────────────────
+  // â”€â”€ Step 2: Estimate Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildEstimateDetails() {
     final currency = _master!.currencyByCode(_estimate.currency);
@@ -1029,11 +942,11 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           label: 'Total Payable',
           required: false,
           hint: _selectedSystem != null
-              ? 'Default: ₹${_selectedSystem!.totalPayable}'
+              ? 'Default: â‚¹${_selectedSystem!.totalPayable}'
               : 'Auto from system',
           input: _textField(
             controller: _priceCtrl,
-            prefixText: '₹ ',
+            prefixText: 'â‚¹ ',
             keyboardType: TextInputType.number,
             onChanged: (v) =>
                 _estimate.totalPayableOverride = int.tryParse(v.trim()),
@@ -1045,11 +958,11 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           label: 'Structure Cost',
           required: false,
           hint: _selectedSystem != null
-              ? 'Default: ₹${_selectedSystem!.structureCost}'
+              ? 'Default: â‚¹${_selectedSystem!.structureCost}'
               : 'Auto from system',
           input: _textField(
             controller: _structureCostCtrl,
-            prefixText: '₹ ',
+            prefixText: 'â‚¹ ',
             keyboardType: TextInputType.number,
             onChanged: (v) =>
                 _estimate.structureCostOverride = int.tryParse(v.trim()),
@@ -1062,14 +975,14 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           required: false,
           input: _textField(
             controller: _stampCtrl,
-            prefixText: '₹ ',
+            prefixText: 'â‚¹ ',
             keyboardType: TextInputType.number,
             onChanged: (v) =>
                 _estimate.stampChargeOverride = int.tryParse(v.trim()),
           ),
         ),
 
-        // GST display option (per quotation) — CGST 4.45% + SGST 4.45%
+        // GST display option (per quotation) â€” CGST 4.45% + SGST 4.45%
         _fieldCard(
           label: 'Price Display',
           required: false,
@@ -1122,7 +1035,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ),
 
-        // Capacity (kW) — driven by the selected system
+        // Capacity (kW) â€” driven by the selected system
         _fieldCard(
           label: 'Capacity',
           required: false,
@@ -1154,7 +1067,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Step 3: Structure Details ───────────────────────────────────
+  // â”€â”€ Step 3: Structure Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildStructureDetails() {
     if (_master == null) return const SizedBox.shrink();
@@ -1210,7 +1123,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Step 4: Financial Details ───────────────────────────────────
+  // â”€â”€ Step 4: Financial Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildFinancialDetails() {
     final cap = _estimate.capacityKw;
@@ -1375,7 +1288,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // ── Shared field builders ────────────────────────────────────────
+  // â”€â”€ Shared field builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _textField({
     required TextEditingController controller,
@@ -1512,7 +1425,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
    );
   }
 
-  // ── Field card wrapper ──
+  // â”€â”€ Field card wrapper â”€â”€
 
   Widget _fieldCard({
     required String label,

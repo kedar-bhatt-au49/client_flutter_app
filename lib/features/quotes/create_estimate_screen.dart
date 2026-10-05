@@ -65,6 +65,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _wiringCtrl = TextEditingController();
   final _inverterKwCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _structureCostCtrl = TextEditingController();
+  final _stampCtrl = TextEditingController();
 
   // ── Controllers: Step 3 — Structure Details ───
   final Map<String, TextEditingController> _structureCtrls = {};
@@ -95,6 +97,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _wiringCtrl.dispose();
     _inverterKwCtrl.dispose();
     _priceCtrl.dispose();
+    _structureCostCtrl.dispose();
+    _stampCtrl.dispose();
     _discountCtrl.dispose();
     _insPercentCtrl.dispose();
     _insAmountCtrl.dispose();
@@ -175,6 +179,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       _estimate.systemId = s.id;
       _estimate.capacityKw = s.kw;
       _capacityCtrl.text = s.kw.toStringAsFixed(2);
+      _estimate.structureCostOverride = s.structureCost;
+      _estimate.stampChargeOverride = s.stampCharge;
+      _structureCostCtrl.text = s.structureCost.toString();
+      _stampCtrl.text = s.stampCharge.toString();
     });
   }
 
@@ -1029,6 +1037,35 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             keyboardType: TextInputType.number,
             onChanged: (v) =>
                 _estimate.totalPayableOverride = int.tryParse(v.trim()),
+          ),
+        ),
+
+        // Structure Cost (editable)
+        _fieldCard(
+          label: 'Structure Cost',
+          required: false,
+          hint: _selectedSystem != null
+              ? 'Default: ₹${_selectedSystem!.structureCost}'
+              : 'Auto from system',
+          input: _textField(
+            controller: _structureCostCtrl,
+            prefixText: '₹ ',
+            keyboardType: TextInputType.number,
+            onChanged: (v) =>
+                _estimate.structureCostOverride = int.tryParse(v.trim()),
+          ),
+        ),
+
+        // Stamp Charge (editable)
+        _fieldCard(
+          label: 'Stamp Charge',
+          required: false,
+          input: _textField(
+            controller: _stampCtrl,
+            prefixText: '₹ ',
+            keyboardType: TextInputType.number,
+            onChanged: (v) =>
+                _estimate.stampChargeOverride = int.tryParse(v.trim()),
           ),
         ),
 

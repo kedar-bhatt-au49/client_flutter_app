@@ -709,6 +709,8 @@ class EstimateModel {
   double? inverterKwManual; // manual inverter kW capacity
   int? totalPayableOverride; // manual price override (GST-inclusive)
   bool gstIncluded; // show prices with GST (true) or without (false)
+  int? structureCostOverride; // editable structure cost
+  int? stampChargeOverride; // editable stamp charge
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
 
@@ -747,6 +749,8 @@ class EstimateModel {
     this.inverterKwManual,
     this.totalPayableOverride,
     this.gstIncluded = true,
+    this.structureCostOverride,
+    this.stampChargeOverride,
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
     Map<String, int>? structureQuantities,
@@ -836,6 +840,8 @@ class EstimateModel {
         'inverter_kw_manual': inverterKwManual,
         'total_payable_override': totalPayableOverride,
         'gst_included': gstIncluded,
+        'structure_cost_override': structureCostOverride,
+        'stamp_charge_override': stampChargeOverride,
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
         'structure_quantities': structureQuantities,
@@ -876,6 +882,8 @@ class EstimateModel {
       inverterKwManual: (j['inverter_kw_manual'] as num?)?.toDouble(),
       totalPayableOverride: j['total_payable_override'] as int?,
       gstIncluded: j['gst_included'] as bool? ?? true,
+      structureCostOverride: j['structure_cost_override'] as int?,
+      stampChargeOverride: j['stamp_charge_override'] as int?,
       taxMode: j['tax_mode'] as String? ?? 'exclusive',
       lineItems: (j['line_items'] as List? ?? [])
           .map((e) =>

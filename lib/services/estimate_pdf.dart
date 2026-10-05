@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart';
+﻿import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
@@ -10,13 +10,13 @@ import '../services/proposal_pdf.dart';
 /// [SolarProposalData] and delegating to [ProposalPdf.generate].
 ///
 /// The resulting PDF mirrors the professional proposal layout:
-///   Page 1 — Cover
-///   Page 2 — Solar Plant Design Showcase
-///   Page 3 — Quotation / Estimate Table
-///   Page 4 — Terms & Conditions + Bill of Materials
-///   Page 5 — Warranty Terms (Part 1)
-///   Page 6 — Warranty Terms (Part 2)
-///   Page 7 — Payment / UPI QR + Contact strip
+///   Page 1 â€” Cover
+///   Page 2 â€” Solar Plant Design Showcase
+///   Page 3 â€” Quotation / Estimate Table
+///   Page 4 â€” Terms & Conditions + Bill of Materials
+///   Page 5 â€” Warranty Terms (Part 1)
+///   Page 6 â€” Warranty Terms (Part 2)
+///   Page 7 â€” Payment / UPI QR + Contact strip
 ///
 /// Only packages already in the dependency tree are used (pdf, intl).
 /// The Hinglish label toggle is forwarded to the proposal renderer.
@@ -52,7 +52,7 @@ class EstimatePdf {
     final e = record.data;
     final b = e.priceBreakdown;
 
-    // ── Standard quotation system selected? ──
+    // â”€â”€ Standard quotation system selected? â”€â”€
     // Build the exact table-based quotation (GST-inclusive totals) instead
     // of the raw price-calculator line items.
     final system = e.systemId != null ? gsQuoteSystemById(e.systemId!) : null;
@@ -66,21 +66,21 @@ class EstimatePdf {
       );
     }
 
-    // ── Convert estimate line items → proposal line items ──
+    // â”€â”€ Convert estimate line items â†’ proposal line items â”€â”€
     final lineItems = e.lineItems.map(_toProposalLineItem).toList();
 
-    // ── Extract panel / inverter specs from line-item descriptions ──
+    // â”€â”€ Extract panel / inverter specs from line-item descriptions â”€â”€
     final panelCount = _extractPanelCount(e, master);
     final (panelBrand, panelWattpeak) = _extractPanelInfo(e);
     final (inverterBrand, inverterKw) = _extractInverterInfo(e);
 
-    // ── Build BOM items from MasterData ──
+    // â”€â”€ Build BOM items from MasterData â”€â”€
     final bomItems = _bomFromMaster(e, master);
 
-    // ── Totals come from the PriceBreakdown when available, otherwise
+    // â”€â”€ Totals come from the PriceBreakdown when available, otherwise
     // recomputed from line items. Base (pre-subsidy) values are captured
-    // here — before the subsidy adjustment line item is appended below —
-    // so the fold does not count the -Subsidy row. ──
+    // here â€” before the subsidy adjustment line item is appended below â€”
+    // so the fold does not count the -Subsidy row. â”€â”€
     final int baseSubTotal = b?.subtotal ??
         lineItems.fold(0, (s, i) => s + i.rate * int.parse(i.qty));
     final int cgstTotal = b?.cgstTotal ?? 0;
@@ -88,7 +88,7 @@ class EstimatePdf {
     final int baseGrandTotal =
         b?.grandTotal ?? (baseSubTotal + cgstTotal + sgstTotal);
 
-    // ── PM Surya Ghar residential subsidy (₹78,000) ──
+    // â”€â”€ PM Surya Ghar residential subsidy (â‚¹78,000) â”€â”€
     final isResidential = e.clientType == 'individual';
     final subsidy = isResidential ? GSTax.subsidyMax : 0;
 
@@ -168,7 +168,7 @@ class EstimatePdf {
     );
   }
 
-  // ── Standard quotation system → proposal ───────────────────────────
+  // â”€â”€ Standard quotation system â†’ proposal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static SolarProposalData _fromSystem({
     required EstimateModel e,
@@ -178,15 +178,17 @@ class EstimatePdf {
     Uint8List? logoImage,
   }) {
     // Total payable (from the system table). GST-inclusive by default.
-    final totalPayable = e.totalPayableOverride ?? system.totalPayable;
+    final baseTotal = e.totalPayableOverride ?? system.totalPayable;
+    final structure = e.structureCostOverride ?? system.structureCost;
+    final stamp = e.stampChargeOverride ?? system.stampCharge;
     final subsidy = system.subsidy;
     final includeGst = e.gstIncluded;
     final gstMul = 1 + GSGst.totalPercent / 100; // 1.089
 
-    // GST-exclusive PV-system amount so that
-    // pvTaxable + structure + stamp + GST == totalPayable (when GST included).
+    // PV-system taxable is derived from the system table's base structure/stamp
+    // so the table total stays consistent; editing structure/stamp adds delta.
     final pvTaxable =
-        ((totalPayable - system.structureCost - system.stampCharge) / gstMul)
+        ((baseTotal - system.structureCost - system.stampCharge) / gstMul)
             .round();
     final cgstPct = includeGst ? GSGst.cgstPercent : 0.0;
     final sgstPct = includeGst ? GSGst.sgstPercent : 0.0;
@@ -217,8 +219,7 @@ class EstimatePdf {
       ));
     }
 
-    final baseExclGst =
-        pvTaxable + system.structureCost + system.stampCharge + customNet;
+    final baseExclGst = pvTaxable + structure + stamp + customNet;
     final cgstTotal = cgst + customCgst;
     final sgstTotal = sgst + customSgst;
     final gross = baseExclGst + cgstTotal + sgstTotal;
@@ -228,8 +229,8 @@ class EstimatePdf {
       ProposalLineItem(
         description: '${system.kw.toStringAsFixed(2)} kW Solar PV System',
         specs: [
-          '${system.panels} × ${system.panelWatt} Wp Adani TOPCon solar panels',
-          '${system.panels} × MC4 connectors & MC4 extensions',
+          '${system.panels} Ã— ${system.panelWatt} Wp Adani TOPCon solar panels',
+          '${system.panels} Ã— MC4 connectors & MC4 extensions',
         ],
         qty: '1',
         unit: 'set',
@@ -242,7 +243,7 @@ class EstimatePdf {
         specs: ['Hot-dip galvanized MS structure'],
         qty: '1',
         unit: 'set',
-        rate: system.structureCost,
+        rate: structure,
         cgstPercent: 0,
         sgstPercent: 0,
       ),
@@ -251,7 +252,7 @@ class EstimatePdf {
         specs: ['Govt. stamp paper for agreement'],
         qty: '1',
         unit: 'set',
-        rate: system.stampCharge,
+        rate: stamp,
         cgstPercent: 0,
         sgstPercent: 0,
       ),
@@ -376,7 +377,7 @@ class EstimatePdf {
       inverterKwValue: e.inverterKwManual != null
           ? '${e.inverterKwManual} kW'
           : '3.6 kW',
-      effectiveUpfront: totalPayable,
+      effectiveUpfront: gross,
       subsidyAmount: subsidy,
       warrantySections: _defaultWarrantySections,
       upiId: 'global.solar.2.0@oksbi',
@@ -388,7 +389,7 @@ class EstimatePdf {
     );
   }
 
-  // ── Line-item conversion ───────────────────────────────────────────
+  // â”€â”€ Line-item conversion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static ProposalLineItem _toProposalLineItem(EstimateLineItem item) {
     return ProposalLineItem(
@@ -403,10 +404,10 @@ class EstimatePdf {
     );
   }
 
-  // ── Panel / inverter extraction ───────────────────────────────────
+  // â”€â”€ Panel / inverter extraction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static int _extractPanelCount(EstimateModel e, MasterData master) {
-    // Prefer the explicit quantity on the "Solar Panels" line item — this is
+    // Prefer the explicit quantity on the "Solar Panels" line item â€” this is
     // the exact module count chosen for the selected system, so the correct
     // panel-count design image is used (5..10 panels).
     final panelItem = e.lineItems.firstWhere(
@@ -453,7 +454,7 @@ class EstimatePdf {
     return (brand.isNotEmpty ? brand : 'Polycab', kw);
   }
 
-  // ── BOM items from MasterData ─────────────────────────────────────
+  // â”€â”€ BOM items from MasterData â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static List<BomItem> _bomFromMaster(
       EstimateModel e, MasterData master) {
@@ -507,7 +508,7 @@ class EstimatePdf {
     return bom;
   }
 
-  // ── Notes ──────────────────────────────────────────────────────────
+  // â”€â”€ Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static List<String> _estimateNotes(EstimateModel e, bool hi) {
     if (e.description != null && e.description!.isNotEmpty) {
@@ -515,20 +516,20 @@ class EstimatePdf {
     }
     return hi
         ? [
-            '1. यह अनुमान स्थान पर मुफ्त साइट सर्वे के बाद अंतिम बनेगा।',
-            '2. यह अनुमान जारी होने की तारीख से 7 दिनों तक वैध है।',
-            '3. PM सुर्य घर आवासीय सब्सिडी ₹78,000 केवल घरेलू 10 kW तक।',
-            '4. व्यावसायिक संतालन सब्सिडी के पात्र नहीं हैं।',
+            '1. à¤¯à¤¹ à¤…à¤¨à¥à¤®à¤¾à¤¨ à¤¸à¥à¤¥à¤¾à¤¨ à¤ªà¤° à¤®à¥à¤«à¥à¤¤ à¤¸à¤¾à¤‡à¤Ÿ à¤¸à¤°à¥à¤µà¥‡ à¤•à¥‡ à¤¬à¤¾à¤¦ à¤…à¤‚à¤¤à¤¿à¤® à¤¬à¤¨à¥‡à¤—à¤¾à¥¤',
+            '2. à¤¯à¤¹ à¤…à¤¨à¥à¤®à¤¾à¤¨ à¤œà¤¾à¤°à¥€ à¤¹à¥‹à¤¨à¥‡ à¤•à¥€ à¤¤à¤¾à¤°à¥€à¤– à¤¸à¥‡ 7 à¤¦à¤¿à¤¨à¥‹à¤‚ à¤¤à¤• à¤µà¥ˆà¤§ à¤¹à¥ˆà¥¤',
+            '3. PM à¤¸à¥à¤°à¥à¤¯ à¤˜à¤° à¤†à¤µà¤¾à¤¸à¥€à¤¯ à¤¸à¤¬à¥à¤¸à¤¿à¤¡à¥€ â‚¹78,000 à¤•à¥‡à¤µà¤² à¤˜à¤°à¥‡à¤²à¥‚ 10 kW à¤¤à¤•à¥¤',
+            '4. à¤µà¥à¤¯à¤¾à¤µà¤¸à¤¾à¤¯à¤¿à¤• à¤¸à¤‚à¤¤à¤¾à¤²à¤¨ à¤¸à¤¬à¥à¤¸à¤¿à¤¡à¥€ à¤•à¥‡ à¤ªà¤¾à¤¤à¥à¤° à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¤‚à¥¤',
           ]
         : [
             '1. Final estimate is subject to a free site survey at the customer\'s location.',
             '2. This estimate is valid for 7 days from the date of issue.',
-            '3. PM Surya Ghar residential subsidy of ₹78,000 is applicable only for residential rooftop solar (up to 10 kW).',
+            '3. PM Surya Ghar residential subsidy of â‚¹78,000 is applicable only for residential rooftop solar (up to 10 kW).',
             '4. Commercial installations are not eligible for the subsidy.',
           ];
   }
 
-  // ── Warranty sections (reused from proposal defaults) ─────────────
+  // â”€â”€ Warranty sections (reused from proposal defaults) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static List<WarrantySection> get _defaultWarrantySections => [
         const WarrantySection(heading: '1. General Terms', bullets: [
@@ -539,7 +540,7 @@ class EstimatePdf {
         const WarrantySection(
             heading: '2. Government Subsidy (PM Surya Ghar)',
             bullets: [
-              'Subsidy of ₹78,000 is applicable for residential connections up to 10 kW.',
+              'Subsidy of â‚¹78,000 is applicable for residential connections up to 10 kW.',
               'The subsidy is credited directly by the government to the beneficiary\'s bank account.',
               'Global Solar 2.0 assists in the subsidy application but is not liable for any government delay.',
               'Commercial properties are not eligible for this subsidy.',
@@ -602,7 +603,7 @@ class EstimatePdf {
         ]),
       ];
 
-  // ── Social links ───────────────────────────────────────────────────
+  // â”€â”€ Social links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static List<SocialLink> get _defaultSocialLinks => [
         SocialLink(
@@ -613,7 +614,7 @@ class EstimatePdf {
         SocialLink(name: 'Email', url: 'mailto:$siteConfigEmail'),
       ];
 
-  // ── Number-to-words ────────────────────────────────────────────────
+  // â”€â”€ Number-to-words â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static String _numberToWords(int n) {
     if (n == 0) return 'Zero';

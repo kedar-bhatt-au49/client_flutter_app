@@ -827,7 +827,6 @@ class _Renderer {
     ];
     for (var i = 0; i < d.lineItems.length; i++) {
       final it = d.lineItems[i];
-      final hide = _hideRateTotal(it.description);
       final subsidy = it.rate < 0;
       rows.add(pw.TableRow(
         decoration: pw.BoxDecoration(color: i.isEven ? _white : _s100),
@@ -848,11 +847,11 @@ class _Renderer {
             ),
           ),
           _cell(it.qty, align: pw.TextAlign.center),
-          _cell(hide ? '-' : ProposalPdf._fmt.format(it.rate.abs()), align: pw.TextAlign.right),
+          _cell(ProposalPdf._fmt.format(it.rate), align: pw.TextAlign.right),
           _cell(it.discount == 0 ? 'Rs. 0' : ProposalPdf.money(it.discount), align: pw.TextAlign.right),
           _cell('${_g(it.cgstPercent)}%', align: pw.TextAlign.right),
           _cell('${_g(it.sgstPercent)}%', align: pw.TextAlign.right),
-          _cell(hide ? '-' : ProposalPdf._fmt.format(it.total.abs()),
+          _cell(ProposalPdf._fmt.format(it.total),
               align: pw.TextAlign.right, bold: true, color: subsidy ? _green : _navy),
         ],
       ));
@@ -876,11 +875,6 @@ class _Renderer {
   String _g(double v) {
     if (v == v.roundToDouble()) return v.toInt().toString();
     return v.toStringAsFixed(2);
-  }
-
-  static bool _hideRateTotal(String description) {
-    final x = description.toLowerCase();
-    return x.contains('stamp') || x.contains('meter') || x.contains('geda');
   }
 
   pw.Widget _cell(String text,

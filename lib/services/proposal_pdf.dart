@@ -1,24 +1,24 @@
-﻿/// ---------------------------------------------------------------------------
-/// Roof Top Solar Proposal + Quotation — 7-page PDF generator
+/// ---------------------------------------------------------------------------
+/// Roof Top Solar Proposal + Quotation � 7-page PDF generator
 ///
 /// Renders [SolarProposalData] into a multi-page PDF that follows the exact
 /// layout spec:
 ///
-///   Page 1 — Cover (hero image + company details)
-///   Page 2 — Solar Plant Design Showcase
-///   Page 3 — Quotation Table (line items w/ CGST/SGST, totals, notes, bank)
-///   Page 4 — Terms & Conditions + Bill of Materials
-///   Page 5 — Warranty Terms (Part 1)
-///   Page 6 — Warranty Terms (Part 2)
-///   Page 7 — Payment / UPI QR + Contact strip
+///   Page 1 � Cover (hero image + company details)
+///   Page 2 � Solar Plant Design Showcase
+///   Page 3 � Quotation Table (line items w/ CGST/SGST, totals, notes, bank)
+///   Page 4 � Terms & Conditions + Bill of Materials
+///   Page 5 � Warranty Terms (Part 1)
+///   Page 6 � Warranty Terms (Part 2)
+///   Page 7 � Payment / UPI QR + Contact strip
 ///
 /// Every page carries a branded navy header and a footer with company name,
 /// page number (X/7) and social links.
 ///
 /// Uses only packages already in the dependency tree:
-///   * pdf (pw)        — document & widget rendering
-///   * intl            — Indian-number formatting (₹1,40,800)
-///   * barcode         — re-exported by `pdf`, used for QR rendering
+///   * pdf (pw)        � document & widget rendering
+///   * intl            � Indian-number formatting (?1,40,800)
+///   * barcode         � re-exported by `pdf`, used for QR rendering
 /// ---------------------------------------------------------------------------
 library;
 
@@ -34,14 +34,14 @@ class ProposalPdf {
 
   static final NumberFormat _fmt = NumberFormat.decimalPattern('en_IN');
 
-  /// Formats an integer as Indian-style currency, e.g. `₹1,40,800` or `-₹78,000`.
+  /// Formats an integer as Indian-style currency, e.g. `?1,40,800` or `-?78,000`.
   static String money(int amount) {
     final s = 'Rs. ${_fmt.format(amount.abs())}';
     return amount < 0 ? '-$s' : s;
   }
 
   /// Formats an amount with Indian digit grouping and the `/-` suffix.
-  /// e.g. `moneyINR(180000)` → `Rs. 1,80,000/-`.
+  /// e.g. `moneyINR(180000)` ? `Rs. 1,80,000/-`.
   static String moneyINR(int amount) {
     final s = 'Rs. ${_fmt.format(amount.abs())}/-';
     return amount < 0 ? '-$s' : s;
@@ -55,10 +55,10 @@ class ProposalPdf {
     );
 
     // Panel-count-specific design image for page 2.
-    // 5 panels → solar_pannel_5.jpg, 6 → solar_pannel_6.jpg,
-    // 7 → solar_pannel_7.jpg, 8 → solar_pannel_8.jpg,
-    // 9 → solar_pannel_9.jpg, 10 → solar_pannel_10.jpg,
-    // any other count → default overview image.
+    // 5 panels ? solar_pannel_5.jpg, 6 ? solar_pannel_6.jpg,
+    // 7 ? solar_pannel_7.jpg, 8 ? solar_pannel_8.jpg,
+    // 9 ? solar_pannel_9.jpg, 10 ? solar_pannel_10.jpg,
+    // any other count ? default overview image.
     String panelImageAsset;
     switch (data.panelCount) {
       case 5:
@@ -85,7 +85,7 @@ class ProposalPdf {
     final designImageTop = data.designImageTop ??
         await _loadAssetImage(panelImageAsset);
 
-    // Load Unicode TTF font for proper character rendering (Gujarati, ₹, em-dash, etc.)
+    // Load Unicode TTF font for proper character rendering (Gujarati, ?, em-dash, etc.)
     final unicodeFont = await _loadFont();
 
     final r = _Renderer(data, logo, heroImage, designImageTop, unicodeFont);
@@ -120,7 +120,7 @@ class ProposalPdf {
     }
   }
 
-  /// Loads a Unicode TTF font that supports Gujarati, ₹, em-dash, and other
+  /// Loads a Unicode TTF font that supports Gujarati, ?, em-dash, and other
   /// characters that the built-in Helvetica (Type 1) font cannot render.
   /// Falls back to Helvetica if the asset fails to load (e.g. in tests).
   static Future<pw.Font> _loadFont() async {
@@ -152,7 +152,7 @@ class _DiagonalClip extends pw.SingleChildWidget {
       mat.translateByDouble(box!.left, box!.bottom, 0, 1);
       context.canvas.saveContext();
       if (leftSide) {
-        // Top-left → top-right → bottom-right (5 % inset) → bottom-left
+        // Top-left ? top-right ? bottom-right (5 % inset) ? bottom-left
         context.canvas
           ..moveTo(box!.left, box!.bottom + box!.height)
           ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
@@ -160,7 +160,7 @@ class _DiagonalClip extends pw.SingleChildWidget {
           ..lineTo(box!.left, box!.bottom)
           ..closePath();
       } else {
-        // Top-left → top-right → bottom-right → bottom-left (7.5 % past left)
+        // Top-left ? top-right ? bottom-right ? bottom-left (7.5 % past left)
         context.canvas
           ..moveTo(box!.left, box!.bottom + box!.height)
           ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
@@ -177,10 +177,10 @@ class _DiagonalClip extends pw.SingleChildWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Internal renderer — holds shared state (fonts, colours, data) and builds
+// ------------------------------------------------------------------------------
+// Internal renderer � holds shared state (fonts, colours, data) and builds
 // each of the 7 pages plus the shared header / footer.
-// ──────────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------------
 
 class _Renderer {
   final SolarProposalData d;
@@ -191,7 +191,7 @@ class _Renderer {
   late final PdfColor navy = PdfColor.fromHex(d.brandColorHex);
   late final PdfColor gold = PdfColor.fromHex(d.accentColorHex);
 
-  // ── Financial Summary Block palette ────────────────────────────────────────
+  // -- Financial Summary Block palette ----------------------------------------
   static final PdfColor _fsNavyStart = PdfColor.fromHex('#14286B');
   static final PdfColor _fsNavyEnd = PdfColor.fromHex('#1E3A8A');
   static final PdfColor _fsYellowStart = PdfColor.fromHex('#FFC400');
@@ -203,6 +203,19 @@ class _Renderer {
   static final PdfColor _fsDarkGreen = PdfColor.fromHex('#1B4E1B');
   static final PdfColor _fsLightBlue = PdfColor.fromHex('#E8F4FB');
   static final PdfColor _fsLightBlueBorder = PdfColor.fromHex('#B3DFF7');
+
+  // -- Highlighted Totals Block palette (Sub Total / Subsidy / Grand Total) -----
+  static final PdfColor _htSubTotalBg = PdfColor.fromHex('#E3F0FF');
+  static final PdfColor _htSubTotalBorder = PdfColor.fromHex('#8FC0F0');
+  static final PdfColor _htSubTotalText = PdfColor.fromHex('#12406F');
+
+  static final PdfColor _htSubsidyBg = PdfColor.fromHex('#E4F7E0');
+  static final PdfColor _htSubsidyBorder = PdfColor.fromHex('#8FD07F');
+  static final PdfColor _htSubsidyText = PdfColor.fromHex('#1B5E20');
+
+  static final PdfColor _htGrandBg = PdfColor.fromHex('#FFEDB8');
+  static final PdfColor _htGrandBorder = PdfColor.fromHex('#E0A400');
+  static final PdfColor _htGrandText = PdfColor.fromHex('#5A3B00');
 
   static final pw.LinearGradient _navyGrad = pw.LinearGradient(
     colors: [_fsNavyStart, _fsNavyEnd],
@@ -225,7 +238,7 @@ class _Renderer {
     end: pw.Alignment.bottomRight,
   );
 
-  // Unicode TTF font supporting Gujarati, ₹, em-dash, and other
+  // Unicode TTF font supporting Gujarati, ?, em-dash, and other
   // characters that Helvetica (Type 1) cannot render.
   // Falls back to Helvetica if the asset fails to load (e.g. in tests).
   final pw.Font _font;
@@ -238,7 +251,7 @@ class _Renderer {
     this._font,
   );
 
-  // ── Text style helper ──────────────────────────────────────────────────────
+  // -- Text style helper ------------------------------------------------------
 
   pw.TextStyle _t(
     double size, {
@@ -256,9 +269,9 @@ class _Renderer {
     );
   }
 
-  // ── Financial Summary Block (Page 3) constants ───────────────────────────────
+  // -- Financial Summary Block (Page 3) constants -------------------------------
 
-  // SVG icon badges — used inside [pw.SvgImage] for the row icons.
+  // SVG icon badges � used inside [pw.SvgImage] for the row icons.
   static const String _iconRupee =
       '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
       'xmlns="http://www.w3.org/2000/svg">'
@@ -295,7 +308,7 @@ class _Renderer {
       '<circle cx="16" cy="15" r="1.5" fill="#ffffff"/>'
       '</svg>';
 
-  // ── Shared header / footer ─────────────────────────────────────────────────
+  // -- Shared header / footer -------------------------------------------------
 
   pw.Widget _header() {
     return pw.Container(
@@ -313,7 +326,7 @@ class _Renderer {
             decoration: pw.BoxDecoration(
               shape: pw.BoxShape.circle,
               gradient: pw.LinearGradient(
-                colors: [gold, PdfColor(0.93, 0.11, 0.14)], // #F7941D → #ED1C24
+                colors: [gold, PdfColor(0.93, 0.11, 0.14)], // #F7941D ? #ED1C24
                 begin: pw.Alignment.topLeft,
                 end: pw.Alignment.bottomRight,
               ),
@@ -351,13 +364,13 @@ class _Renderer {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          // Left — company name
+          // Left � company name
           pw.Text(leftText ?? d.companyName,
               style: _t(7, bold: true, color: PdfColors.white)),
-          // Centre — page number
+          // Centre � page number
           pw.Text('$pageNumber/7',
               style: _t(7, color: PdfColors.white)),
-          // Right — circular coloured social icons, evenly spaced
+          // Right � circular coloured social icons, evenly spaced
           pw.Row(
             children: [
               for (int i = 0; i < links.length; i++)
@@ -413,12 +426,12 @@ class _Renderer {
     return name.substring(0, 1).toUpperCase();
   }
 
-  /// Replaces Unicode glyphs not supported by the bundled font (₹, ×, —, etc.)
-  /// with ASCII equivalents so they render correctly instead of showing as □.
+  /// Replaces Unicode glyphs not supported by the bundled font (?, �, �, etc.)
+  /// with ASCII equivalents so they render correctly instead of showing as ?.
   String _s(String text) {
     return text
-      .replaceAll('\u{20B9}', 'Rs. ')   // ₹
-      .replaceAll('\u{00D7}', 'x')       // ×
+      .replaceAll('\u{20B9}', 'Rs. ')   // ?
+      .replaceAll('\u{00D7}', 'x')       // �
       .replaceAll('\u{2014}', '-')       // em-dash
       .replaceAll('\u{2013}', '-')       // en-dash
       .replaceAll('\u{2026}', '...')     // ellipsis
@@ -428,7 +441,7 @@ class _Renderer {
       .replaceAll('\u{201D}', '"');      // "
   }
 
-  // ── Image / placeholder helper ─────────────────────────────────────────────
+  // -- Image / placeholder helper ---------------------------------------------
 
   pw.Widget _img(Uint8List? bytes, double w, double h, String label,
       {pw.BoxFit fit = pw.BoxFit.cover}) {
@@ -463,7 +476,7 @@ class _Renderer {
      );
    }
 
-  // ── Bullet helper (avoids Unicode • which Helvetica can't render) ──────────
+  // -- Bullet helper (avoids Unicode � which Helvetica can't render) ----------
 
   pw.Widget _bullet(String text, pw.TextStyle style, PdfColor color,
       {double size = 2.5, double gap = 4, double top = 2}) {
@@ -494,9 +507,9 @@ class _Renderer {
   }
 
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 1 — Cover (split: left hero photo / right details)
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGE 1 � Cover (split: left hero photo / right details)
+  // ----------------------------------------------------------------------------
 
   pw.Page _cover() {
     return pw.Page(
@@ -504,7 +517,7 @@ class _Renderer {
       margin: pw.EdgeInsets.zero,
       build: (pw.Context ctx) => pw.Stack(
         children: [
-          // ── Split: left image (50%) + right sections (50%) ──
+          // -- Split: left image (50%) + right sections (50%) --
           pw.Row(
             children: [
               pw.Expanded(
@@ -527,11 +540,11 @@ class _Renderer {
                   ),
                 ),
               ),
-              // ── RIGHT HALF: 3 horizontal bands ──
+              // -- RIGHT HALF: 3 horizontal bands --
               pw.Expanded(
                 child: pw.Column(
                   children: [
-                    // Top band (27%) — brand color, title right-aligned
+                    // Top band (27%) � brand color, title right-aligned
                     pw.Expanded(
                       flex: 27,
                       child: pw.Container(
@@ -540,7 +553,7 @@ class _Renderer {
                         padding: const pw.EdgeInsets.only(right: 36),
                         child: pw.Text(
                           d.useHinglish
-                              ? 'रूफ टॉप\nसोलर प्रपोजल'
+                              ? '??? ???\n???? ???????'
                               : 'Roof Top\nSolar Proposal',
                           style: _t(36,
                               bold: true,
@@ -550,7 +563,7 @@ class _Renderer {
                         ),
                       ),
                     ),
-                    // Middle band (28%) — white, client name
+                    // Middle band (28%) � white, client name
                     pw.Expanded(
                       flex: 28,
                       child: pw.Container(
@@ -575,7 +588,7 @@ class _Renderer {
                         ),
                       ),
                     ),
-                    // Bottom band (45%) — brand color, company info
+                    // Bottom band (45%) � brand color, company info
                     pw.Expanded(
                       flex: 45,
                       child: pw.Container(
@@ -617,7 +630,7 @@ class _Renderer {
               ),
             ],
           ),
-          // ── LOGO BADGE — top-left, floating over split ──
+          // -- LOGO BADGE � top-left, floating over split --
           pw.Positioned(
             top: 16,
             left: 16,
@@ -694,9 +707,9 @@ class _Renderer {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 2 — Solar Plant Designs Showcase
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGE 2 � Solar Plant Designs Showcase
+  // ----------------------------------------------------------------------------
 
   pw.Page _designShowcase() {
     return pw.Page(
@@ -708,12 +721,12 @@ class _Renderer {
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
               pw.SizedBox(height: 70), // space for logo badge at top
-              // Title — bold, black, ~20pt
+              // Title � bold, black, ~20pt
               pw.Text('Solar Plants Designs You Have Previously',
                   style: _t(20, bold: true, color: PdfColors.black),
                   textAlign: pw.TextAlign.center),
               pw.SizedBox(height: 6), // ~6-8px gap to subtitle
-              // Subtitle — regular, gray, ~12pt
+              // Subtitle � regular, gray, ~12pt
               pw.Text('Solar Plant Photos',
                   style: _t(12, color: PdfColors.grey500),
                   textAlign: pw.TextAlign.center),
@@ -726,14 +739,14 @@ class _Renderer {
                   designImageTop,
                   double.infinity,
                   320,
-                  d.useHinglish ? 'પેનલ ડિઝાઇન' : 'Panel Design',
+                  d.useHinglish ? '???? ??????' : 'Panel Design',
                   fit: pw.BoxFit.cover,
                 ),
               pw.Spacer(),
               _footer(2, iconSize: 20, iconGap: 8),
             ],
           ),
-          // ── LOGO — fixed at top-right corner, 20px from top / right edges ──
+          // -- LOGO � fixed at top-right corner, 20px from top / right edges --
           pw.Positioned(
             top: 20,
             right: 20,
@@ -792,9 +805,9 @@ class _Renderer {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 3 — Quotation Table
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGE 3 � Quotation Table
+  // ----------------------------------------------------------------------------
 
   pw.Page _quotation() {
     return pw.Page(
@@ -812,6 +825,8 @@ class _Renderer {
           _quotationHeaderBlock(),
           pw.SizedBox(height: 12),
           _lineItemsTable(),
+          pw.SizedBox(height: 10),
+          _highlightedTotals(),
           pw.SizedBox(height: 14),
           _quotationBottom(),
           pw.Spacer(),
@@ -931,12 +946,12 @@ class _Renderer {
         ),
         verticalAlignment: pw.TableCellVerticalAlignment.top,
         children: [
-          // 0 — #
+          // 0 � #
           pw.Center(child: pw.Padding(
             padding: const pw.EdgeInsets.all(4),
             child: pw.Text('${i + 1}', style: _t(8), textAlign: pw.TextAlign.center),
           )),
-          // 1 — Description
+          // 1 � Description
           pw.Padding(
             padding: const pw.EdgeInsets.all(4),
             child: pw.Column(
@@ -951,13 +966,13 @@ class _Renderer {
               ],
             ),
           ),
-          // 2 — Qty
+          // 2 � Qty
           pw.Center(child: pw.Text(item.qty, style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 3 — Rate
+          // 3 � Rate
           pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.rate), style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 4 — Discount
+          // 4 � Discount
           pw.Center(child: pw.Text(item.discount == 0 ? '-' : ProposalPdf.money(item.discount), style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 5 — CGST
+          // 5 � CGST
           pw.Center(child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
@@ -965,7 +980,7 @@ class _Renderer {
               pw.Text(ProposalPdf.money(item.cgstAmount), style: _t(7.5)),
             ],
           )),
-          // 6 — SGST
+          // 6 � SGST
           pw.Center(child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
@@ -973,7 +988,7 @@ class _Renderer {
               pw.Text(ProposalPdf.money(item.sgstAmount), style: _t(7.5)),
             ],
           )),
-          // 7 — Total
+          // 7 � Total
           pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.total), style: _t(8, bold: true, color: navy), textAlign: pw.TextAlign.center)),
         ],
       ));
@@ -988,8 +1003,8 @@ class _Renderer {
         2: pw.FixedColumnWidth(28),
         3: pw.FixedColumnWidth(50),
         4: pw.FixedColumnWidth(46),
-        5: pw.FixedColumnWidth(44), // CGST — wider for 'Rs. X,XXX' amounts
-        6: pw.FixedColumnWidth(44), // SGST — wider for 'Rs. X,XXX' amounts
+        5: pw.FixedColumnWidth(44), // CGST � wider for 'Rs. X,XXX' amounts
+        6: pw.FixedColumnWidth(44), // SGST � wider for 'Rs. X,XXX' amounts
         7: pw.FixedColumnWidth(50),
       },
       children: tableRows,
@@ -1002,15 +1017,15 @@ class _Renderer {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        // ── Amount in words ──
+        // -- Amount in words --
         pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
         pw.SizedBox(height: 14),
 
-        // ── Financial Summary Block (full-width, page 3) ──
+        // -- Financial Summary Block (full-width, page 3) --
         _financialSummary(),
         pw.SizedBox(height: 14),
 
-        // ── Notes + Bank Details (side by side) ──
+        // -- Notes + Bank Details (side by side) --
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -1021,7 +1036,7 @@ class _Renderer {
         ),
         pw.SizedBox(height: 18),
 
-        // ── Signature ──
+        // -- Signature --
         _signatureBlock(),
       ],
     );
@@ -1051,10 +1066,109 @@ class _Renderer {
     );
   }
 
-  /// ── Financial Summary Block (replaces totals box, page 3) ─────────────────
+  /// -- Highlighted Totals Block (page 3, directly below the quotation table) ---
+  /// Three stacked rows, each with its own background colour:
+  ///   1. Sub Total   – light blue
+  ///   2. Subsidy     – light green, rendered as a negative deduction
+  ///   3. Grand Total – warm gold
+  pw.Widget _highlightedTotals() {
+    final subTotal = d.grandTotal + d.subsidyAmount;
+    final hasSubsidy = d.subsidyAmount > 0;
+
+    return pw.Container(
+      width: double.infinity,
+      decoration: pw.BoxDecoration(
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: PdfColors.grey400, width: 0.6),
+      ),
+      child: pw.ClipRRect(
+        horizontalRadius: 6,
+        verticalRadius: 6,
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            _htRow(
+              bg: _htSubTotalBg,
+              divider: _htSubTotalBorder,
+              textColor: _htSubTotalText,
+              label: 'SUB TOTAL (Incl. GST)',
+              amount: ProposalPdf.moneyINR(subTotal),
+            ),
+            if (hasSubsidy)
+              _htRow(
+                bg: _htSubsidyBg,
+                divider: _htSubsidyBorder,
+                textColor: _htSubsidyText,
+                label: '(-) SUBSIDY',
+                amount: ProposalPdf.moneyINR(-d.subsidyAmount),
+              ),
+            _htRow(
+              bg: _htGrandBg,
+              divider: _htGrandBorder,
+              textColor: _htGrandText,
+              label: 'GRAND TOTAL (After Subsidy)',
+              amount: ProposalPdf.moneyINR(d.grandTotal),
+              isLast: true,
+              strong: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A single row of the [ _highlightedTotals ] strip: accent bar, label and
+  /// right-aligned amount, all on [bg] with a [divider] line beneath it.
+  pw.Widget _htRow({
+    required PdfColor bg,
+    required PdfColor divider,
+    required PdfColor textColor,
+    required String label,
+    required String amount,
+    bool isLast = false,
+    bool strong = false,
+  }) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        color: bg,
+        border: isLast
+            ? null
+            : pw.Border(bottom: pw.BorderSide(color: divider, width: 0.8)),
+      ),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Container(
+            width: 4,
+            height: strong ? 17 : 14,
+            decoration: pw.BoxDecoration(
+              color: divider,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          pw.Expanded(
+            child: pw.Text(
+              label,
+              style: _t(strong ? 9.5 : 8.5, bold: strong, color: textColor),
+              maxLines: 1,
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Text(
+            amount,
+            style: _t(strong ? 12.5 : 10.5, bold: true, color: textColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// -- Financial Summary Block (replaces totals box, page 3) -----------------
   /// Renders the 4-row angled-divider summary that mirrors the HTML template:
   /// 1. System Amount w/ GST  (navy/yellow, highlighted total)
-  /// 2. Government Subsidy    (green, NOT highlighted — hidden when 0)
+  /// 2. Government Subsidy    (green, NOT highlighted � hidden when 0)
   /// 3. Net Cost After Subsidy (navy/yellow, highlighted total)
   /// 4. Payment Mode          (light-blue, no yellow block)
   pw.Widget _financialSummary() {
@@ -1077,18 +1191,18 @@ class _Renderer {
             ),
           ),
 
-          // Row 1 — System Amount w/ GST (navy / yellow)
+          // Row 1 � System Amount w/ GST (navy / yellow)
           _fsRow(
             leftGradient: _navyGrad,
             rightGradient: _yellowGrad,
             leftTextColor: PdfColors.white,
             rightTextColor: _fsNavyStart,
             iconSvg: _iconRupee,
-            label: tl('कुल मूल्य (System Amount w/ GST)', 'System Amount w/ GST'),
+            label: tl('??? ????? (System Amount w/ GST)', 'System Amount w/ GST'),
             amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
           ),
 
-          // Row 2 — Subsidy (green, NOT highlighted), hidden when 0
+          // Row 2 � Subsidy (green, NOT highlighted), hidden when 0
           if (hasSubsidy)
             _fsRow(
               leftGradient: _greenGrad,
@@ -1096,24 +1210,24 @@ class _Renderer {
               leftTextColor: PdfColors.white,
               rightTextColor: _fsDarkGreen,
               iconSvg: _iconHandCoin,
-              label: tl('सरकारी सब्सिडी (Government Subsidy)',
+              label: tl('?????? ??????? (Government Subsidy)',
                   'Government Subsidy (PM Surya Ghar)'),
-              amount: ProposalPdf.moneyINR(d.subsidyAmount),
+              amount: ProposalPdf.moneyINR(-d.subsidyAmount),
             ),
 
-          // Row 3 — Net Cost After Subsidy (navy / yellow)
+          // Row 3 � Net Cost After Subsidy (navy / yellow)
           _fsRow(
             leftGradient: _navyGrad,
             rightGradient: _yellowGrad,
             leftTextColor: PdfColors.white,
             rightTextColor: _fsNavyStart,
             iconSvg: _iconPerson,
-            label: tl('अंतिम लागत (Net Cost After Subsidy)',
+            label: tl('????? ???? (Net Cost After Subsidy)',
                 'Net Cost After Subsidy'),
             amount: ProposalPdf.moneyINR(d.grandTotal),
           ),
 
-          // Row 4 — Payment Mode (light-blue, no yellow block)
+          // Row 4 � Payment Mode (light-blue, no yellow block)
           _fsRow(
             leftColor: _fsLightBlue,
             rightColor: _fsLightBlue,
@@ -1122,7 +1236,7 @@ class _Renderer {
             leftTextColor: _fsNavyStart,
             rightTextColor: _fsNavyStart,
             iconSvg: _iconCheque,
-            label: tl('नेट पेबेबल (Net payable by cheque/cash)',
+            label: tl('??? ?????? (Net payable by cheque/cash)',
                 'Net payable by cheque/cash'),
             amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
             noDiagonal: true,
@@ -1148,7 +1262,7 @@ class _Renderer {
     required String amount,
     bool noDiagonal = false,
   }) {
-    // ── Left half content: icon badge + bilingual label ──
+    // -- Left half content: icon badge + bilingual label --
     final leftContent = pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
@@ -1170,7 +1284,7 @@ class _Renderer {
       ],
     );
 
-    // ── Right half content: very large amount ──
+    // -- Right half content: very large amount --
     final rightContent = pw.Container(
       alignment: pw.Alignment.centerRight,
       padding: const pw.EdgeInsets.only(right: 14),
@@ -1181,7 +1295,7 @@ class _Renderer {
     );
 
     if (noDiagonal) {
-      // Row 4 — flat light-blue with thin border, no gradient
+      // Row 4 � flat light-blue with thin border, no gradient
       return pw.Container(
         height: 48,
         margin: const pw.EdgeInsets.only(bottom: 8),
@@ -1205,7 +1319,7 @@ class _Renderer {
       );
     }
 
-    // Rows 1–3 — diagonal split with gradient backgrounds
+    // Rows 1�3 � diagonal split with gradient backgrounds
     final leftChild = _DiagonalClip(
       leftSide: true,
       child: pw.Container(
@@ -1306,9 +1420,9 @@ class _Renderer {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 4 — Terms & Bill of Materials
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGE 4 � Terms & Bill of Materials
+  // ----------------------------------------------------------------------------
 
   pw.Page _termsBom() {
     return pw.Page(
@@ -1433,9 +1547,9 @@ class _Renderer {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGES 5–6 — Warranty Terms
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGES 5�6 � Warranty Terms
+  // ----------------------------------------------------------------------------
 
   pw.Page _warrantyPage(int pageNumber, int start, int end) {
     final sections = d.warrantySections;
@@ -1481,9 +1595,9 @@ class _Renderer {
   pw.Page _warrantyA() => _warrantyPage(5, 0, 6);
   pw.Page _warrantyB() => _warrantyPage(6, 6, 12);
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 7 — Payment / Contact
-  // ════════════════════════════════════════════════════════════════════════════
+  // ----------------------------------------------------------------------------
+  // PAGE 7 � Payment / Contact
+  // ----------------------------------------------------------------------------
 
   pw.Page _payment() {
     return pw.Page(

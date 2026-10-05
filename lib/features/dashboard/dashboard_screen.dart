@@ -9,6 +9,7 @@ import '../../features/followups/add_follow_up_screen.dart';
 import '../../features/installations/installation_screen.dart';
 import '../../features/payments/payment_screen.dart';
 import '../../features/quotes/create_estimate_screen.dart';
+import '../../features/quotes/estimate_history_screen.dart';
 import '../../models/client.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
@@ -66,6 +67,8 @@ class DashboardScreen extends StatelessWidget {
                   _buildQuickActions(context, dataHub),
                   const SizedBox(height: 12),
                   _buildQuotationCard(context),
+                  const SizedBox(height: 12),
+                  _buildRecentEstimates(context, dataHub),
                   const SizedBox(height: 12),
                   _buildPipeline(context, dataHub),
                   const SizedBox(height: 12),
@@ -595,6 +598,174 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ── Recent Estimates (history preview) ──────────────────────────
+  Widget _buildRecentEstimates(BuildContext context, DataHub dataHub) {
+    final all = dataHub.estimates;
+    final recent = all.take(3).toList();
+
+    void openHistory() {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const EstimateHistoryScreen()),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [BoxShadow(color: Color(0x0A071440), blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF9B417), Color(0xFFFFCA28)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(color: Color(0x4DF9B417), blurRadius: 10)],
+                ),
+                child: const Icon(Icons.history_rounded,
+                    color: Color(0xFF050E26), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('Recent Estimates',
+                    style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F1B3D))),
+              ),
+              if (all.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3CD),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('${all.length}',
+                      style: const TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFB45309))),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (recent.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No quotations created yet.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              ),
+            )
+          else
+            ...recent.map((r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: openHistory,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Text(
+                              DateFormat('dd MMM').format(r.createdAt),
+                              style: const TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0B1F5C)),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.data.clientType == 'business' &&
+                                          r.data.companyName != null
+                                      ? r.data.companyName!
+                                      : r.data.leadName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontFamily: 'Outfit',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F1B3D)),
+                                ),
+                                Text(
+                                  [
+                                    r.data.estimateNumber,
+                                    if (r.data.capacityKw != null)
+                                      '${r.data.capacityKw!.toStringAsFixed(2)} kW',
+                                  ].join('  •  '),
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded,
+                              size: 18, color: Color(0xFFCBD5E1)),
+                        ],
+                      ),
+                    ),
+                  ),
+                )),
+          if (all.isNotEmpty)
+            InkWell(
+              onTap: openHistory,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'View all (${all.length})',
+                      style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: GSColors.navy700),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded,
+                        size: 16, color: GSColors.navy700),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

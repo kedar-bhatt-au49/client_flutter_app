@@ -15,7 +15,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -28,6 +27,7 @@ import '../../core/widgets/gs_card.dart';
 import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
 import '../../providers/data_hub.dart';
+import '../../services/estimate_archive.dart';
 import '../../services/estimate_pdf.dart';
 import 'price_calculator.dart';
 
@@ -479,6 +479,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ? _referenceCtrl.text.trim()
           : null
       ..capacityKw = double.tryParse(_capacityCtrl.text)
+      ..totalPayableOverride = int.tryParse(_priceCtrl.text.trim())
       ..discountPerKw = double.tryParse(_discountCtrl.text.trim()) ?? 0
       ..insurancePercent =
           double.tryParse(_insPercentCtrl.text.trim()) ?? 0
@@ -499,16 +500,12 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
     if (!mounted) return;
 
-    // ── Generate the estimate PDF and save it to a temp file ──
+    // ── Generate the estimate PDF and archive it permanently ──
     File? pdfFile;
     try {
-      final pdfBytes = await EstimatePdf.generate(
-        record: record,
-        master: _master!,
-      );
-      final dir = await getTemporaryDirectory();
-      pdfFile = File('${dir.path}/GS_Estimate_${record.id}.pdf');
-      await pdfFile.writeAsBytes(pdfBytes, flush: true);
+      final path = await EstimateArchive.archive(record, master: _master!);
+      await hub.setEstimatePdfPath(record.id, path);
+      pdfFile = File(path);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to generate PDF: $e')),
@@ -534,17 +531,97 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               children: const [
                 Icon(Icons.visibility_outlined, size: 18),
                 SizedBox(width: 8),
-                Text('View PDF'),
+                Text('Preview'),
               ],
             ),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
-              Printing.layoutPdf(
-                onLayout: (_) => EstimatePdf.generate(
-                  record: record,
-                  master: _master!,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (previewCtx) => Scaffold(
+                    backgroundColor: GSColors.white,
+                    appBar: AppBar(
+                      backgroundColor: GSColors.navy900,
+                      foregroundColor: GSColors.white,
+                      title: Text(
+                        'Preview ${_estimate.estimateNumber}',
+                        style: GSTextStyles.headlineMedium.copyWith(
+                          color: GSColors.white,
+                        ),
+                      ),
+                      actions: [
+                        IconButton(
+                          tooltip: 'Download',
+                          icon: const Icon(Icons.download_outlined),
+                          onPressed: () async {
+                            final messenger =
+                                ScaffoldMessenger.of(previewCtx);
+                            try {
+                              final saved = await EstimateArchive.saveCopy(
+                                await pdfFile!.readAsBytes(),
+                                'GS_Estimate_${record.id}.pdf',
+                              );
+                              if (!mounted) return;
+                              Navigator.of(previewCtx).pop();
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Downloaded to ${saved.path}'),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                SnackBar(
+                                    content: Text('Download failed: $e')),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    body: PdfPreview(
+                      build: (_) => EstimatePdf.generate(
+                        record: record,
+                        master: _master!,
+                      ),
+                      pdfFileName: 'GS_Estimate_${record.id}.pdf',
+                    ),
+                  ),
                 ),
               );
+            },
+          ),
+          TextButton(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.download_outlined, size: 18),
+                SizedBox(width: 8),
+                Text('Download'),
+              ],
+            ),
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                final saved = await EstimateArchive.saveCopy(
+                  await pdfFile!.readAsBytes(),
+                  'GS_Estimate_${record.id}.pdf',
+                );
+                if (!mounted) return;
+                Navigator.of(dialogCtx).pop();
+                Navigator.of(context).popUntil((r) => r.isFirst);
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Downloaded to ${saved.path}')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.of(dialogCtx).pop();
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Download failed: $e')),
+                );
+              }
             },
           ),
           TextButton(
@@ -1060,8 +1137,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             controller: _priceCtrl,
             prefixText: '₹ ',
             keyboardType: TextInputType.number,
-            onChanged: (v) =>
-                _estimate.totalPayableOverride = int.tryParse(v.trim()),
+            onChanged: (v) {
+               _estimate.totalPayableOverride = int.tryParse(v.trim());
+               setState(() {});
+             },
           ),
         ),
 
@@ -1172,6 +1251,11 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           _buildPriceSummary(),
         ],
 
+        // Override summary (when Total Payable is manually entered)
+        if (_estimate.totalPayableOverride != null && _estimate.totalPayableOverride! > 0) ...[
+          _buildOverrideSummary(),
+        ],
+
         const SizedBox(height: 16),
       ],
     );
@@ -1207,6 +1291,11 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   Widget _buildPriceSummary() {
     final b = _estimate.priceBreakdown!;
     final f = NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0);
+    final override = _estimate.totalPayableOverride;
+    final hasOverride = override != null && override > 0;
+    final effectiveGrandTotal = hasOverride ? override : b.grandTotal;
+    final subsidy = _estimate.clientType == 'individual' ? GSTax.subsidyMax : 0;
+    final afterSubsidy = effectiveGrandTotal - subsidy;
 
     return GsCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1229,8 +1318,48 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           _summaryRow('Tax (GST)', b.taxTotal, f),
           if (b.insuranceTotal > 0)
             _summaryRow('Insurance', b.insuranceTotal, f),
-          _summaryRow('TOTAL', b.grandTotal, f,
+          _summaryRow('TOTAL', effectiveGrandTotal, f,
               isBold: true, color: GSColors.navy900),
+          if (hasOverride && subsidy > 0) ...[
+            _summaryRow('Subsidy (PM Surya Ghar)', -subsidy, f,
+                color: GSColors.green600),
+            _summaryRow('Net Cost (after subsidy)', afterSubsidy, f,
+                isBold: true, color: GSColors.navy900),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Summary shown when the admin manually enters a Total Payable without
+  /// running the Price Calculator.  Mirrors the PDF financial-summary block
+  /// (Total Payable → Subsidy deduction → Net Cost).
+  Widget _buildOverrideSummary() {
+    final f =
+        NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0);
+    final totalPayable = _estimate.totalPayableOverride!;
+    final subsidy = _estimate.clientType == 'individual' ? GSTax.subsidyMax : 0;
+    final afterSubsidy = totalPayable - subsidy;
+
+    return GsCard(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Price Summary (Manual Total Payable)',
+              style: GSTextStyles.headlineSmall
+                  .copyWith(color: GSColors.navy900)),
+          const SizedBox(height: 12),
+          _summaryRow('Total Payable (w/ GST)', totalPayable, f,
+              isBold: true, color: GSColors.navy900),
+          if (subsidy > 0) ...[
+            _summaryRow('Subsidy (PM Surya Ghar)', -subsidy, f,
+                color: GSColors.green600),
+            const SizedBox(height: 12),
+            _summaryRow('Net Cost (after subsidy)', afterSubsidy, f,
+                isBold: true, color: GSColors.navy900),
+          ],
         ],
       ),
     );

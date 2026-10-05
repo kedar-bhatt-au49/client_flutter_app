@@ -300,6 +300,16 @@ class DatabaseService {
     await box.delete(id);
   }
 
+  /// Persist the archived PDF location for an estimate.
+  Future<void> setEstimatePdfPath(String id, String pdfPath) async {
+    final box = Hive.box(boxEstimates);
+    final raw = box.get(id);
+    if (raw == null) return;
+    final map = Map<String, dynamic>.from(raw as Map);
+    map['pdf_path'] = pdfPath;
+    await box.put(id, map);
+  }
+
   // ── Dashboard stats ──
 
   Future<DashboardStats> getDashboardStats() async {

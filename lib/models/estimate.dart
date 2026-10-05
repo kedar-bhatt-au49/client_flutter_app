@@ -901,11 +901,16 @@ class EstimateRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Absolute path of the generated PDF inside the app documents directory.
+  /// Null for records saved before PDF archiving existed — regenerate on demand.
+  final String? pdfPath;
+
   EstimateRecord({
     required this.id,
     required this.data,
     required this.createdAt,
     required this.updatedAt,
+    this.pdfPath,
   });
 
   Map<String, dynamic> toJson() => {
@@ -913,6 +918,7 @@ class EstimateRecord {
         'data': data.toJson(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
+        'pdf_path': pdfPath,
       };
 
   factory EstimateRecord.fromJson(
@@ -927,6 +933,15 @@ class EstimateRecord {
       updatedAt: j['updated_at'] != null
           ? DateTime.parse(j['updated_at'] as String)
           : DateTime.now(),
+      pdfPath: j['pdf_path'] as String?,
     );
   }
+
+  EstimateRecord copyWith({String? pdfPath}) => EstimateRecord(
+        id: id,
+        data: data,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        pdfPath: pdfPath ?? this.pdfPath,
+      );
 }

@@ -92,12 +92,35 @@ class EstimatePdf {
     final isResidential = e.clientType == 'individual';
     final subsidy = isResidential ? GSTax.subsidyMax : 0;
 
+    // ── Total Payable override (manual entry in Step 2) ───────────────
+    // The override is GST-inclusive (CGST 4.45% + SGST 4.45% = 8.9%) and
+    // becomes the new base for all downstream totals. When set we
+    // recompute CGST/SGST via GSGst.splitInclusive so the breakdown stays
+    // consistent and the PDF financial-summary reflects the override.
+    final override = e.totalPayableOverride;
+    final bool hasOverride = override != null && override > 0;
+    final int effectiveTotalPayable =
+        hasOverride ? override : baseGrandTotal;
+    int effCgst;
+    int effSgst;
+    int effBase;
+    if (hasOverride) {
+      final split = GSGst.splitInclusive(effectiveTotalPayable);
+      effCgst = split.cgst;
+      effSgst = split.sgst;
+      effBase = split.base;
+    } else {
+      effCgst = cgstTotal;
+      effSgst = sgstTotal;
+      effBase = baseSubTotal;
+    }
+
     // Subtract subsidy so grandTotal = final amount the customer pays.
-    // The PDF renderer (_totalsBlock) adds subsidy back to display the
+    // The PDF renderer (_financialSummary) adds subsidy back to display the
     // pre-subsidy "Total" (highlighted), shows the deduction row
     // unstyled, and highlights the "Final Total".
-    final int subTotal = baseSubTotal - subsidy;
-    final int grandTotal = baseGrandTotal - subsidy;
+    final int subTotal = effBase - subsidy;
+    final int grandTotal = effectiveTotalPayable - subsidy;
 
     // Add the subsidy adjustment line item so it appears in the quotation
     // table and the per-line totals reconcile with the totals box.
@@ -135,9 +158,9 @@ class EstimatePdf {
       plantCapacityKw: '${e.capacityKw?.toStringAsFixed(2) ?? '0.00'}',
       lineItems: lineItems,
       subTotal: subTotal,
-      taxGst: cgstTotal + sgstTotal,
-      cgstTotal: cgstTotal,
-      sgstTotal: sgstTotal,
+      taxGst: effCgst + effSgst,
+      cgstTotal: effCgst,
+      sgstTotal: effSgst,
       grandTotal: grandTotal,
       amountInWords: 'Indian Rupee ${_numberToWords(grandTotal)} Only',
       notes: _estimateNotes(e, useHinglish),
@@ -156,7 +179,7 @@ class EstimatePdf {
       acWireSpecs: '2.5 sq.mm',
       earthingWireSpecs: '2.5 sq.mm',
       inverterKwValue: inverterKw,
-      effectiveUpfront: baseGrandTotal,
+      effectiveUpfront: effectiveTotalPayable,
       subsidyAmount: subsidy,
       warrantySections: _defaultWarrantySections,
       upiId: 'global.solar.2.0@oksbi',

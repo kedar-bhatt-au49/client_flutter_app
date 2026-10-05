@@ -238,6 +238,114 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
+  void _addCustomLineItem() {
+    final descCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '1');
+    final rateCtrl = TextEditingController();
+    final gstCtrl = TextEditingController(text: '8.9');
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: GSColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Add Line Item',
+            style:
+                GSTextStyles.headlineSmall.copyWith(color: GSColors.navy900)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: descCtrl,
+              decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'e.g. Extra wiring / civil work'),
+            ),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: TextFormField(
+                  controller: qtyCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Qty'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextFormField(
+                  controller: rateCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: 'Rate (Rs.)'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: gstCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                  labelText: 'GST % (total)', hintText: 'e.g. 8.9'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final desc = descCtrl.text.trim();
+              if (desc.isEmpty) return;
+              final qty = int.tryParse(qtyCtrl.text) ?? 1;
+              final rate = int.tryParse(
+                      rateCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0;
+              final gst = double.tryParse(gstCtrl.text) ?? 8.9;
+              setState(() {
+                _estimate.lineItems.add(EstimateLineItem(
+                  description: desc,
+                  qty: qty,
+                  rate: rate,
+                  cgstPercent: gst / 2,
+                  sgstPercent: gst / 2,
+                ));
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _customLineRow(EstimateLineItem item, int index) {
+    final gst = item.cgstPercent + item.sgstPercent;
+    final g = (gst == gst.roundToDouble())
+        ? gst.toInt().toString()
+        : gst.toStringAsFixed(2);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+                '${item.description}  •  ${item.qty} × Rs.${item.rate}  •  GST $g%',
+                style: GSTextStyles.bodySmall
+                    .copyWith(color: GSColors.navy900)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline,
+                size: 18, color: GSColors.followupMissed),
+            onPressed: () =>
+                setState(() => _estimate.lineItems.removeAt(index)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Step 3 helpers ──
 
   TextEditingController _getStructureCtrl(String label) {
@@ -924,19 +1032,54 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ),
 
-        // GST (fixed for rooftop solar: CGST 4.45% + SGST 4.45%)
+        // GST display option (per quotation) — CGST 4.45% + SGST 4.45%
+        _fieldCard(
+          label: 'Price Display',
+          required: false,
+          input: GsRadioGroup(
+            groupValue: _estimate.gstIncluded ? 'with' : 'without',
+            onChanged: (v) =>
+                setState(() => _estimate.gstIncluded = v == 'with'),
+            options: [
+              RadioOption(label: 'With GST (8.9%)', value: 'with'),
+              RadioOption(label: 'Without GST', value: 'without'),
+            ],
+          ),
+        ),
+
+        // Additional / custom charges (editable line items)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
           child: GsCard(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.receipt_long, size: 18, color: GSColors.teal500),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('GST — CGST 4.45% + SGST 4.45%  (8.9% incl.)',
-                      style: GSTextStyles.bodySmall.copyWith(color: GSColors.ink)),
+                Row(
+                  children: [
+                    const Icon(Icons.list_alt,
+                        size: 18, color: GSColors.teal500),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Additional Line Items',
+                          style: GSTextStyles.labelLarge
+                              .copyWith(color: GSColors.navy900)),
+                    ),
+                    TextButton.icon(
+                      onPressed: _addCustomLineItem,
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add'),
+                    ),
+                  ],
                 ),
+                if (_estimate.lineItems.isEmpty)
+                  Text(
+                      'Structure, Stamp & Subsidy are added automatically. Add any extra charge here (with its own GST %).',
+                      style: GSTextStyles.bodySmall.copyWith(
+                          color: GSColors.ink.withValues(alpha: 0.5)))
+                else
+                  ..._estimate.lineItems.asMap().entries.map(
+                      (e) => _customLineRow(e.value, e.key)),
               ],
             ),
           ),

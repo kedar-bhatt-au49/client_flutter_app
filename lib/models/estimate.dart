@@ -1,5 +1,5 @@
-/// ---------------------------------------------------------------------------
-/// Global Solar 2.0 — Create Estimate Wizard Data Model
+﻿/// ---------------------------------------------------------------------------
+/// Global Solar 2.0 â€” Create Estimate Wizard Data Model
 ///
 /// Holds all wizard state across the 4 steps + the Price Calculator sub-flow.
 /// Master data (panels, inverters, structure pipes, currencies, GST profiles)
@@ -12,7 +12,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 
-// ── Master data value objects ─────────────────────────────────────────
+// â”€â”€ Master data value objects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class CurrencyOpt {
   final String code;
@@ -49,7 +49,7 @@ class PanelMaster {
   final String brand;
   final List<String> warranties;
   final List<int> wattages;
-  final Map<String, int> wattageRates; // wattage -> rate per watt-peak (₹)
+  final Map<String, int> wattageRates; // wattage -> rate per watt-peak (â‚¹)
 
   PanelMaster({
     required this.id,
@@ -78,7 +78,7 @@ class InverterMaster {
   final String name;
   final String brand;
   final List<double> compatibleRatings;
-  final Map<String, int> ratingPrices; // rating -> price (₹)
+  final Map<String, int> ratingPrices; // rating -> price (â‚¹)
 
   InverterMaster({
     required this.id,
@@ -156,7 +156,7 @@ class GstProfile {
       );
 }
 
-// ── Master data container ────────────────────────────────────────────
+// â”€â”€ Master data container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class MasterData {
   final String estimateNumberPrefix;
@@ -260,7 +260,7 @@ class MasterData {
       gstProfiles.firstWhere((g) => g.label == label, orElse: () => gstProfiles.first);
 }
 
-// ── Line item produced by the Price Calculator ─────────────────────
+// â”€â”€ Line item produced by the Price Calculator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class EstimateLineItem {
   final String description;
@@ -323,7 +323,7 @@ class EstimateLineItem {
       );
 }
 
-// ── Price breakdown ──────────────────────────────────────────────────
+// â”€â”€ Price breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PriceBreakdown {
   final int panelCost;
@@ -404,7 +404,7 @@ class PriceBreakdown {
   }
 }
 
-// ── Price Calculator selection state ───────────────────────────────
+// â”€â”€ Price Calculator selection state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PriceCalcState {
   String? panelId;
@@ -467,7 +467,7 @@ class PriceCalcState {
       );
 }
 
-// ── Result returned from the Price Calculator ──────────────────────
+// â”€â”€ Result returned from the Price Calculator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PriceCalculationResult {
   final double capacityKw;
@@ -497,7 +497,7 @@ class PriceCalculationResult {
   });
 }
 
-// ── Pricing engine ─────────────────────────────────────────────────
+// â”€â”€ Pricing engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PriceEngine {
   final MasterData master;
@@ -620,7 +620,7 @@ class PriceEngine {
       ));
     }
     items.add(EstimateLineItem(
-      description: 'Discount (₹/kW)',
+      description: 'Discount (â‚¹/kW)',
       qty: 1,
       rate: -discountTotal,
       cgstPercent: 0,
@@ -683,10 +683,10 @@ class PriceEngine {
   }
 }
 
-// ── Main estimate model ────────────────────────────────────────────
+// â”€â”€ Main estimate model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class EstimateModel {
-  // ── Step 1: Lead Details ──
+  // â”€â”€ Step 1: Lead Details â”€â”€
   String clientType; // 'individual' | 'business'
   String? companyName;
   String leadName;
@@ -698,7 +698,7 @@ class EstimateModel {
   String? email;
   String? address;
 
-  // ── Step 2: Estimate Details ──
+  // â”€â”€ Step 2: Estimate Details â”€â”€
   String estimateNumber;
   String? referenceNo;
   DateTime expiryDate;
@@ -708,13 +708,14 @@ class EstimateModel {
   String? wiringSqMm; // manual wiring size (e.g. "4 sq.mm")
   double? inverterKwManual; // manual inverter kW capacity
   int? totalPayableOverride; // manual price override (GST-inclusive)
+  bool gstIncluded; // show prices with GST (true) or without (false)
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
 
-  // ── Step 3: Structure Details ──
+  // â”€â”€ Step 3: Structure Details â”€â”€
   final Map<String, int> structureQuantities; // pipe label -> meters
 
-  // ── Step 4: Financial Details ──
+  // â”€â”€ Step 4: Financial Details â”€â”€
   double discountPerKw;
   String gstProfileLabel;
   bool insuranceIncluded;
@@ -722,7 +723,7 @@ class EstimateModel {
   double insurancePercent;
   int insuranceAmount;
 
-  // ── Computed ──
+  // â”€â”€ Computed â”€â”€
   PriceBreakdown? priceBreakdown;
 
   EstimateModel({
@@ -745,6 +746,7 @@ class EstimateModel {
     this.wiringSqMm,
     this.inverterKwManual,
     this.totalPayableOverride,
+    this.gstIncluded = true,
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
     Map<String, int>? structureQuantities,
@@ -833,6 +835,7 @@ class EstimateModel {
         'wiring_sq_mm': wiringSqMm,
         'inverter_kw_manual': inverterKwManual,
         'total_payable_override': totalPayableOverride,
+        'gst_included': gstIncluded,
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
         'structure_quantities': structureQuantities,
@@ -872,6 +875,7 @@ class EstimateModel {
       wiringSqMm: j['wiring_sq_mm'] as String?,
       inverterKwManual: (j['inverter_kw_manual'] as num?)?.toDouble(),
       totalPayableOverride: j['total_payable_override'] as int?,
+      gstIncluded: j['gst_included'] as bool? ?? true,
       taxMode: j['tax_mode'] as String? ?? 'exclusive',
       lineItems: (j['line_items'] as List? ?? [])
           .map((e) =>
@@ -893,7 +897,7 @@ class EstimateModel {
   }
 }
 
-// ── Estimate wrapper for persistence ─────────────────────────────────
+// â”€â”€ Estimate wrapper for persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class EstimateRecord {
   final String id;

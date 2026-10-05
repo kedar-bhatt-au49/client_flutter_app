@@ -177,19 +177,52 @@ class EstimatePdf {
     bool useHinglish = false,
     Uint8List? logoImage,
   }) {
-    // Total payable is GST-INCLUSIVE (CGST 4.45% + SGST 4.45% = 8.9%).
+    // Total payable (from the system table). GST-inclusive by default.
     final totalPayable = e.totalPayableOverride ?? system.totalPayable;
     final subsidy = system.subsidy;
-    final afterSubsidy = totalPayable - subsidy;
+    final includeGst = e.gstIncluded;
     final gstMul = 1 + GSGst.totalPercent / 100; // 1.089
 
     // GST-exclusive PV-system amount so that
-    // pvTaxable + structure + stamp + (pvTaxable × 8.9%) == totalPayable.
-    final pvTaxable = ((totalPayable - system.structureCost - system.stampCharge) /
-            gstMul)
-        .round();
-    final cgst = (pvTaxable * GSGst.cgstPercent / 100).round();
-    final sgst = (pvTaxable * GSGst.sgstPercent / 100).round();
+    // pvTaxable + structure + stamp + GST == totalPayable (when GST included).
+    final pvTaxable =
+        ((totalPayable - system.structureCost - system.stampCharge) / gstMul)
+            .round();
+    final cgstPct = includeGst ? GSGst.cgstPercent : 0.0;
+    final sgstPct = includeGst ? GSGst.sgstPercent : 0.0;
+    final cgst = ((pvTaxable * cgstPct) / 100).round();
+    final sgst = ((pvTaxable * sgstPct) / 100).round();
+
+    // Custom line items added by the user (each with its own GST %).
+    final custom = <ProposalLineItem>[];
+    var customNet = 0;
+    var customCgst = 0;
+    var customSgst = 0;
+    for (final it in e.lineItems) {
+      final qty = it.qty == 0 ? 1 : it.qty;
+      final base = it.rate * qty;
+      final c = includeGst ? (base * it.cgstPercent / 100).round() : 0;
+      final s = includeGst ? (base * it.sgstPercent / 100).round() : 0;
+      customNet += base;
+      customCgst += c;
+      customSgst += s;
+      custom.add(ProposalLineItem(
+        description: it.description,
+        specs: const [],
+        qty: '$qty',
+        unit: 'set',
+        rate: it.rate,
+        cgstPercent: includeGst ? it.cgstPercent : 0,
+        sgstPercent: includeGst ? it.sgstPercent : 0,
+      ));
+    }
+
+    final baseExclGst =
+        pvTaxable + system.structureCost + system.stampCharge + customNet;
+    final cgstTotal = cgst + customCgst;
+    final sgstTotal = sgst + customSgst;
+    final gross = baseExclGst + cgstTotal + sgstTotal;
+    final afterSubsidy = gross - subsidy;
 
     final lineItems = <ProposalLineItem>[
       ProposalLineItem(
@@ -201,8 +234,8 @@ class EstimatePdf {
         qty: '1',
         unit: 'set',
         rate: pvTaxable,
-        cgstPercent: GSGst.cgstPercent,
-        sgstPercent: GSGst.sgstPercent,
+        cgstPercent: cgstPct,
+        sgstPercent: sgstPct,
       ),
       ProposalLineItem(
         description: 'Structure & Mounting (Elevated)',
@@ -222,6 +255,7 @@ class EstimatePdf {
         cgstPercent: 0,
         sgstPercent: 0,
       ),
+      ...custom,
       ProposalLineItem(
         description: 'PM Surya Ghar Subsidy (Adjustment)',
         specs: ['Government subsidy credit', 'Residential only'],
@@ -254,10 +288,10 @@ class EstimatePdf {
       contactNumbers: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
       plantCapacityKw: system.kw.toStringAsFixed(2),
       lineItems: lineItems,
-      subTotal: pvTaxable + system.structureCost + system.stampCharge,
-      taxGst: cgst + sgst,
-      cgstTotal: cgst,
-      sgstTotal: sgst,
+      subTotal: baseExclGst,
+      taxGst: cgstTotal + sgstTotal,
+      cgstTotal: cgstTotal,
+      sgstTotal: sgstTotal,
       grandTotal: afterSubsidy,
       amountInWords: 'Indian Rupee ${_numberToWords(afterSubsidy)} Only',
       notes: _estimateNotes(e, useHinglish),

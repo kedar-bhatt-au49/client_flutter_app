@@ -24,9 +24,9 @@ void main() {
       ),
     );
 
-    // Step 1: loading spinner visible, wizard not yet built
+    // Step 1: loading spinner visible, form not yet built
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('CREATE ESTIMATE'), findsNothing);
+    expect(find.text('Create Quotation'), findsNothing);
 
     // Allow MasterData.load() (rootBundle asset) to complete
     await tester.pump(const Duration(milliseconds: 500));
@@ -34,10 +34,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
-    // Step 2: spinner gone, wizard content visible
+    // Step 2: spinner gone, form content visible
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('CREATE ESTIMATE'), findsOneWidget);
+    expect(find.text('Create Quotation'), findsWidgets);
     expect(find.text('Lead Details'), findsOneWidget);
-    expect(find.text('Next'), findsOneWidget);
+    expect(find.text('Solar System Configuration'), findsOneWidget);
   });
 }

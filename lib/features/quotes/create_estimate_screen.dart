@@ -1,13 +1,14 @@
 ﻿/// ---------------------------------------------------------------------------
-/// Create Estimate â€” multi-step wizard (Steps 1-4).
+/// Create Quotation — single-page form matching the Stitch
+/// "Global Solar 2.0 - Create Quotation Mobile Screen" design.
 ///
-/// Step 1: Lead Details  (ðŸ‘¤)
-/// Step 2: Estimate Details (ðŸ“Š) â€” opens Price Calculator (Step 2a)
-/// Step 3: Structure Details (ðŸ› )
-/// Step 4: Financial Details (â‚¹)
+///   • Lead Details            (customer identification & pipeline stage)
+///   • Solar System Config     (package, panel image, pricing, GST mode)
+///   • Additional Line Items   (custom charges)
+///   • Fixed bottom action     (Create Quotation → PDF preview)
 ///
-/// State is held in the [EstimateModel] and survives back/forth navigation.
-/// Master data is loaded from `assets/data/estimate_master.json`.
+/// State is held in the [EstimateModel]. Master data is loaded from
+/// `assets/data/estimate_master.json`.
 /// ---------------------------------------------------------------------------
 library;
 
@@ -17,13 +18,38 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/widgets/estimate_widgets.dart';
-import '../../core/widgets/gs_card.dart';
 import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
 import '../../providers/data_hub.dart';
 import 'quotation_preview_screen.dart';
+
+// ── Design tokens (Stitch) ──
+const _navyDark = Color(0xFF071440);
+const _navy = Color(0xFF0B1F5C);
+const _gold = Color(0xFFF9B417);
+const _goldLight = Color(0xFFFFCA40);
+const _goldHover = Color(0xFFD9980B);
+const _bgSky = Color(0xFFEAF4FF);
+const _skyField = Color(0xFFE2EFFF);
+const _labelMuted = Color(0xFF627193);
+const _borderSky = Color(0xFFD0E3F8);
+
+TextStyle _t(double size, FontWeight w, Color c,
+        {double? ls, double? h}) =>
+    TextStyle(
+        fontFamily: 'Plus Jakarta Sans',
+        fontSize: size,
+        fontWeight: w,
+        color: c,
+        letterSpacing: ls,
+        height: h);
+
+TextStyle _th(double size, FontWeight w, Color c, {double? ls}) => TextStyle(
+    fontFamily: 'Outfit',
+    fontSize: size,
+    fontWeight: w,
+    color: c,
+    letterSpacing: ls);
 
 class CreateEstimateScreen extends StatefulWidget {
   const CreateEstimateScreen({super.key});
@@ -33,43 +59,25 @@ class CreateEstimateScreen extends StatefulWidget {
 }
 
 class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
-  // â”€â”€ Master data (loaded async from JSON) â”€â”€â”€
+  // ── Master data (loaded async from JSON) ──
   MasterData? _master;
   bool _ready = false;
   String? _loadError;
 
-  // â”€â”€ Wizard state â”€â”€â”€
-  int _currentStep = 0;
   final EstimateModel _estimate = EstimateModel();
 
-  // â”€â”€ Controllers: Step 1 â€” Lead Details â”€â”€â”€
+  // ── Controllers ──
   final _companyCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
-  final _whatsappCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
-  bool _autoFillWhatsApp = false;
-  bool _showAdvanced = false;
-  final _emailCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-
-  // â”€â”€ Controllers: Step 2 â€” Estimate Details â”€â”€â”€
   final _estimateNumberCtrl = TextEditingController();
-  final _referenceCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController();
   final _wiringCtrl = TextEditingController();
   final _inverterKwCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _structureCostCtrl = TextEditingController();
   final _stampCtrl = TextEditingController();
-
-  // â”€â”€ Controllers: Step 3 â€” Structure Details â”€â”€â”€
-  final Map<String, TextEditingController> _structureCtrls = {};
-
-  // â”€â”€ Controllers: Step 4 â€” Financial Details â”€â”€â”€
-  final _discountCtrl = TextEditingController();
-  final _insPercentCtrl = TextEditingController();
-  final _insAmountCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -82,55 +90,42 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _companyCtrl.dispose();
     _nameCtrl.dispose();
     _mobileCtrl.dispose();
-    _whatsappCtrl.dispose();
     _descriptionCtrl.dispose();
-    _emailCtrl.dispose();
-    _addressCtrl.dispose();
     _estimateNumberCtrl.dispose();
-    _referenceCtrl.dispose();
     _capacityCtrl.dispose();
     _wiringCtrl.dispose();
     _inverterKwCtrl.dispose();
     _priceCtrl.dispose();
     _structureCostCtrl.dispose();
     _stampCtrl.dispose();
-    _discountCtrl.dispose();
-    _insPercentCtrl.dispose();
-    _insAmountCtrl.dispose();
-    _structureCtrls.forEach((_, c) => c.dispose());
     super.dispose();
   }
 
-  // â”€â”€ Master data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Master data loading ────────────────────────────────────────────────
 
   Future<void> _loadMaster() async {
     _loadError = null;
+    final hub = context.read<DataHub>();
     try {
-      _master = await MasterData.load();
+      final master = await MasterData.load();
 
-      // Generate sequential estimate number from existing estimates
-      final hub = context.read<DataHub>();
-      final index = hub.estimateCount;
-      _estimate.estimateNumber =
-          EstimateModel.generateNumber(_master!.estimateNumberPrefix, index);
+      _estimate.estimateNumber = EstimateModel.generateNumber(
+          master.estimateNumberPrefix, hub.estimateCount);
       _estimateNumberCtrl.text = _estimate.estimateNumber;
-
-      // Defaults from master
-      _estimate.currency = _master!.defaultCurrency;
-      _estimate.leadStage = _master!.defaultLeadStage;
+      _estimate.currency = master.defaultCurrency;
+      _estimate.leadStage = master.defaultLeadStage;
       _estimate.expiryDate =
-          DateTime.now().add(Duration(days: _master!.expiryDays));
+          DateTime.now().add(Duration(days: master.expiryDays));
       _estimate.gstProfileLabel =
-          _master!.gstProfiles.isNotEmpty ? _master!.gstProfiles.last.label : '';
-      _discountCtrl.text = '0';
+          master.gstProfiles.isNotEmpty ? master.gstProfiles.last.label : '';
 
-      // Initialize structure controllers
-      for (final pipe in _master!.structurePipes) {
-        _structureCtrls[pipe.label] = TextEditingController();
-      }
-
-      setState(() => _ready = true);
+      if (!mounted) return;
+      setState(() {
+        _master = master;
+        _ready = true;
+      });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _ready = false;
         _loadError = e.toString();
@@ -138,15 +133,36 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
   }
 
-  // â”€â”€ Step 1 helpers â”€â”€
+  // ── Helpers ────────────────────────────────────────────────────────────
 
-  void _toggleAutoFillWhatsApp(bool? v) {
+  bool get _leadDone =>
+      _nameCtrl.text.trim().isNotEmpty && _mobileCtrl.text.trim().length >= 10;
+
+  bool get _systemDone => _estimate.systemId != null;
+
+  double get _progress => _systemDone ? 1.0 : (_leadDone ? 0.65 : 0.0);
+
+  String _inr(num v) =>
+      NumberFormat.decimalPattern('en_IN').format(v.round());
+
+  GSQuoteSystem? get _selectedSystem => _estimate.systemId != null
+      ? gsQuoteSystemById(_estimate.systemId!)
+      : null;
+
+  void _selectSystem(GSQuoteSystem s) {
     setState(() {
-      _autoFillWhatsApp = v ?? false;
-      if (_autoFillWhatsApp) {
-        _whatsappCtrl.text = _mobileCtrl.text;
-      } else {
-        _whatsappCtrl.clear();
+      _estimate.systemId = s.id;
+      _estimate.capacityKw = s.kw;
+      _capacityCtrl.text = s.kw.toStringAsFixed(2);
+      _estimate.structureCostOverride = s.structureCost;
+      _estimate.stampChargeOverride = s.stampCharge;
+      _structureCostCtrl.text = s.structureCost.toString();
+      _stampCtrl.text = s.stampCharge.toString();
+      _estimate.totalPayableOverride = s.totalPayable;
+      _priceCtrl.text = s.totalPayable.toString();
+      if (_inverterKwCtrl.text.trim().isEmpty) {
+        _inverterKwCtrl.text = (s.kw + 0.64).toStringAsFixed(1);
+        _estimate.inverterKwManual = double.tryParse(_inverterKwCtrl.text);
       }
     });
   }
@@ -163,24 +179,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  // â”€â”€ Step 2 helpers â”€â”€
-
-  GSQuoteSystem? get _selectedSystem => _estimate.systemId != null
-      ? gsQuoteSystemById(_estimate.systemId!)
-      : null;
-
-  void _selectSystem(GSQuoteSystem s) {
-    setState(() {
-      _estimate.systemId = s.id;
-      _estimate.capacityKw = s.kw;
-      _capacityCtrl.text = s.kw.toStringAsFixed(2);
-      _estimate.structureCostOverride = s.structureCost;
-      _estimate.stampChargeOverride = s.stampCharge;
-      _structureCostCtrl.text = s.structureCost.toString();
-      _stampCtrl.text = s.stampCharge.toString();
-    });
-  }
-
   void _openSystemSelector() {
     showModalBottomSheet(
       context: context,
@@ -193,15 +191,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text('Select Solar System',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F1B3D))),
+                  textAlign: TextAlign.center, style: _th(18, FontWeight.w700, _navy)),
             ),
             Flexible(
               child: ListView(
@@ -209,19 +202,15 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                 children: gsQuoteSystems
                     .map((s) => ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: GSColors.sky100,
+                            backgroundColor: _bgSky,
                             child: Text('${s.panels}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: GSColors.navy900)),
+                                style: _th(13, FontWeight.w700, _navy)),
                           ),
                           title: Text(s.label,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
+                              style: _t(14, FontWeight.w700, _navy)),
                           subtitle: Text(
-                              'Total â‚¹${s.totalPayable}  â€¢  After subsidy â‚¹${s.afterSubsidy}',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF627193))),
+                              'After subsidy Rs.${_inr(s.afterSubsidy)}',
+                              style: _t(12, FontWeight.w500, _labelMuted)),
                           trailing: _estimate.systemId == s.id
                               ? const Icon(Icons.check_circle,
                                   color: GSColors.green600)
@@ -250,15 +239,13 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: GSColors.white,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Line Item',
-            style:
-                GSTextStyles.headlineSmall.copyWith(color: GSColors.navy900)),
+        title: Text('Add Line Item', style: _th(18, FontWeight.w700, _navy)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextFormField(
+            TextField(
               controller: descCtrl,
               decoration: const InputDecoration(
                   labelText: 'Description',
@@ -267,7 +254,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             const SizedBox(height: 10),
             Row(children: [
               Expanded(
-                child: TextFormField(
+                child: TextField(
                   controller: qtyCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Qty'),
@@ -275,18 +262,18 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: TextFormField(
+                child: TextField(
                   controller: rateCtrl,
                   keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Rate (Rs.)'),
+                  decoration: const InputDecoration(labelText: 'Rate (Rs.)'),
                 ),
               ),
             ]),
             const SizedBox(height: 10),
-            TextFormField(
+            TextField(
               controller: gstCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                   labelText: 'GST % (total)', hintText: 'e.g. 8.9'),
             ),
@@ -297,6 +284,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: _gold, foregroundColor: _navyDark),
             onPressed: () {
               final desc = descCtrl.text.trim();
               if (desc.isEmpty) return;
@@ -323,1129 +312,1147 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  Widget _customLineRow(EstimateLineItem item, int index) {
-    final gst = item.cgstPercent + item.sgstPercent;
-    final g = (gst == gst.roundToDouble())
-        ? gst.toInt().toString()
-        : gst.toStringAsFixed(2);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-                '${item.description}  â€¢  ${item.qty} Ã— Rs.${item.rate}  â€¢  GST $g%',
-                style: GSTextStyles.bodySmall
-                    .copyWith(color: GSColors.navy900)),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline,
-                size: 18, color: GSColors.followupMissed),
-            onPressed: () =>
-                setState(() => _estimate.lineItems.removeAt(index)),
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Save ───────────────────────────────────────────────────────────────
 
-  // â”€â”€ Step 3 helpers â”€â”€
-
-  TextEditingController _getStructureCtrl(String label) {
-    var c = _structureCtrls[label];
-    if (c == null) {
-      c = TextEditingController(
-          text: _estimate.structureQuantities[label]?.toString() ?? '');
-      _structureCtrls[label] = c;
+  bool _validate() {
+    if (_nameCtrl.text.trim().isEmpty) {
+      _snack('Client name is required');
+      return false;
     }
-    return c;
-  }
-
-  // â”€â”€ Step 4 helpers â”€â”€
-
-  void _setGstProfile(String? label) {
-    setState(() => _estimate.gstProfileLabel = label ?? '');
-  }
-
-  void _toggleInsurance(bool v) {
-    setState(() => _estimate.insuranceIncluded = v);
-  }
-
-  void _setInsuranceType(String? t) {
-    setState(() => _estimate.insuranceType = t ?? 'percent');
-  }
-
-  // â”€â”€ Validation â”€â”€
-
-  bool _validateStep(int step) {
-    if (step == 0) {
-      if (_nameCtrl.text.trim().isEmpty) return _error('Name is required');
-      if (_mobileCtrl.text.trim().isEmpty ||
-          _mobileCtrl.text.trim().length < 10) {
-        return _error('Valid mobile number is required');
-      }
-      if (_estimate.clientType == 'business' &&
-          _companyCtrl.text.trim().isEmpty) {
-        return _error('Company name is required');
-      }
+    if (_mobileCtrl.text.trim().length < 10) {
+      _snack('Valid 10-digit mobile number is required');
+      return false;
     }
-    if (step == 1) {
-      if (_estimateNumberCtrl.text.trim().isEmpty) {
-        return _error('Estimate number is required');
-      }
-      if (_estimate.systemId == null) {
-        return _error('Please select a solar system');
-      }
-      if (_estimate.currency.isEmpty) return _error('Currency is required');
+    if (_estimate.clientType == 'business' &&
+        _companyCtrl.text.trim().isEmpty) {
+      _snack('Company name is required');
+      return false;
+    }
+    if (_estimate.systemId == null) {
+      _snack('Please select a solar system');
+      return false;
     }
     return true;
   }
 
-  bool _error(String msg) {
+  void _snack(String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
-    return false;
-  }
-
-  // â”€â”€ Navigation â”€â”€
-
-  void _onBack() {
-    if (_currentStep == 0) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _currentStep--);
-    }
-  }
-
-  void _onNext() {
-    if (!_validateStep(_currentStep)) return;
-
-    if (_currentStep < 1) {
-      setState(() => _currentStep++);
-    } else {
-      _saveEstimate();
-    }
   }
 
   Future<void> _saveEstimate() async {
+    if (!_validate()) return;
     final hub = context.read<DataHub>();
 
-    // Sync all controller values into the model
     _estimate
       ..companyName = _companyCtrl.text.trim().isEmpty
           ? null
           : _companyCtrl.text.trim()
       ..leadName = _nameCtrl.text.trim()
       ..mobileNumber = _mobileCtrl.text.trim()
-      ..whatsappNumber = _whatsappCtrl.text.trim().isEmpty
-          ? null
-          : _whatsappCtrl.text.trim()
-      ..autoFillWhatsApp = _autoFillWhatsApp
       ..description = _descriptionCtrl.text.trim().isNotEmpty
           ? _descriptionCtrl.text.trim()
           : null
       ..estimateNumber = _estimateNumberCtrl.text.trim()
-      ..referenceNo = _referenceCtrl.text.trim().isNotEmpty
-          ? _referenceCtrl.text.trim()
-          : null
-      ..capacityKw = double.tryParse(_capacityCtrl.text)
-      ..discountPerKw = double.tryParse(_discountCtrl.text.trim()) ?? 0
-      ..insurancePercent =
-          double.tryParse(_insPercentCtrl.text.trim()) ?? 0
-      ..insuranceAmount =
-          int.tryParse(_insAmountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-              0;
+      ..capacityKw = double.tryParse(_capacityCtrl.text);
 
-    // â”€â”€ Save the estimate â”€â”€
     late EstimateRecord record;
     try {
       record = await hub.addEstimate(_estimate);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save estimate: $e')),
-      );
+      _snack('Failed to save estimate: $e');
       return;
     }
     if (!mounted) return;
 
-    // Open the full-screen quotation preview (Share + Download).
     Navigator.of(context).popUntil((r) => r.isFirst);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => QuotationPreviewScreen(
-          record: record,
-          master: _master!,
-        ),
+        builder: (_) =>
+            QuotationPreviewScreen(record: record, master: _master!),
       ),
     );
   }
 
-  // â”€â”€ Build â”€â”€
+  // ── Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready) {
-      return Scaffold(
-        backgroundColor: GSColors.pageBg,
-        appBar: AppBar(
-          backgroundColor: GSColors.navy900,
-          foregroundColor: GSColors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text('CREATE ESTIMATE',
-              style: GSTextStyles.headlineMedium.copyWith(color: GSColors.white)),
-          centerTitle: true,
-        ),
-        body: Center(
-          child: _loadError != null
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: GSColors.statusNew),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load estimate data.',
-                        textAlign: TextAlign.center,
-                        style: GSTextStyles.bodyMedium
-                            .copyWith(color: GSColors.navy900),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _loadError!,
-                        textAlign: TextAlign.center,
-                        style: GSTextStyles.bodySmall
-                            .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: _loadError != null ? _loadMaster : null,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: GSColors.navy500,
-                          foregroundColor: GSColors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : const CircularProgressIndicator(color: GSColors.teal500),
-        ),
-      );
-    }
+    if (!_ready) return _loadingScaffold();
 
     return Scaffold(
-      backgroundColor: GSColors.pageBg,
+      backgroundColor: _bgSky,
       body: Column(
         children: [
-          // Top app bar
-          Container(
-            color: GSColors.navy900,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top,
-              bottom: 8,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Close (X)
-                IconButton(
-                  icon: const Icon(Icons.close, color: GSColors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                // Centered title
-                Text(
-                  'CREATE ESTIMATE',
-                  style: GSTextStyles.headlineMedium.copyWith(color: GSColors.white),
-                ),
-                // Status label "Draft" on right
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    'Draft',
-                    style: GSTextStyles.labelMedium.copyWith(
-                      color: GSColors.gold500,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Progress bar
-          EstimateProgressBar(stepCount: 2, currentStep: _currentStep),
-          // Step content
+          _header(),
           Expanded(
             child: SingleChildScrollView(
-              child: _buildStepContent(),
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _leadCard(),
+                  _systemCard(),
+                  _lineItemsCard(),
+                  _trustNote(),
+                ],
+              ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: ActionBarButtonBar(
-        backText: _currentStep == 0 ? 'Close' : 'Back',
-        nextText: _currentStep == 1 ? 'Create Quotation' : 'Next',
-        onBack: _onBack,
-        onNext: _onNext,
+      bottomNavigationBar: _bottomBar(),
+    );
+  }
+
+  Widget _loadingScaffold() {
+    return Scaffold(
+      backgroundColor: _bgSky,
+      appBar: AppBar(
+        backgroundColor: _navy,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text('CREATE QUOTATION', style: _th(18, FontWeight.w700, Colors.white)),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: _loadError != null
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline,
+                      size: 48, color: GSColors.statusNew),
+                  const SizedBox(height: 16),
+                  Text('Failed to load quotation data.',
+                      style: _t(15, FontWeight.w600, _navy)),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _loadMaster,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _navy, foregroundColor: Colors.white),
+                  ),
+                ],
+              )
+            : const CircularProgressIndicator(color: _gold),
       ),
     );
   }
 
-  Widget _buildStepContent() {
-    switch (_currentStep) {
-      case 0:
-        return _buildLeadDetails();
-      case 1:
-        return _buildEstimateDetails();
-      case 2:
-        return _buildStructureDetails();
-      case 3:
-        return _buildFinancialDetails();
-      default:
-        return _buildLeadDetails();
-    }
-  }
+  // ── Header ──
 
-  // â”€â”€ Step 1: Lead Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  Widget _buildLeadDetails() {
-    final stage = _master!.stageById(_estimate.leadStage);
-    final showAdvanced =
-        _estimate.clientType == 'individual' && _showAdvanced;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Type toggle: Individual / Business
-        EstimateSectionHeader(icon: Icons.person, title: 'Lead Details'),
-        GsCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _header() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_navyDark, Color(0xFF091A4F), _navy],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 16,
+        right: 16,
+        bottom: 12,
+      ),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Text('Type',
-                  style: GSTextStyles.labelMedium
-                      .copyWith(color: GSColors.navy900)),
-              const SizedBox(height: 8),
-              GsRadioGroup(
-                groupValue: _estimate.clientType,
-                onChanged: (v) => setState(() {
-                  _estimate.clientType = v ?? 'individual';
-                  _showAdvanced = false;
-                }),
-                options: [
-                  RadioOption(label: 'Individual', value: 'individual'),
-                  RadioOption(label: 'Business', value: 'business'),
-                ],
+              _circleButton(
+                icon: Icons.arrow_back_ios_new,
+                onTap: () => Navigator.of(context).pop(),
               ),
-            ],
-          ),
-        ),
-
-        // Company Name (Business only, appears above Name)
-        if (_estimate.clientType == 'business')
-          _fieldCard(
-            label: 'Company Name',
-            required: true,
-            hint: 'e.g. Priya & Co.',
-            input: _textField(
-              controller: _companyCtrl,
-              errorText: _estimate.clientType == 'business'
-                  ? (_companyCtrl.text.trim().isEmpty ? 'Required' : null)
-                  : null,
-            ),
-          ),
-
-        // Name
-        _fieldCard(
-          label: 'Name',
-          required: true,
-          hint: 'Full Name',
-          input: _textField(
-            controller: _nameCtrl,
-            errorText: _nameCtrl.text.trim().isEmpty ? 'Required' : null,
-          ),
-        ),
-
-        // Mobile Number
-        _fieldCard(
-          label: 'Mobile Number',
-          required: true,
-          hint: '10-digit mobile number',
-          input: _textField(
-            controller: _mobileCtrl,
-            prefixText: '+91 ',
-            keyboardType: TextInputType.phone,
-            onChanged: (v) {
-              if (_autoFillWhatsApp && _mobileCtrl.text.trim().isNotEmpty) {
-                _whatsappCtrl.text = _mobileCtrl.text;
-              }
-              // Trigger rebuild for error text
-              if (mounted) setState(() {});
-            },
-            errorText: _mobileCtrl.text.trim().isNotEmpty &&
-                    _mobileCtrl.text.trim().length >= 10
-                ? null
-                : (_mobileCtrl.text.trim().isNotEmpty
-                    ? 'Invalid number'
-                    : null),
-          ),
-        ),
-
-        // WhatsApp Number
-        _fieldCard(
-          label: 'WhatsApp Number',
-          required: false,
-          hint: 'Same as mobile (toggle below)',
-          input: _textField(
-            controller: _whatsappCtrl,
-            prefixText: '+91 ',
-            keyboardType: TextInputType.phone,
-            suffixIcon: Icon(Icons.chat,
-                color: _whatsappCtrl.text.trim().isNotEmpty
-                    ? const Color(0xFF25D36E)
-                    : GSColors.ink.withValues(alpha: 0.3),
-                size: 22),
-          ),
-        ),
-        // Auto-fill WhatsApp toggle
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Auto-fill from mobile',
-                  style: GSTextStyles.bodySmall
-                      .copyWith(color: GSColors.ink.withValues(alpha: 0.6))),
-              Switch(
-                value: _autoFillWhatsApp,
-                onChanged: _toggleAutoFillWhatsApp,
-                activeColor: GSColors.teal500,
-                activeTrackColor: GSColors.teal500.withValues(alpha: 0.4),
-              ),
-            ],
-          ),
-        ),
-
-        // Lead Stage (tappable selector)
-        _fieldCard(
-          label: 'Lead Stage',
-          required: false,
-          input: GsSelectorTile(
-            value: stage.label,
-            valueColor: GSColors.navy900,
-            leading: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _hexToColor(stage.dotColorHex),
-              ),
-            ),
-            onTap: _openLeadStageSelector,
-          ),
-        ),
-
-        // Description
-        _fieldCard(
-          label: 'Description',
-          required: false,
-          hint: 'e.g. Customer is a regular buyer',
-          input: _textField(
-            controller: _descriptionCtrl,
-            maxLines: 3,
-            hint: 'e.g. Customer is a regular buyer',
-          ),
-        ),
-
-        // Show Advanced Options (Individual only)
-        if (_estimate.clientType == 'individual')
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: GsCard(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _showAdvanced = !_showAdvanced),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Show Advanced Options',
-                            style: GSTextStyles.labelMedium.copyWith(
-                                color: GSColors.navy900)),
-                        Icon(
-                          _showAdvanced
-                              ? Icons.expand_more
-                              : Icons.chevron_right,
-                          size: 20,
-                          color: GSColors.ink.withValues(alpha: 0.4),
-                        ),
+                        Text('Create Quotation',
+                            style: _th(18, FontWeight.w700, Colors.white)),
+                        const SizedBox(width: 6),
+                        _pulseDot(),
                       ],
                     ),
-                  ),
-                  if (showAdvanced) ...[
-                    const SizedBox(height: 12),
-                    _fieldCard(
-                      label: 'Email',
-                      required: false,
-                      hint: 'customer@email.com',
-                      input: _textField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                    ),
-                    _fieldCard(
-                      label: 'Address',
-                      required: false,
-                      hint: 'Full address',
-                      input: _textField(
-                        controller: _addressCtrl,
-                        maxLines: 2,
-                      ),
-                    ),
+                    const SizedBox(height: 2),
+                    Text('PM Surya Ghar 2.0',
+                        style: _t(12, FontWeight.w500,
+                            const Color(0xFFBFD8F5))),
                   ],
-                ],
+                ),
               ),
-            ),
+              _circleButton(
+                icon: Icons.bookmark_border,
+                gold: true,
+                onTap: _saveEstimate,
+              ),
+            ],
           ),
-
-        const SizedBox(height: 16),
-      ],
+          const SizedBox(height: 14),
+          _progressBar(),
+        ],
+      ),
     );
   }
 
-  // â”€â”€ Step 2: Estimate Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _pulseDot() => Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _gold,
+          boxShadow: [
+            BoxShadow(color: _gold.withValues(alpha: 0.8), blurRadius: 8),
+          ],
+        ),
+      );
 
-  Widget _buildEstimateDetails() {
-    final currency = _master!.currencyByCode(_estimate.currency);
+  Widget _circleButton(
+      {required IconData icon, required VoidCallback onTap, bool gold = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: gold
+            ? const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                    colors: [_gold, _goldLight],
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight),
+              )
+            : BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+        child: Icon(icon,
+            size: 18, color: gold ? _navyDark : Colors.white),
+      ),
+    );
+  }
 
+  Widget _progressBar() {
+    final step1Done = _leadDone;
+    final step2Done = _systemDone;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EstimateSectionHeader(icon: Icons.bar_chart_rounded, title: 'Estimate Details'),
-
-        // Estimate Number
-        _fieldCard(
-          label: 'Estimate Number',
-          required: true,
-          hint: 'e.g. EST-004',
-          input: _textField(
-            controller: _estimateNumberCtrl,
-            onChanged: (v) => _estimate.estimateNumber = v,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [
+              _stepBadge('1', active: step1Done),
+              const SizedBox(width: 6),
+              Text('Step 1: Lead Details',
+                  style: step1Done
+                      ? _t(11, FontWeight.w700, _goldLight, ls: 0.4)
+                      : _t(11, FontWeight.w600,
+                          Colors.white.withValues(alpha: 0.7), ls: 0.4)),
+            ]),
+            Row(children: [
+              _stepBadge('2', active: step2Done),
+              const SizedBox(width: 6),
+              Text('Step 2: Solar System',
+                  style: step2Done
+                      ? _t(11, FontWeight.w700, _goldLight, ls: 0.4)
+                      : _t(11, FontWeight.w600,
+                          Colors.white.withValues(alpha: 0.7), ls: 0.4)),
+            ]),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(99),
           ),
-        ),
-
-        // Reference No.
-        _fieldCard(
-          label: 'Reference No.',
-          required: false,
-          hint: 'Optional',
-          input: _textField(
-            controller: _referenceCtrl,
-            onChanged: (v) => _estimate.referenceNo = v.isNotEmpty ? v : null,
-          ),
-        ),
-
-        // Expiry Date
-        _fieldCard(
-          label: 'Expiry Date',
-          required: false,
-          input: _buildDateField(),
-        ),
-
-        // Currency
-        _fieldCard(
-          label: 'Currency',
-          required: true,
-          input: _buildDropdown<String>(
-            items: _master!.currencies.map((c) => c.code).toList(),
-            value: _estimate.currency,
-            itemLabel: (code) =>
-                '${_master!.currencyByCode(code).name} (${_master!.currencyByCode(code).symbol})',
-            onChanged: (v) => setState(() => _estimate.currency = v ?? 'INR'),
-          ),
-        ),
-
-        // Solar System (drives capacity, pricing & panel-count image)
-        _fieldCard(
-          label: 'Solar System',
-          required: true,
-          input: GsSelectorTile(
-            value: _selectedSystem?.label ?? 'Select a system',
-            valueColor: _selectedSystem != null
-                ? GSColors.navy900
-                : GSColors.ink.withValues(alpha: 0.4),
-            onTap: _openSystemSelector,
-          ),
-        ),
-
-        // Panel-count design image preview (existing assets/images/solar_pannel_N.jpg)
-        if (_selectedSystem != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                _selectedSystem!.panelImageAsset,
-                height: 170,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  height: 170,
-                  color: GSColors.sky100,
-                  alignment: Alignment.center,
-                  child: Text('Image for ${_selectedSystem!.panels} panels',
-                      style: GSTextStyles.bodySmall),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: _progress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [_gold, _goldLight, _gold]),
+                  borderRadius: BorderRadius.circular(99),
+                  boxShadow: [
+                    BoxShadow(
+                        color: _gold.withValues(alpha: 0.7), blurRadius: 8),
+                  ],
                 ),
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
 
-        // Wiring size (manual)
-        _fieldCard(
-          label: 'Wiring Size',
-          required: false,
-          hint: 'e.g. 4',
-          input: _textField(
-            controller: _wiringCtrl,
-            suffixText: 'sq.mm',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) =>
-                _estimate.wiringSqMm = v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+  Widget _stepBadge(String n, {required bool active}) => Container(
+        width: 16,
+        height: 16,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active ? _gold : Colors.white.withValues(alpha: 0.2),
+        ),
+        child: Text(n,
+            style: _th(10, FontWeight.w800,
+                active ? _navyDark : Colors.white.withValues(alpha: 0.9))),
+      );
+
+  // ── Card 1: Lead Details ──
+
+  Widget _leadCard() {
+    final stage = _master!.stageById(_estimate.leadStage);
+    final isIndividual = _estimate.clientType == 'individual';
+    return _card(
+      children: [
+        _sectionHeader(
+          icon: Icons.person_outline,
+          title: 'Lead Details',
+          subtitle: 'Customer identification & pipeline stage',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF3),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: const Color(0xFFA6F4C5)),
+            ),
+            child: Row(children: [
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFF12B76A))),
+              const SizedBox(width: 5),
+              Text('VERIFIED LEAD',
+                  style: _t(9, FontWeight.w700, const Color(0xFF067647),
+                      ls: 0.6)),
+            ]),
           ),
         ),
-
-        // Inverter kW capacity (manual)
-        _fieldCard(
-          label: 'Inverter Capacity',
-          required: false,
-          hint: 'e.g. 3.6',
-          input: _textField(
-            controller: _inverterKwCtrl,
-            suffixText: 'kW',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) => _estimate.inverterKwManual = double.tryParse(v.trim()),
+        const SizedBox(height: 14),
+        _lbl('Customer Category'),
+        _segmented(
+          children: [
+            _segmentButton(
+              label: 'Individual (Home)',
+              icon: Icons.person,
+              selected: isIndividual,
+              onTap: () => setState(() => _estimate.clientType = 'individual'),
+            ),
+            _segmentButton(
+              label: 'Business / C&I',
+              icon: Icons.business,
+              selected: !isIndividual,
+              onTap: () => setState(() => _estimate.clientType = 'business'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (!isIndividual) ...[
+          _lbl('Company Name *'),
+          _field(
+            controller: _companyCtrl,
+            icon: Icons.business_center_outlined,
+            hint: 'e.g. Priya & Co.',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+        ],
+        _lbl('Client Full Name *'),
+        _field(
+          controller: _nameCtrl,
+          icon: Icons.person_outline,
+          hint: "Enter client's legal name",
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 12),
+        _lbl('Mobile Contact *'),
+        _field(
+          controller: _mobileCtrl,
+          icon: Icons.phone_outlined,
+          prefixText: '+91',
+          hint: '10-digit number',
+          keyboardType: TextInputType.phone,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 12),
+        _lbl('Lead Pipeline Stage'),
+        GestureDetector(
+          onTap: _openLeadStageSelector,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: _bgSky,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _borderSky),
+            ),
+            child: Row(children: [
+              Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _hexToColor(stage.dotColorHex),
+                      boxShadow: [
+                        BoxShadow(
+                            color: _hexToColor(stage.dotColorHex)
+                                .withValues(alpha: 0.6),
+                            blurRadius: 6),
+                      ])),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text(stage.label,
+                      style: _t(14, FontWeight.w600, _navy))),
+              const Icon(Icons.expand_more, size: 18, color: _labelMuted),
+            ]),
           ),
         ),
+        const SizedBox(height: 12),
+        _lbl('Requirement & Site Notes'),
+        _field(
+          controller: _descriptionCtrl,
+          icon: Icons.edit_outlined,
+          hint: 'e.g. 3-phase connection, elevated walkway framing desired.',
+          maxLines: 3,
+        ),
+      ],
+    );
+  }
 
-        // Total Payable price (manual override)
-        _fieldCard(
-          label: 'Total Payable',
-          required: false,
-          hint: _selectedSystem != null
-              ? 'Default: â‚¹${_selectedSystem!.totalPayable}'
-              : 'Auto from system',
-          input: _textField(
-            controller: _priceCtrl,
-            prefixText: 'â‚¹ ',
-            keyboardType: TextInputType.number,
-            onChanged: (v) =>
-                _estimate.totalPayableOverride = int.tryParse(v.trim()),
+  // ── Card 2: Solar System Configuration ──
+
+  Widget _systemCard() {
+    final s = _selectedSystem;
+    final panels = s?.panels ?? 0;
+    final cols = panels == 0 ? 0 : ((panels + 1) ~/ 2);
+    return _card(
+      children: [
+        _sectionHeader(
+          icon: Icons.wb_sunny_outlined,
+          title: 'Solar System Configuration',
+          subtitle: 'Tier-1 Hardware & Turnkey Pricing',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _gold.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: _gold.withValues(alpha: 0.3)),
+            ),
+            child: Text('Adani TOPCon',
+                style: _t(10, FontWeight.w700, const Color(0xFF8A5A00))),
           ),
         ),
-
-        // Structure Cost (editable)
-        _fieldCard(
-          label: 'Structure Cost',
-          required: false,
-          hint: _selectedSystem != null
-              ? 'Default: â‚¹${_selectedSystem!.structureCost}'
-              : 'Auto from system',
-          input: _textField(
-            controller: _structureCostCtrl,
-            prefixText: 'â‚¹ ',
-            keyboardType: TextInputType.number,
-            onChanged: (v) =>
-                _estimate.structureCostOverride = int.tryParse(v.trim()),
-          ),
-        ),
-
-        // Stamp Charge (editable)
-        _fieldCard(
-          label: 'Stamp Charge',
-          required: false,
-          input: _textField(
-            controller: _stampCtrl,
-            prefixText: 'â‚¹ ',
-            keyboardType: TextInputType.number,
-            onChanged: (v) =>
-                _estimate.stampChargeOverride = int.tryParse(v.trim()),
-          ),
-        ),
-
-        // GST display option (per quotation) â€” CGST 4.45% + SGST 4.45%
-        _fieldCard(
-          label: 'Price Display',
-          required: false,
-          input: GsRadioGroup(
-            groupValue: _estimate.gstIncluded ? 'with' : 'without',
-            onChanged: (v) =>
-                setState(() => _estimate.gstIncluded = v == 'with'),
-            options: [
-              RadioOption(label: 'With GST (8.9%)', value: 'with'),
-              RadioOption(label: 'Without GST', value: 'without'),
-            ],
-          ),
-        ),
-
-        // Additional / custom charges (editable line items)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: GsCard(
+        const SizedBox(height: 14),
+        _lbl('Selected Package'),
+        GestureDetector(
+          onTap: _openSystemSelector,
+          child: Container(
             padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  colors: [_bgSky, Colors.white],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _navy.withValues(alpha: 0.2), width: 2),
+            ),
+            child: Row(children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: _navy, borderRadius: BorderRadius.circular(12)),
+                child: Text(
+                    s == null ? '—' : '${s.kw.toStringAsFixed(2)}k',
+                    style: _th(13, FontWeight.w800, _gold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s?.label ?? 'Select a package',
+                        style: _th(15, FontWeight.w800, _navy)),
+                    const SizedBox(height: 2),
+                    Text(
+                      s == null
+                          ? 'Tap to choose capacity'
+                          : 'Adani TOPCon ${s.panelWatt}Wp Bifacial  •  Rs.${_inr(s.subsidy)} Subsidy',
+                      style: _t(11, FontWeight.w500, _labelMuted),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                    color: _bgSky, borderRadius: BorderRadius.circular(99)),
+                child: const Icon(Icons.expand_more, size: 18, color: _navy),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (s != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                Image.asset(
+                  s.panelImageAsset,
+                  height: 128,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    height: 128,
+                    color: _navyDark,
+                    alignment: Alignment.center,
+                    child: Text('${s.panels}-panel array',
+                        style: _t(12, FontWeight.w600, Colors.white70)),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          _navyDark.withValues(alpha: 0.9),
+                          _navyDark.withValues(alpha: 0.25),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: _imgBadge(
+                      '3D Roof Simulation • $panels Panels (2×$cols Array)'),
+                ),
+                if (_estimate.structureCostOverride != null)
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _navyDark.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                            color: _gold.withValues(alpha: 0.4)),
+                      ),
+                      child: Text('Elevated GI Frame (8.5ft)',
+                          style: _t(11, FontWeight.w700, _goldLight)),
+                    ),
+                  ),
+                Positioned(
+                  bottom: 10,
+                  left: 10,
+                  child: Text('Orientation: South (Azimuth 180° • Tilt 22°)',
+                      style: _t(10, FontWeight.w500,
+                          Colors.white.withValues(alpha: 0.9))),
+                ),
+              ],
+            ),
+          ),
+        if (s == null)
+          Container(
+            height: 110,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _bgSky,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _borderSky),
+            ),
+            child: Text('Select a package to preview the array design',
+                style: _t(12, FontWeight.w500, _labelMuted)),
+          ),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.list_alt,
-                        size: 18, color: GSColors.teal500),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text('Additional Line Items',
-                          style: GSTextStyles.labelLarge
-                              .copyWith(color: GSColors.navy900)),
-                    ),
-                    TextButton.icon(
-                      onPressed: _addCustomLineItem,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add'),
-                    ),
-                  ],
+                _lbl('DC Capacity'),
+                _field(
+                  controller: _capacityCtrl,
+                  readOnly: true,
+                  suffixText: 'kW',
+                  hint: '—',
                 ),
-                if (_estimate.lineItems.isEmpty)
-                  Text(
-                      'Structure, Stamp & Subsidy are added automatically. Add any extra charge here (with its own GST %).',
-                      style: GSTextStyles.bodySmall.copyWith(
-                          color: GSColors.ink.withValues(alpha: 0.5)))
-                else
-                  ..._estimate.lineItems.asMap().entries.map(
-                      (e) => _customLineRow(e.value, e.key)),
               ],
             ),
           ),
-        ),
-
-        // Capacity (kW) â€” driven by the selected system
-        _fieldCard(
-          label: 'Capacity',
-          required: false,
-          input: _textField(
-            controller: _capacityCtrl,
-            readOnly: true,
-            hint: 'Select a system above',
-            suffixText: 'kW',
-          ),
-        ),
-
-        // Tax mode toggle
-        _fieldCard(
-          label: 'Item Rates',
-          required: false,
-          input: GsRadioGroup(
-            groupValue: _estimate.taxMode,
-            onChanged: (v) =>
-                setState(() => _estimate.taxMode = v ?? 'exclusive'),
-            options: [
-              RadioOption(label: 'Tax Exclusive', value: 'exclusive'),
-              RadioOption(label: 'Tax Inclusive', value: 'inclusive'),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  // â”€â”€ Step 3: Structure Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  Widget _buildStructureDetails() {
-    if (_master == null) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const EstimateSectionHeader(icon: Icons.build, title: 'Structure Details'),
-        ..._master!.structurePipes.map((pipe) {
-          return _fieldCard(
-            label: pipe.label,
-            required: false,
-            hint: 'Meters',
-            input: _buildNumberFieldWithSuffix(
-              controller: _getStructureCtrl(pipe.label),
-              hint: '0',
-              suffix: 'm',
-              onChanged: (v) {
-                final val = int.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-                _estimate.structureQuantities[pipe.label] = val;
-              },
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Inverter Rating'),
+                _field(
+                  controller: _inverterKwCtrl,
+                  suffixText: 'kW',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) =>
+                      _estimate.inverterKwManual = double.tryParse(v.trim()),
+                ),
+              ],
             ),
-          );
-        }),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-   Widget _buildNumberFieldWithSuffix({
-    required TextEditingController controller,
-    required String hint,
-    required String suffix,
-    required void Function(String) onChanged,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextFormField(
-            controller: controller,
-            decoration: GSInputTheme.fieldDecoration(
-              hint: hint,
+          ),
+        ]),
+        const SizedBox(height: 12),
+        _lbl('AC / DC Wiring Size'),
+        _field(
+          controller: _wiringCtrl,
+          suffixText: 'sq.mm',
+          hint: '4.0 UV Tinned Copper',
+          onChanged: (v) => _estimate.wiringSqMm =
+              v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+        ),
+        const SizedBox(height: 14),
+        _totalPayableBanner(s),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Structure Cost'),
+                _field(
+                  controller: _structureCostCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.structureCostOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
             ),
-            style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: onChanged,
           ),
-        ),
-        Text(suffix,
-            style: GSTextStyles.bodyMedium
-                .copyWith(color: GSColors.ink.withValues(alpha: 0.6))),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Stamp & Franking'),
+                _field(
+                  controller: _stampCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.stampChargeOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        _lbl('Tax Calculation Mode'),
+        _segmented(children: [
+          _segmentButton(
+            label: 'With GST (8.9% Composite)',
+            icon: Icons.check,
+            selected: _estimate.gstIncluded,
+            onTap: () => setState(() => _estimate.gstIncluded = true),
+          ),
+          _segmentButton(
+            label: 'Without GST (Ex-tax)',
+            selected: !_estimate.gstIncluded,
+            onTap: () => setState(() => _estimate.gstIncluded = false),
+          ),
+        ]),
       ],
     );
   }
 
-  // â”€â”€ Step 4: Financial Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  Widget _buildFinancialDetails() {
-    final cap = _estimate.capacityKw;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const EstimateSectionHeader(icon: Icons.currency_rupee, title: 'Financial Details'),
-
-        // Discount per KW
-        _fieldCard(
-          label: 'Discount per KW',
-          required: false,
-          hint: '0',
-          input: _buildCurrencyField(
-            controller: _discountCtrl,
-            hint: '0',
-            currencySymbol: '\u20B9',
-            suffix: '/kW',
-            errorText:
-                (double.tryParse(_discountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0) >
-                    _master!.discountCapPerKw
-                ? 'Exceeds max'
-                : null,
-            onChanged: (v) {
-              final val = double.tryParse(v.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-              _estimate.discountPerKw = val;
-            },
-          ),
-          helperText: 'Max: \u20B9${_master!.discountCapPerKw.toInt()}/kW',
+  Widget _imgBadge(String text) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _navyDark.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
+        child: Row(children: [
+          Container(
+              width: 8,
+              height: 8,
+              decoration:
+                  const BoxDecoration(shape: BoxShape.circle, color: _gold)),
+          const SizedBox(width: 6),
+          Text(text, style: _th(11, FontWeight.w700, Colors.white)),
+        ]),
+      );
 
-        // GST Profile
-        _fieldCard(
-          label: 'Tax (GSTIN)',
-          required: true,
-          hint: 'Select profile',
-          input: _buildDropdown<String>(
-            items: _master!.gstProfiles.map((g) => g.label).toList(),
-            value: _estimate.gstProfileLabel.isEmpty
-                ? null
-                : _estimate.gstProfileLabel,
-            itemLabel: (l) => l,
-            onChanged: _setGstProfile,
-          ),
-        ),
-
-        // Insurance toggle card
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: GSColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: GSColors.ink.withValues(alpha: 0.08), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: GSColors.shadowLight,
-                blurRadius: 4,
-                offset: const Offset(0, 1),
+  Widget _totalPayableBanner(GSQuoteSystem? s) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+            colors: [_bgSky, Color(0xFFE2EFFF), _bgSky],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _navy.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('TOTAL PAYABLE (CLIENT SHARE)',
+                    style: _t(11, FontWeight.w700, _navy, ls: 0.5)),
               ),
+              if (s != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFD1FADF),
+                      borderRadius: BorderRadius.circular(99)),
+                  child: Text('After Subsidy Rs.${_inr(s.afterSubsidy)}',
+                      style: _t(10, FontWeight.w700, const Color(0xFF067647))),
+                ),
             ],
           ),
+          const SizedBox(height: 6),
+          _field(
+            controller: _priceCtrl,
+            prefixText: 'Rs.',
+            bold: true,
+            big: true,
+            keyboardType: TextInputType.number,
+            hint: s != null ? '${s.totalPayable}' : 'Auto from package',
+            onChanged: (v) => _estimate.totalPayableOverride =
+                int.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                  s != null
+                      ? 'Gross Turnkey: Rs.${_inr(s.totalPayable)}'
+                      : 'Incl. GST 8.9%',
+                  style: _t(11, FontWeight.w500, _labelMuted)),
+              Text('Net Net Cost',
+                  style: _t(11, FontWeight.w700, _navy)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Card 3: Additional Line Items ──
+
+  Widget _lineItemsCard() {
+    return _card(
+      children: [
+        _sectionHeader(
+          icon: Icons.receipt_long_outlined,
+          title: 'Additional Line Items',
+          subtitle: 'Extra civil, electrical or bespoke charges',
+          trailing: GestureDetector(
+            onTap: _addCustomLineItem,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                gradient:
+                    const LinearGradient(colors: [_gold, _goldLight]),
+                borderRadius: BorderRadius.circular(99),
+                boxShadow: [
+                  BoxShadow(
+                      color: _gold.withValues(alpha: 0.4), blurRadius: 8),
+                ],
+              ),
+              child: Row(children: [
+                const Icon(Icons.add, size: 16, color: _navyDark),
+                const SizedBox(width: 4),
+                Text('Add Item',
+                    style: _th(12, FontWeight.w800, _navyDark)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: _bgSky.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _borderSky),
+          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.info, size: 16, color: _gold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Structure, Stamp & Subsidy are added automatically. Add any extra charge or customer-specific site accessories here.',
+                style: _t(11, FontWeight.w500, _labelMuted, h: 1.4),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        if (_estimate.lineItems.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text('No extra items yet — tap "Add Item" above.',
+                style: _t(12, FontWeight.w500, _labelMuted)),
+          )
+        else
+          ..._estimate.lineItems
+              .asMap()
+              .entries
+              .map((e) => _lineRow(e.value, e.key)),
+      ],
+    );
+  }
+
+  Widget _lineRow(EstimateLineItem item, int index) {
+    final gst = item.cgstPercent + item.sgstPercent;
+    final g = gst == gst.roundToDouble()
+        ? gst.toInt().toString()
+        : gst.toStringAsFixed(2);
+    final amount = (item.qty * item.rate * (1 + gst / 100)).round();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _bgSky.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _borderSky.withValues(alpha: 0.9)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: _borderSky),
+          ),
+          child: Text('${index + 1}',
+              style: _t(11, FontWeight.w700, _labelMuted)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
-                onTap: () => _toggleInsurance(!_estimate.insuranceIncluded),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Insurance',
-                              style: GSTextStyles.labelMedium
-                                  .copyWith(color: GSColors.navy900)),
-                          Text('Click to include insurance',
-                              style: GSTextStyles.bodySmall.copyWith(
-                                  color:
-                                      GSColors.ink.withValues(alpha: 0.5))),
-                        ],
-                      ),
-                      Switch(
-                        value: _estimate.insuranceIncluded,
-                        onChanged: _toggleInsurance,
-                        activeColor: GSColors.teal500,
-                        activeTrackColor:
-                            GSColors.teal500.withValues(alpha: 0.4),
-                        inactiveThumbColor:
-                            GSColors.ink.withValues(alpha: 0.3),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_estimate.insuranceIncluded) ...[
-                const SizedBox(height: 4),
-                // Mode selector
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: GsRadioGroup(
-                    groupValue: _estimate.insuranceType,
-                    onChanged: (v) => _setInsuranceType(v),
-                    options: [
-                      RadioOption(label: '%', value: 'percent'),
-                      RadioOption(label: 'Amount', value: 'amount'),
-                    ],
-                  ),
-                ),
-                // Input fields
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: _estimate.insuranceType == 'percent'
-                      ? _buildCurrencyField(
-                          controller: _insPercentCtrl,
-                          hint: '0',
-                          currencySymbol: '',
-                          suffix: '%',
-                          onChanged: (v) {
-                            final val = double.tryParse(v.replaceAll(
-                                RegExp(r'[^0-9.]'), '')) ??
-                                0;
-                            _estimate.insurancePercent = val;
-                          },
-                        )
-                      : _buildCurrencyField(
-                          controller: _insAmountCtrl,
-                          hint: '0',
-                          currencySymbol: '\u20B9',
-                          suffix: '',
-                          onChanged: (v) {
-                            final val = int.tryParse(v.replaceAll(
-                                RegExp(r'[^0-9]'), '')) ??
-                                0;
-                            _estimate.insuranceAmount = val;
-                          },
-                        ),
-                ),
-              ],
+              Text(item.description,
+                  style: _th(13, FontWeight.w700, _navy)),
+              const SizedBox(height: 2),
+              Text('${item.qty} × Rs.${item.rate} • GST $g%',
+                  style: _t(11, FontWeight.w500, _labelMuted)),
             ],
           ),
         ),
+        const SizedBox(width: 8),
+        Text('Rs.${_inr(amount)}',
+            style: _t(13, FontWeight.w800, _navy)),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => setState(() => _estimate.lineItems.removeAt(index)),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3F2),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFECDCA)),
+            ),
+            child: const Icon(Icons.delete_outline,
+                size: 16, color: Color(0xFFF04438)),
+          ),
+        ),
+      ]),
+    );
+  }
 
-        // System Size display
-        if (cap != null) ...[
-          _fieldCard(
-            label: 'System Size',
-            required: false,
-            hint: '',
-            input: _buildReadOnlyField(value: '${cap.toStringAsFixed(2)} kW'),
+  Widget _trustNote() => Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.verified_outlined,
+                size: 14, color: GSColors.green600),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'PGVCL Net-metering & 30-Year Performance Warranty Guaranteed',
+                textAlign: TextAlign.center,
+                style: _t(11, FontWeight.w600, _labelMuted),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  // ── Bottom action bar ──
+
+  Widget _bottomBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        border: Border(top: BorderSide(color: _borderSky.withValues(alpha: 0.9))),
+        boxShadow: [
+          BoxShadow(
+              color: _navy.withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, -8)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: _saveEstimate,
+            child: Container(
+              height: 50,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    colors: [_gold, _goldLight, _goldHover]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                      color: _gold.withValues(alpha: 0.4), blurRadius: 20),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check_circle_outline,
+                      size: 20, color: _navyDark),
+                  const SizedBox(width: 8),
+                  Text('Create Quotation',
+                      style: _th(15, FontWeight.w800, _navyDark)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Prices last updated ${GSTax.pricesLastUpdated}  •  Gujarat Discom Tariff Verified',
+            style: _t(11, FontWeight.w500, _labelMuted),
           ),
         ],
-
-        const SizedBox(height: 16),
-      ],
+      ),
     );
   }
 
-  // â”€â”€ Shared field builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Shared building blocks ──
 
-  Widget _textField({
+  Widget _card({required List<Widget> children}) => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+                color: _navy.withValues(alpha: 0.06),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+                spreadRadius: -4),
+            BoxShadow(
+                color: _navy.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      );
+
+  Widget _sectionHeader({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+  }) =>
+      Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _bgSky,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _skyField),
+            ),
+            child: Icon(icon, size: 19, color: _navy),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: _th(16, FontWeight.w700, _navy)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: _t(11, FontWeight.w500, _labelMuted)),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      );
+
+  Widget _lbl(String s) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(s.toUpperCase(),
+            style: _t(11, FontWeight.w700, _labelMuted, ls: 0.6)),
+      );
+
+  Widget _field({
     required TextEditingController controller,
+    IconData? icon,
     String? hint,
     String? prefixText,
-    IconData? prefixIcon,
     String? suffixText,
-    Widget? suffixIcon,
-    TextInputType? keyboardType,
-    int? maxLines,
-    String? errorText,
     bool readOnly = false,
-    void Function(String)? onChanged,
+    bool bold = false,
+    bool big = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
   }) {
-    return TextFormField(
-      controller: controller,
-      readOnly: readOnly,
-      decoration: GSInputTheme.fieldDecoration(
-        hint: hint,
-        prefixText: prefixText,
-        suffixText: suffixText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20, color: GSColors.navy500) : null,
-        suffixIcon: suffixIcon,
-        errorText: errorText,
-      ).copyWith(
-        isDense: maxLines != null && maxLines > 1 ? false : true,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: maxLines != null && maxLines > 1 ? 12 : 14,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: readOnly ? _bgSky.withValues(alpha: 0.7) : _bgSky,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _borderSky),
+      ),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: _navy.withValues(alpha: 0.55)),
+            const SizedBox(width: 8),
+          ],
+          if (prefixText != null) ...[
+            Text(prefixText,
+                style: _t(big ? 15 : 13, FontWeight.w800, _navy)),
+            const SizedBox(width: 6),
+            Container(
+                width: 1, height: 18, color: _borderSky),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: TextField(
+              controller: controller,
+              readOnly: readOnly,
+              maxLines: maxLines,
+              keyboardType: keyboardType,
+              onChanged: onChanged,
+              style: big
+                  ? _th(18, FontWeight.w800, _navy)
+                  : _t(14, bold ? FontWeight.w700 : FontWeight.w600, _navy),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: hint,
+                hintStyle: _t(13, FontWeight.w500,
+                    _labelMuted.withValues(alpha: 0.6)),
+              ),
+            ),
+          ),
+          if (suffixText != null) ...[
+            const SizedBox(width: 6),
+            Text(suffixText,
+                style: _t(12, FontWeight.w700, _labelMuted)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _segmented({required List<Widget> children}) => Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _bgSky,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _borderSky.withValues(alpha: 0.8)),
         ),
-      ),
-      style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-      keyboardType: keyboardType,
-      maxLines: maxLines ?? 1,
-      onChanged: onChanged,
-    );
-  }
+        child: Row(children: children),
+      );
 
-  Widget _buildDropdown<T>({
-    required List<T> items,
-    required T? value,
-    required String Function(T) itemLabel,
-    required void Function(T?) onChanged,
-    String? hint,
-  }) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        disabledColor: GSColors.ink.withValues(alpha: 0.3),
-      ),
-      child: DropdownButtonFormField<T>(
-        value: value,
-        items: items
-            .map((e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(itemLabel(e), style: GSTextStyles.bodyMedium),
-                ))
-            .toList(),
-        onChanged: onChanged,
-        decoration: GSInputTheme.fieldDecoration(
-          hint: hint ?? 'Select',
-        ).copyWith(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-        style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-        icon: Icon(Icons.chevron_right,
-            size: 20, color: GSColors.ink.withValues(alpha: 0.5)),
-      ),
-    );
-  }
-
-  Widget _buildDateField() {
-    final formatted = DateFormat('dd MMM yyyy').format(_estimate.expiryDate);
-    return TextFormField(
-      decoration: GSInputTheme.fieldDecoration(
-        hint: DateFormat('dd MMM yyyy').format(
-          DateTime.now().add(Duration(days: _master!.expiryDays)),
-        ),
-        prefixIcon: const Icon(Icons.calendar_today,
-            size: 20, color: GSColors.navy500),
-      ),
-      style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-      readOnly: true,
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: _estimate.expiryDate,
-          firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
-        );
-        if (picked != null) {
-          setState(() => _estimate.expiryDate = picked);
-        }
-      },
-      controller: TextEditingController(text: formatted),
-    );
-  }
-
-  Widget _buildCurrencyField({
-    required TextEditingController controller,
-    required String hint,
-    required String currencySymbol,
-    required String suffix,
-    String? errorText,
-    void Function(String)? onChanged,
-  }) {
-    return TextFormField(
-      controller: controller,
-      decoration: GSInputTheme.fieldDecoration(
-        hint: hint,
-        prefixText: currencySymbol.isNotEmpty ? '$currencySymbol ' : null,
-        suffixText: suffix,
-        errorText: errorText,
-      ),
-      style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildReadOnlyField({required String value}) {
-   return Container(
-     width: double.infinity,
-     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-     decoration: BoxDecoration(
-       color: GSColors.pageBg,
-       borderRadius: BorderRadius.circular(GSInputTheme.fieldBorderRadius),
-       border: Border.all(color: GSColors.ink.withValues(alpha: 0.15)),
-     ),
-     child: Text(
-       value,
-       style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-     ),
-   );
-  }
-
-  // â”€â”€ Field card wrapper â”€â”€
-
-  Widget _fieldCard({
+  Widget _segmentButton({
     required String label,
-    required bool required,
-    String? hint,
-    required Widget input,
-    String? helperText,
-    String? errorText,
-  }) {
-    return GsInputCard(
-      label: label,
-      required: required,
-      input: input,
-      helperText: helperText,
-      errorText: errorText,
-    );
-  }
+    required bool selected,
+    required VoidCallback onTap,
+    IconData? icon,
+  }) =>
+      Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? const LinearGradient(colors: [_gold, _goldLight])
+                  : null,
+              color: selected ? null : Colors.transparent,
+              borderRadius: BorderRadius.circular(11),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                          color: _gold.withValues(alpha: 0.3), blurRadius: 6)
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon,
+                      size: 14,
+                      color: selected ? _navyDark : _labelMuted),
+                  const SizedBox(width: 5),
+                ],
+                Flexible(
+                  child: Text(label,
+                      textAlign: TextAlign.center,
+                      style: _t(12,
+                          selected ? FontWeight.w800 : FontWeight.w600,
+                          selected ? _navyDark : _labelMuted)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Color _hexToColor(String hex) {
-    final cleaned = hex.replaceAll('#', '');
-    return Color(int.parse('FF$cleaned', radix: 16));
+    final h = hex.replaceAll('#', '');
+    final v = int.tryParse(h, radix: 16) ?? 0x999999;
+    return Color(0xFF000000 | v);
   }
 }

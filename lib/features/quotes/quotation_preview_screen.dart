@@ -3,8 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:html_to_pdf/html_to_pdf.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart' show PdfPageFormat;
 import 'package:printing/printing.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -48,15 +48,42 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
     _init();
   }
 
+  /// Scales the A4 sheets (794px wide) to fit the phone width on screen.
+  /// Runs only in the preview WebView; the export path stays at full A4 size.
+  static const _fitJs = r'''
+    (function () {
+      function fit() {
+        var w = 794;
+        var s = (document.documentElement.clientWidth || window.innerWidth) / w;
+        document.body.style.width = w + 'px';
+        document.body.style.zoom = s;
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      setTimeout(fit, 300);
+      setTimeout(fit, 1200);
+    })();
+  ''';
+
+  Future<void> _applyFit(WebViewController c) async {
+    try {
+      await c.runJavaScript(_fitJs);
+    } catch (_) {}
+  }
+
   Future<void> _init() async {
     try {
       final html = await QuotationHtml.build(
         record: widget.record,
         master: widget.master,
       );
-      final controller = WebViewController()
+      final controller = WebViewController();
+      controller
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0xFFEAF4FF));
+        ..setBackgroundColor(const Color(0xFFEAF4FF))
+        ..setNavigationDelegate(NavigationDelegate(
+          onPageFinished: (_) => _applyFit(controller),
+        ));
       await controller.loadHtmlString(html);
       if (!mounted) return;
       setState(() {
@@ -69,13 +96,23 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
     }
   }
 
-  /// HTML → PDF (exact Stitch design). Falls back to the native 7-page
-  /// generator if the platform HTML converter is unavailable or times out,
-  /// so Share / Download always produce a file.
+  /// HTML → PDF (exact Stitch design) via the native A4 WebView printer.
+  /// Falls back to the native 7-page generator if conversion fails, so
+  /// Share / Download always produce a file.
   Future<Uint8List> _convert(String html) async {
     try {
-      return await Printing.convertHtml(html: html, format: PdfPageFormat.a4)
-          .timeout(const Duration(seconds: 45));
+      final dir = (await getTemporaryDirectory()).path;
+      final name = 'gs_quote_${DateTime.now().millisecondsSinceEpoch}';
+      final file = await HtmlToPdf.convertFromHtmlContent(
+        htmlContent: html,
+        printPdfConfiguration: PrintPdfConfiguration(
+          targetDirectory: dir,
+          targetName: name,
+          printSize: PrintSize.A4,
+          printOrientation: PrintOrientation.Portrait,
+        ),
+      ).timeout(const Duration(seconds: 60));
+      return file.readAsBytes();
     } catch (_) {
       return EstimatePdf.generate(
           record: widget.record, master: widget.master);

@@ -232,6 +232,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
+  html_to_pdf:
+    dependency: "direct main"
+    description:
+      name: html_to_pdf
+      sha256: "6f38c5c6309434f13422a5232e1d31443ac7ea97c916b936ccfaca36f4ef4e07"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.1"
   http:
     dependency: transitive
     description:

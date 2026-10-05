@@ -118,12 +118,12 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           DateTime.now().add(Duration(days: master.expiryDays));
       _estimate.gstProfileLabel =
           master.gstProfiles.isNotEmpty ? master.gstProfiles.last.label : '';
-      _estimate.bomLines = master.bosItems
+      _estimate.bomLines = gsBomItems
           .map((b) => BomLine(
                 name: b.name,
                 qty: b.qty,
                 unit: b.unit,
-                brand: _autoBrand(b.name),
+                brand: b.brand,
               ))
           .toList();
 
@@ -172,6 +172,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         _inverterKwCtrl.text = (s.kw + 0.64).toStringAsFixed(1);
         _estimate.inverterKwManual = double.tryParse(_inverterKwCtrl.text);
       }
+      final pi = _estimate.bomLines
+          .indexWhere((b) => b.name.toLowerCase().contains('solar panel'));
+      if (pi != -1) _estimate.bomLines[pi].qty = s.panels;
     });
   }
 
@@ -234,88 +237,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             const SizedBox(height: 8),
           ],
         ),
-      ),
-    );
-  }
-
-  void _addCustomLineItem() {
-    final descCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController(text: '1');
-    final rateCtrl = TextEditingController();
-    final gstCtrl = TextEditingController(text: '8.9');
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Line Item', style: _th(18, FontWeight.w700, _navy)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: descCtrl,
-              decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'e.g. Extra wiring / civil work'),
-            ),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: qtyCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Qty'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: rateCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Rate (Rs.)'),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 10),
-            TextField(
-              controller: gstCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'GST % (total)', hintText: 'e.g. 8.9'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: _gold, foregroundColor: _navyDark),
-            onPressed: () {
-              final desc = descCtrl.text.trim();
-              if (desc.isEmpty) return;
-              final qty = int.tryParse(qtyCtrl.text) ?? 1;
-              final rate = int.tryParse(
-                      rateCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                  0;
-              final gst = double.tryParse(gstCtrl.text) ?? 8.9;
-              setState(() {
-                _estimate.lineItems.add(EstimateLineItem(
-                  description: desc,
-                  qty: qty,
-                  rate: rate,
-                  cgstPercent: gst / 2,
-                  sgstPercent: gst / 2,
-                ));
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }
@@ -403,7 +324,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                   _leadCard(),
                   _systemCard(),
                   _bomCard(),
-                  _lineItemsCard(),
                   _trustNote(),
                 ],
               ),
@@ -1188,6 +1108,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
         _qtyBtn(Icons.add_rounded, () => setState(() => l.qty++)),
         const SizedBox(width: 6),
+        _qtyBtn(Icons.edit_outlined, () => _addBomMaterial(index)),
+        const SizedBox(width: 6),
         GestureDetector(
           onTap: () => setState(() => _estimate.bomLines.removeAt(index)),
           child: Container(
@@ -1220,17 +1142,20 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
       );
 
-  void _addBomMaterial() {
-    final nameCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController(text: '1');
-    final brandCtrl = TextEditingController();
+  void _addBomMaterial([int? index]) {
+    final editing = index != null;
+    final existing = editing ? _estimate.bomLines[index] : null;
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final qtyCtrl = TextEditingController(text: '${existing?.qty ?? 1}');
+    final brandCtrl = TextEditingController(text: existing?.brand ?? '');
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Material', style: _th(18, FontWeight.w700, _navy)),
+        title: Text(editing ? 'Edit Material' : 'Add Material',
+            style: _th(18, FontWeight.w700, _navy)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1277,17 +1202,25 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) return;
               final qty = int.tryParse(qtyCtrl.text.trim()) ?? 1;
+              final brand = brandCtrl.text.trim();
               setState(() {
-                _estimate.bomLines.add(BomLine(
-                  name: name,
-                  qty: qty < 1 ? 1 : qty,
-                  unit: _unitFor(name),
-                  brand: brandCtrl.text.trim(),
-                ));
+                if (editing) {
+                  existing!
+                    ..name = name
+                    ..qty = qty < 1 ? 1 : qty
+                    ..brand = brand.isEmpty ? _autoBrand(name) : brand;
+                } else {
+                  _estimate.bomLines.add(BomLine(
+                    name: name,
+                    qty: qty < 1 ? 1 : qty,
+                    unit: _unitFor(name),
+                    brand: brand.isEmpty ? _autoBrand(name) : brand,
+                  ));
+                }
               });
               Navigator.pop(context);
             },
-            child: const Text('Add'),
+            child: Text(editing ? 'Save' : 'Add'),
           ),
         ],
       ),
@@ -1325,133 +1258,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     if (n.contains('net meter')) return 'PGVCL';
     if (n.contains('geda')) return 'GEDA';
     return '';
-  }
-
-  Widget _lineItemsCard() {
-    return _card(
-      children: [
-        _sectionHeader(
-          icon: Icons.receipt_long_outlined,
-          title: 'Additional Line Items',
-          subtitle: 'Extra civil, electrical or bespoke charges',
-          trailing: GestureDetector(
-            onTap: _addCustomLineItem,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                gradient:
-                    const LinearGradient(colors: [_gold, _goldLight]),
-                borderRadius: BorderRadius.circular(99),
-                boxShadow: [
-                  BoxShadow(
-                      color: _gold.withValues(alpha: 0.4), blurRadius: 8),
-                ],
-              ),
-              child: Row(children: [
-                const Icon(Icons.add, size: 16, color: _navyDark),
-                const SizedBox(width: 4),
-                Text('Add Item',
-                    style: _th(12, FontWeight.w800, _navyDark)),
-              ]),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: _bgSky.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _borderSky),
-          ),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.info, size: 16, color: _gold),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Structure, Stamp & Subsidy are added automatically. Add any extra charge or customer-specific site accessories here.',
-                style: _t(11, FontWeight.w500, _labelMuted, h: 1.4),
-              ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        if (_estimate.lineItems.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text('No extra items yet — tap "Add Item" above.',
-                style: _t(12, FontWeight.w500, _labelMuted)),
-          )
-        else
-          ..._estimate.lineItems
-              .asMap()
-              .entries
-              .map((e) => _lineRow(e.value, e.key)),
-      ],
-    );
-  }
-
-  Widget _lineRow(EstimateLineItem item, int index) {
-    final gst = item.cgstPercent + item.sgstPercent;
-    final g = gst == gst.roundToDouble()
-        ? gst.toInt().toString()
-        : gst.toStringAsFixed(2);
-    final amount = (item.qty * item.rate * (1 + gst / 100)).round();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _bgSky.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderSky.withValues(alpha: 0.9)),
-      ),
-      child: Row(children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: _borderSky),
-          ),
-          child: Text('${index + 1}',
-              style: _t(11, FontWeight.w700, _labelMuted)),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.description,
-                  style: _th(13, FontWeight.w700, _navy)),
-              const SizedBox(height: 2),
-              Text('${item.qty} × Rs.${item.rate} • GST $g%',
-                  style: _t(11, FontWeight.w500, _labelMuted)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text('Rs.${_inr(amount)}',
-            style: _t(13, FontWeight.w800, _navy)),
-        const SizedBox(width: 8),
-        GestureDetector(
-          onTap: () => setState(() => _estimate.lineItems.removeAt(index)),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3F2),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFFECDCA)),
-            ),
-            child: const Icon(Icons.delete_outline,
-                size: 16, color: Color(0xFFF04438)),
-          ),
-        ),
-      ]),
-    );
   }
 
   Widget _trustNote() => Padding(

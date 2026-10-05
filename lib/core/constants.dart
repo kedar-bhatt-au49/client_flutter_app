@@ -409,3 +409,36 @@ extension GSPriceExtension on num {
     return toStringAsFixed(0);
   }
 }
+
+/// Standard Bill of Materials master list (Item + Brand / Details).
+class GSBomItem {
+  final String name;
+  final String brand;
+  final String unit;
+  final int qty;
+  const GSBomItem({
+    required this.name,
+    required this.brand,
+    this.unit = 'Nos',
+    this.qty = 1,
+  });
+}
+
+const gsBomItems = <GSBomItem>[
+  GSBomItem(
+      name: 'Solar Panels',
+      brand: 'ADANI TOPCON (610/615)',
+      unit: 'Nos',
+      qty: 8),
+  GSBomItem(name: 'Inverter', brand: 'POLYCAB'),
+  GSBomItem(
+      name: 'Structure',
+      brand: '80 × 40 × 2 MM (LEG & RAFTER) / 40 × 40 × 2 MM (PERLIN)',
+      unit: 'Set'),
+  GSBomItem(name: 'AC Cables', brand: 'POLYCAB', unit: 'Lot'),
+  GSBomItem(name: 'DC Cables', brand: 'POLYCAB', unit: 'Lot'),
+  GSBomItem(name: 'Earthing Cables', brand: 'POLYCAB', unit: 'Lot'),
+  GSBomItem(name: 'LA Cable', brand: 'KANBERY / KOREMAN', unit: 'Lot'),
+  GSBomItem(name: 'MCB', brand: 'HEVELLS'),
+  GSBomItem(name: 'SPD', brand: 'ELMEX / PHOENIX'),
+];

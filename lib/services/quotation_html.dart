@@ -42,7 +42,7 @@ class QuotationHtml {
     }
 
     // ── Bill of Materials (from the selected lines / master list) ──
-    tokens['BOM_ROWS'] = _bomRows(record.data.bomLines, master);
+    tokens['BOM_ROWS'] = _bomRows(record.data.bomLines);
 
     var html = _template!;
     for (final e in tokens.entries) {
@@ -51,11 +51,12 @@ class QuotationHtml {
     return html;
   }
 
-  static String _bomRows(List<BomLine> lines, MasterData master) {
+  static String _bomRows(List<BomLine> lines) {
     final src = lines.isNotEmpty
         ? lines
-        : master.bosItems
-            .map((b) => BomLine(name: b.name, qty: b.qty, unit: b.unit))
+        : gsBomItems
+            .map((b) => BomLine(
+                name: b.name, qty: b.qty, unit: b.unit, brand: b.brand))
             .toList();
     if (src.isEmpty) return '';
     final sb = StringBuffer();

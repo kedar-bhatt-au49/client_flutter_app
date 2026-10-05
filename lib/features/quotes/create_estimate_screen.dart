@@ -29,7 +29,6 @@ import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
 import '../../providers/data_hub.dart';
 import '../../services/estimate_pdf.dart';
-import 'price_calculator.dart';
 
 class CreateEstimateScreen extends StatefulWidget {
   const CreateEstimateScreen({super.key});
@@ -167,33 +166,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
 
   // ── Step 2 helpers ──
 
-  void _openPriceCalculator() async {
-    final result = await Navigator.of(context).push<PriceCalculationResult>(
-      MaterialPageRoute(
-        builder: (_) => PriceCalculatorScreen(
-          master: _master!,
-          initialState: _estimate.toPriceCalcState(),
-        ),
-        fullscreenDialog: true,
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _estimate.applyPriceCalculation(result);
-        _capacityCtrl.text = result.capacityKw.toStringAsFixed(2);
-        // Sync structure controllers
-        for (final entry in result.structureQuantities.entries) {
-          _getStructureCtrl(entry.key).text = entry.value.toString();
-        }
-        // Sync financial controllers
-        _discountCtrl.text = result.discountPerKw > 0
-            ? result.discountPerKw.toStringAsFixed(0)
-            : '';
-      });
-    }
-  }
-
   GSQuoteSystem? get _selectedSystem => _estimate.systemId != null
       ? gsQuoteSystemById(_estimate.systemId!)
       : null;
@@ -266,122 +238,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     );
   }
 
-  void _addLineItem() {
-    final descCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController();
-    final rateCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: GSColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Item',
-            style: GSTextStyles.headlineSmall.copyWith(color: GSColors.navy900)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: descCtrl,
-              decoration: InputDecoration(
-                labelText: 'Description',
-                hintText: 'e.g. DC Wire',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
-                ),
-                labelStyle: GSTextStyles.bodyMedium
-                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
-                hintStyle: GSTextStyles.bodyMedium
-                    .copyWith(color: GSColors.ink.withValues(alpha: 0.4)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: qtyCtrl,
-              decoration: InputDecoration(
-                labelText: 'Qty',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
-                ),
-                labelStyle: GSTextStyles.bodyMedium
-                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: rateCtrl,
-              decoration: InputDecoration(
-                labelText: 'Rate (₹)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: GSColors.ink.withValues(alpha: 0.2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: GSColors.gold500, width: 2),
-                ),
-                labelStyle: GSTextStyles.bodyMedium
-                    .copyWith(color: GSColors.ink.withValues(alpha: 0.6)),
-                prefixText: '₹ ',
-                prefixStyle:
-                    GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-              style: GSTextStyles.bodyMedium.copyWith(color: GSColors.navy900),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel',
-                  style: GSTextStyles.labelLarge
-                      .copyWith(color: GSColors.navy900))),
-          ElevatedButton(
-            onPressed: () {
-              final desc = descCtrl.text.trim();
-              final qty = int.tryParse(qtyCtrl.text) ?? 1;
-              final rate = int.tryParse(
-                      rateCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                  0;
-              if (desc.isNotEmpty) {
-                setState(() {
-                  _estimate.lineItems.add(EstimateLineItem(
-                      description: desc, qty: qty, rate: rate));
-                });
-              }
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GSColors.navy500,
-              foregroundColor: GSColors.white,
-            ),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Step 3 helpers ──
 
   TextEditingController _getStructureCtrl(String label) {
@@ -426,6 +282,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       if (_estimateNumberCtrl.text.trim().isEmpty) {
         return _error('Estimate number is required');
       }
+      if (_estimate.systemId == null) {
+        return _error('Please select a solar system');
+      }
       if (_estimate.currency.isEmpty) return _error('Currency is required');
     }
     return true;
@@ -450,7 +309,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   void _onNext() {
     if (!_validateStep(_currentStep)) return;
 
-    if (_currentStep < 3) {
+    if (_currentStep < 1) {
       setState(() => _currentStep++);
     } else {
       _saveEstimate();
@@ -692,7 +551,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             ),
           ),
           // Progress bar
-          EstimateProgressBar(stepCount: 4, currentStep: _currentStep),
+          EstimateProgressBar(stepCount: 2, currentStep: _currentStep),
           // Step content
           Expanded(
             child: SingleChildScrollView(
@@ -703,7 +562,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       ),
       bottomNavigationBar: ActionBarButtonBar(
         backText: _currentStep == 0 ? 'Close' : 'Back',
-        nextText: _currentStep == 3 ? 'Create Estimate' : 'Next',
+        nextText: _currentStep == 1 ? 'Create Quotation' : 'Next',
         onBack: _onBack,
         onNext: _onNext,
       ),
@@ -1110,153 +969,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ),
 
-        // Price Calculator button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: ElevatedButton.icon(
-            onPressed: _openPriceCalculator,
-            icon: const Icon(Icons.calculate, size: 22),
-            label: Text('PRICE CALCULATOR',
-                style: GSTextStyles.labelLarge.copyWith(color: GSColors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: GSColors.navy500,
-              foregroundColor: GSColors.white,
-              elevation: 4,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ),
-
-        // Item Details (N) section
-        GsCard(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Item Details (${_estimate.lineItems.length})',
-                    style: GSTextStyles.labelLarge
-                        .copyWith(color: GSColors.navy900),
-                  ),
-                  if (_estimate.lineItems.isNotEmpty)
-                    TextButton(
-                      onPressed: _addLineItem,
-                      child: Text(
-                        '+ Add Item',
-                        style: GSTextStyles.labelMedium
-                            .copyWith(color: GSColors.teal500),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_estimate.lineItems.isEmpty)
-                Text('No items yet. Use the Price Calculator or tap + Add Item.',
-                    style: GSTextStyles.bodySmall
-                        .copyWith(color: GSColors.ink.withValues(alpha: 0.5)))
-              else
-                ..._estimate.lineItems.asMap().entries.map((e) => _lineItemRow(e.value, e.key + 1)),
-            ],
-          ),
-        ),
-
-        // Price breakdown summary (if calculated)
-        if (_estimate.priceBreakdown != null) ...[
-          _buildPriceSummary(),
-        ],
-
         const SizedBox(height: 16),
       ],
-    );
-  }
-
-  Widget _lineItemRow(EstimateLineItem item, int index) {
-    final f = NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Text('$index.',
-              style: GSTextStyles.bodySmall
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.5))),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(item.description,
-                style: GSTextStyles.bodyMedium
-                    .copyWith(color: GSColors.navy900)),
-          ),
-          Text('${item.qty} × ${f.format(item.rate)}',
-              style: GSTextStyles.bodySmall
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.6))),
-          const SizedBox(width: 8),
-          Text(f.format(item.total),
-              style: GSTextStyles.bodyMediumSemiBold
-                  .copyWith(color: GSColors.navy900)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceSummary() {
-    final b = _estimate.priceBreakdown!;
-    final f = NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0);
-
-    return GsCard(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Price Summary',
-              style: GSTextStyles.headlineSmall
-                  .copyWith(color: GSColors.navy900)),
-          const SizedBox(height: 12),
-          _summaryRow('Panel Cost', b.panelCost, f),
-          _summaryRow('Inverter', b.inverterCost, f),
-          _summaryRow('Structure', b.structureCost, f),
-          _summaryRow('BOS', b.bosCost, f),
-          _summaryRow('Discount', -b.discountTotal, f,
-              color: GSColors.green600),
-          Divider(height: 1, color: GSColors.ink.withValues(alpha: 0.1)),
-          _summaryRow('Subtotal', b.subtotal, f, isBold: true),
-          _summaryRow('Tax (GST)', b.taxTotal, f),
-          if (b.insuranceTotal > 0)
-            _summaryRow('Insurance', b.insuranceTotal, f),
-          _summaryRow('TOTAL', b.grandTotal, f,
-              isBold: true, color: GSColors.navy900),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, int amount, NumberFormat f,
-      {Color? color, bool isBold = false}) {
-    final neg = amount.isNegative;
-    final disp = neg ? amount.abs() : amount;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: (isBold
-                      ? GSTextStyles.bodyMediumSemiBold
-                      : GSTextStyles.bodyMedium)
-                  .copyWith(color: GSColors.ink.withValues(alpha: 0.8))),
-          Text('${neg ? '− ' : ''}₹${disp.formatWithComma()}',
-              style: (isBold
-                      ? GSTextStyles.bodyLargeSemiBold
-                      : GSTextStyles.bodyMedium)
-                  .copyWith(color: color ?? GSColors.navy900)),
-        ],
-      ),
     );
   }
 

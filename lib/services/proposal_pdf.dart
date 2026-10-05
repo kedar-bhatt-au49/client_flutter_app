@@ -131,50 +131,6 @@ class ProposalPdf {
   }
 }
 
-/// Clips a child to a trapezoid that produces the angled 60/40 divider
-/// seen in the financial summary rows.
-///
-/// When [leftSide] is `true` the right edge is angled inward (for the
-/// left 60 % half). When `false` the left edge is angled outward (for the
-/// right 40 % half), so the two halves meet on a clean diagonal.
-class _DiagonalClip extends pw.SingleChildWidget {
-  final bool leftSide;
-
-  _DiagonalClip({required this.leftSide, super.child});
-
-  @override
-  void paint(pw.Context context) {
-    super.paint(context);
-    if (child != null) {
-      final mat = Matrix4.identity();
-      mat.translateByDouble(box!.left, box!.bottom, 0, 1);
-      context.canvas.saveContext();
-      if (leftSide) {
-        // Top-left → top-right → bottom-right (5 % inset) → bottom-left
-        context.canvas
-          ..moveTo(box!.left, box!.bottom + box!.height)
-          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
-          ..lineTo(box!.left + box!.width * 0.95, box!.bottom)
-          ..lineTo(box!.left, box!.bottom)
-          ..closePath();
-      } else {
-        // Top-left → top-right → bottom-right → bottom-left (7.5 % past left)
-        context.canvas
-          ..moveTo(box!.left, box!.bottom + box!.height)
-          ..lineTo(box!.left + box!.width, box!.bottom + box!.height)
-          ..lineTo(box!.left + box!.width, box!.bottom)
-          ..lineTo(box!.left - box!.width * 0.075, box!.bottom)
-          ..closePath();
-      }
-      context.canvas
-        ..clipPath()
-        ..setTransform(mat);
-      child!.paint(context);
-      context.canvas.restoreContext();
-    }
-  }
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal renderer — holds shared state (fonts, colours, data) and builds
 // each of the 7 pages plus the shared header / footer.

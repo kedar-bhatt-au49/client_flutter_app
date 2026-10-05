@@ -124,12 +124,11 @@ class ProposalPdf {
   /// characters that the built-in Helvetica (Type 1) font cannot render.
   /// Falls back to Helvetica if the asset fails to load (e.g. in tests).
   static Future<pw.Font> _loadFont() async {
-    try {
-      final bytes = await rootBundle.load('assets/fonts/sans_serif.ttf');
-      return pw.Font.ttf(bytes);
-    } catch (_) {
-      return pw.Font.helvetica();
-    }
+    // NOTE: the bundled sans_serif.ttf has oversized line metrics that make
+    // every text line very tall and overflow the A4 pages (clipping the
+    // financial summary / bank / signature / BOM). The PDF built-in font
+    // renders correctly; ₹ is shown as "Rs." via the money formatter.
+    return pw.Font.helvetica();
   }
 }
 
@@ -251,7 +250,7 @@ class _Renderer {
       font: _font,
       fontSize: size,
       color: color ?? PdfColors.black,
-      height: height,
+      height: height ?? 1.05,
       letterSpacing: letterSpacing,
     );
   }
@@ -799,9 +798,9 @@ class _Renderer {
   pw.Page _quotation() {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(28, 36, 28, 48),
+      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
       build: (pw.Context ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
           _header(),
           pw.SizedBox(height: 18),
@@ -908,7 +907,7 @@ class _Renderer {
           for (int c = 0; c < headerCells.length; c++)
             pw.Center(
               child: pw.Padding(
-                padding: const pw.EdgeInsets.all(4),
+                padding: const pw.EdgeInsets.all(2),
                 child: pw.Text(headerCells[c],
                    textAlign: pw.TextAlign.center,
                    style: _t(
@@ -933,12 +932,12 @@ class _Renderer {
         children: [
           // 0 — #
           pw.Center(child: pw.Padding(
-            padding: const pw.EdgeInsets.all(4),
+            padding: const pw.EdgeInsets.all(2),
             child: pw.Text('${i + 1}', style: _t(8), textAlign: pw.TextAlign.center),
           )),
           // 1 — Description
           pw.Padding(
-            padding: const pw.EdgeInsets.all(4),
+            padding: const pw.EdgeInsets.all(2),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -999,31 +998,34 @@ class _Renderer {
   /// Bottom section of the quotation page: amount-in-words + notes (left),
   /// totals + bank details + signature (right).
   pw.Widget _quotationBottom() {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // ── Amount in words ──
-        pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
-        pw.SizedBox(height: 14),
+    return pw.Container(
+      width: double.infinity,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // ── Amount in words ──
+          pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
+          pw.SizedBox(height: 8),
 
-        // ── Financial Summary Block (full-width, page 3) ──
-        _financialSummary(),
-        pw.SizedBox(height: 14),
+          // ── Financial Summary Block (full-width, page 3) ──
+          _financialSummary(),
+          pw.SizedBox(height: 8),
 
-        // ── Notes + Bank Details (side by side) ──
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(child: _notesBox()),
-            pw.SizedBox(width: 24),
-            pw.Expanded(child: _bankBox()),
-          ],
-        ),
-        pw.SizedBox(height: 18),
+          // ── Notes + Bank Details (side by side) ──
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(child: _notesBox()),
+              pw.SizedBox(width: 18),
+              pw.Expanded(child: _bankBox()),
+            ],
+          ),
+          pw.SizedBox(height: 10),
 
-        // ── Signature ──
-        _signatureBlock(),
-      ],
+          // ── Signature ──
+          _signatureBlock(),
+        ],
+      ),
     );
   }
 
@@ -1183,8 +1185,8 @@ class _Renderer {
     if (noDiagonal) {
       // Row 4 — flat light-blue with thin border, no gradient
       return pw.Container(
-        height: 48,
-        margin: const pw.EdgeInsets.only(bottom: 8),
+        height: 34,
+        margin: const pw.EdgeInsets.only(bottom: 4),
         decoration: pw.BoxDecoration(
           color: leftColor,
           borderRadius: pw.BorderRadius.circular(6),
@@ -1205,32 +1207,29 @@ class _Renderer {
       );
     }
 
-    // Rows 1–3 — diagonal split with gradient backgrounds
-    final leftChild = _DiagonalClip(
-      leftSide: true,
-      child: pw.Container(
-        decoration: pw.BoxDecoration(gradient: leftGradient),
-        child: leftContent,
-      ),
-    );
-    final rightChild = _DiagonalClip(
-      leftSide: false,
-      child: pw.Container(
-        decoration: pw.BoxDecoration(gradient: rightGradient),
-        child: rightContent,
-      ),
-    );
-
+    // Rows 1–3 — simple two-tone split with gradient backgrounds
     return pw.Container(
-      height: 48,
-      margin: const pw.EdgeInsets.only(bottom: 8),
+      height: 34,
+      margin: const pw.EdgeInsets.only(bottom: 4),
       child: pw.ClipRRect(
         horizontalRadius: 6,
         verticalRadius: 6,
         child: pw.Row(
           children: [
-            pw.Expanded(flex: 60, child: leftChild),
-            pw.Expanded(flex: 40, child: rightChild),
+            pw.Expanded(
+              flex: 60,
+              child: pw.Container(
+                decoration: pw.BoxDecoration(gradient: leftGradient),
+                child: leftContent,
+              ),
+            ),
+            pw.Expanded(
+              flex: 40,
+              child: pw.Container(
+                decoration: pw.BoxDecoration(gradient: rightGradient),
+                child: rightContent,
+              ),
+            ),
           ],
         ),
       ),
@@ -1313,7 +1312,7 @@ class _Renderer {
   pw.Page _termsBom() {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(28, 36, 28, 48),
+      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
       build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -1367,7 +1366,7 @@ class _Renderer {
           for (final h in headerCells)
             pw.Center(
               child: pw.Padding(
-                padding: const pw.EdgeInsets.all(5),
+                padding: const pw.EdgeInsets.all(2.5),
                 child: pw.Text(h,
                     textAlign: pw.TextAlign.center,
                     style: _t(7.5, bold: true, color: PdfColors.white)),
@@ -1392,13 +1391,13 @@ class _Renderer {
           children: [
             pw.Center(child: pw.Text('', style: _t(7.5))),
             pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
+              padding: const pw.EdgeInsets.all(2.5),
               child: pw.Text(currentCategory!,
                   style: _t(7.5, bold: true, color: navy)),
             ),
             pw.Center(child: pw.Text('', style: _t(7.5))),
             pw.Center(child: pw.Text('', style: _t(7.5))),
-            pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text('', style: _t(7.5))),
+            pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text('', style: _t(7.5))),
           ],
         ));
       }
@@ -1411,10 +1410,10 @@ class _Renderer {
         ),
         children: [
           pw.Center(child: pw.Text('$srNo', style: _t(7.5), textAlign: pw.TextAlign.center)),
-          pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(item.item, style: _t(7.5))),
+          pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text(item.item, style: _t(7.5))),
           pw.Center(child: pw.Text(item.qty, style: _t(7.5), textAlign: pw.TextAlign.center)),
           pw.Center(child: pw.Text(item.unit, style: _t(7.5), textAlign: pw.TextAlign.center)),
-          pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(item.brand, style: _t(7.5))),
+          pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text(item.brand, style: _t(7.5))),
         ],
       ));
     }
@@ -1448,7 +1447,7 @@ class _Renderer {
 
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(28, 36, 28, 48),
+      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
       build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -1488,7 +1487,7 @@ class _Renderer {
   pw.Page _payment() {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(28, 36, 28, 48),
+      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
       build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [

@@ -1,31 +1,23 @@
 ﻿/// ---------------------------------------------------------------------------
-/// Roof Top Solar Proposal + Quotation — 7-page PDF generator
+/// Roof Top Solar Proposal + Quotation — 7-page PDF generator.
 ///
-/// Renders [SolarProposalData] into a multi-page PDF that follows the exact
-/// layout spec:
-///
-///   Page 1 — Cover (hero image + company details)
-///   Page 2 — Solar Plant Design Showcase
-///   Page 3 — Quotation Table (line items w/ CGST/SGST, totals, notes, bank)
-///   Page 4 — Terms & Conditions + Bill of Materials
-///   Page 5 — Warranty Terms (Part 1)
-///   Page 6 — Warranty Terms (Part 2)
-///   Page 7 — Payment / UPI QR + Contact strip
-///
-/// Every page carries a branded navy header and a footer with company name,
-/// page number (X/7) and social links.
-///
-/// Uses only packages already in the dependency tree:
-///   * pdf (pw)        — document & widget rendering
-///   * intl            — Indian-number formatting (₹1,40,800)
-///   * barcode         — re-exported by `pdf`, used for QR rendering
+/// Matches the "Global Solar 2.0 — Solar Quotation & Proposal (7-Page PDF Set)"
+/// design:
+///   Page 1 — Cover (hero + meta + highlights)
+///   Page 2 — Plant Design Showcase (design image + spec cards + generation)
+///   Page 3 — Official Quotation (from/bill-to, line items, financial summary,
+///            bank details, signature)
+///   Page 4 — Terms & Conditions + Comprehensive Bill of Material
+///   Page 5 — Warranty Terms (Sections 1–6)
+///   Page 6 — Warranty Terms (Sections 7–12)
+///   Page 7 — UPI Payment QR + Leadership contacts
 /// ---------------------------------------------------------------------------
 library;
 
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 import '../models/proposal_data.dart';
 
@@ -34,305 +26,168 @@ class ProposalPdf {
 
   static final NumberFormat _fmt = NumberFormat.decimalPattern('en_IN');
 
-  /// Formats an integer as Indian-style currency, e.g. `₹1,40,800` or `-₹78,000`.
+  /// Indian-style currency, e.g. `Rs. 1,40,800` or `-Rs. 78,000`.
   static String money(int amount) {
     final s = 'Rs. ${_fmt.format(amount.abs())}';
     return amount < 0 ? '-$s' : s;
   }
 
-  /// Formats an amount with Indian digit grouping and the `/-` suffix.
-  /// e.g. `moneyINR(180000)` → `Rs. 1,80,000/-`.
   static String moneyINR(int amount) {
     final s = 'Rs. ${_fmt.format(amount.abs())}/-';
     return amount < 0 ? '-$s' : s;
   }
 
-  /// Generates the full 7-page proposal PDF and returns the raw bytes.
   static Future<Uint8List> generate(SolarProposalData data) async {
-    final logo = data.logoImage ?? await _loadAssetLogo();
-    final heroImage = data.heroImage ?? await _loadAssetImage(
-      'assets/images/hero_installation.jpg',
-    );
+    final logo = data.logoImage ?? await _asset('assets/images/logo.png');
+    final hero =
+        data.heroImage ?? await _asset('assets/images/hero_installation.jpg');
 
     // Panel-count-specific design image for page 2.
-    // 5 → solar_pannel_5.jpg, 6 → solar_pannel_6.png, 7 → solar_pannel_7.jpg,
-    // 8 → solar_pannel_8.jpg, 9 → solar_pannel_9.jpg, 10 → solar_pannel_10.jpg,
-    // any other count → default overview image.
-    String panelImageAsset;
+    // 6 panels uses the corrected PNG; others are JPGs.
+    String panelAsset;
     switch (data.panelCount) {
       case 5:
-        panelImageAsset = 'assets/images/solar_pannel_5.jpg';
+        panelAsset = 'assets/images/solar_pannel_5.jpg';
         break;
       case 6:
-        panelImageAsset = 'assets/images/solar_pannel_6.png';
+        panelAsset = 'assets/images/solar_pannel_6.png';
         break;
       case 7:
-        panelImageAsset = 'assets/images/solar_pannel_7.jpg';
+        panelAsset = 'assets/images/solar_pannel_7.jpg';
         break;
       case 8:
-        panelImageAsset = 'assets/images/solar_pannel_8.jpg';
+        panelAsset = 'assets/images/solar_pannel_8.jpg';
         break;
       case 9:
-        panelImageAsset = 'assets/images/solar_pannel_9.jpg';
+        panelAsset = 'assets/images/solar_pannel_9.jpg';
         break;
       case 10:
-        panelImageAsset = 'assets/images/solar_pannel_10.jpg';
+        panelAsset = 'assets/images/solar_pannel_10.jpg';
         break;
       default:
-        panelImageAsset = 'assets/images/solar_rooftop_overview.jpg';
+        panelAsset = 'assets/images/solar_rooftop_overview.jpg';
     }
-    final designImageTop = data.designImageTop ??
-        await _loadAssetImage(panelImageAsset);
+    final design = data.designImageTop ?? await _asset(panelAsset);
 
-    // Load Unicode TTF font for proper character rendering (Gujarati, ₹, em-dash, etc.)
-    final unicodeFont = await _loadFont();
-
-    final r = _Renderer(data, logo, heroImage, designImageTop, unicodeFont);
+    final r = _Renderer(data, logo, hero, design);
     final doc = pw.Document();
-    doc.addPage(r._cover());
-    doc.addPage(r._designShowcase());
-    doc.addPage(r._quotation());
-    doc.addPage(r._termsBom());
-    doc.addPage(r._warrantyA());
-    doc.addPage(r._warrantyB());
-    doc.addPage(r._payment());
+    doc.addPage(r.cover());
+    doc.addPage(r.designShowcase());
+    doc.addPage(r.quotation());
+    doc.addPage(r.termsBom());
+    doc.addPage(r.warrantyA());
+    doc.addPage(r.warrantyB());
+    doc.addPage(r.payment());
     return doc.save();
   }
 
-  /// Loads an image from the bundled assets and returns it as raw bytes.
-  static Future<Uint8List> _loadAssetImage(String assetPath) async {
+  static Future<Uint8List> _asset(String path) async {
     try {
-      final b = await rootBundle.load(assetPath);
+      final b = await rootBundle.load(path);
       return b.buffer.asUint8List();
     } catch (_) {
       return Uint8List(0);
     }
-  }
-
-  /// Loads the company logo from the bundled asset.
-  static Future<Uint8List> _loadAssetLogo() async {
-    try {
-      final b = await rootBundle.load('assets/images/logo.png');
-      return b.buffer.asUint8List();
-    } catch (_) {
-      return Uint8List(0);
-    }
-  }
-
-  /// Loads a Unicode TTF font that supports Gujarati, ₹, em-dash, and other
-  /// characters that the built-in Helvetica (Type 1) font cannot render.
-  /// Falls back to Helvetica if the asset fails to load (e.g. in tests).
-  static Future<pw.Font> _loadFont() async {
-    // NOTE: the bundled sans_serif.ttf has oversized line metrics that make
-    // every text line very tall and overflow the A4 pages (clipping the
-    // financial summary / bank / signature / BOM). The PDF built-in font
-    // renders correctly; ₹ is shown as "Rs." via the money formatter.
-    return pw.Font.helvetica();
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Internal renderer — holds shared state (fonts, colours, data) and builds
-// each of the 7 pages plus the shared header / footer.
-// ──────────────────────────────────────────────────────────────────────────────
+// ── Palette ────────────────────────────────────────────────────────────────
+final _navy = PdfColor.fromHex('#071440');
+final _navyDeep = PdfColor.fromHex('#0B1F5C');
+final _gold = PdfColor.fromHex('#F9B417');
+final _goldLight = PdfColor.fromHex('#FFCA40');
+final _goldSoft = PdfColor.fromHex('#FEF3D6');
+final _sky = PdfColor.fromHex('#EAF4FF');
+final _skySoft = PdfColor.fromHex('#F4F9FF');
+final _border = PdfColor.fromHex('#D1E3F8');
+final _green = PdfColor.fromHex('#1E8E3E');
+final _greenDark = PdfColor.fromHex('#167031');
+final _greenLight = PdfColor.fromHex('#E6F4EA');
+final _s900 = PdfColor.fromHex('#0F172A');
+final _s800 = PdfColor.fromHex('#1E293B');
+final _s700 = PdfColor.fromHex('#334155');
+final _s600 = PdfColor.fromHex('#475569');
+final _s500 = PdfColor.fromHex('#64748B');
+final _s400 = PdfColor.fromHex('#94A3B8');
+final _s200 = PdfColor.fromHex('#E2E8F0');
+final _s100 = PdfColor.fromHex('#F1F5F9');
+final _white = PdfColors.white;
 
+// ── Renderer ───────────────────────────────────────────────────────────────
 class _Renderer {
   final SolarProposalData d;
   final Uint8List logo;
-  final Uint8List heroImage;
-  final Uint8List designImageTop;
+  final Uint8List hero;
+  final Uint8List design;
 
-  late final PdfColor navy = PdfColor.fromHex(d.brandColorHex);
-  late final PdfColor gold = PdfColor.fromHex(d.accentColorHex);
+  _Renderer(this.d, this.logo, this.hero, this.design);
 
-  // ── Financial Summary Block palette ────────────────────────────────────────
-  static final PdfColor _fsNavyStart = PdfColor.fromHex('#14286B');
-  static final PdfColor _fsNavyEnd = PdfColor.fromHex('#1E3A8A');
-  static final PdfColor _fsYellowStart = PdfColor.fromHex('#FFC400');
-  static final PdfColor _fsYellowEnd = PdfColor.fromHex('#F5B000');
-  static final PdfColor _fsGreenStart = PdfColor.fromHex('#2E8B2E');
-  static final PdfColor _fsGreenEnd = PdfColor.fromHex('#5CB233');
-  static final PdfColor _fsLightGreenStart = PdfColor.fromHex('#DAF3D3');
-  static final PdfColor _fsLightGreenEnd = PdfColor.fromHex('#C1E3AF');
-  static final PdfColor _fsDarkGreen = PdfColor.fromHex('#1B4E1B');
-  static final PdfColor _fsLightBlue = PdfColor.fromHex('#E8F4FB');
-  static final PdfColor _fsLightBlueBorder = PdfColor.fromHex('#B3DFF7');
-
-  static final pw.LinearGradient _navyGrad = pw.LinearGradient(
-    colors: [_fsNavyStart, _fsNavyEnd],
-    begin: pw.Alignment.topLeft,
-    end: pw.Alignment.bottomRight,
-  );
-  static final pw.LinearGradient _yellowGrad = pw.LinearGradient(
-    colors: [_fsYellowStart, _fsYellowEnd],
-    begin: pw.Alignment.topLeft,
-    end: pw.Alignment.bottomRight,
-  );
-  static final pw.LinearGradient _greenGrad = pw.LinearGradient(
-    colors: [_fsGreenStart, _fsGreenEnd],
-    begin: pw.Alignment.topLeft,
-    end: pw.Alignment.bottomRight,
-  );
-  static final pw.LinearGradient _lightGreenGrad = pw.LinearGradient(
-    colors: [_fsLightGreenStart, _fsLightGreenEnd],
-    begin: pw.Alignment.topLeft,
-    end: pw.Alignment.bottomRight,
-  );
-
-  // Unicode TTF font supporting Gujarati, ₹, em-dash, and other
-  // characters that Helvetica (Type 1) cannot render.
-  // Falls back to Helvetica if the asset fails to load (e.g. in tests).
-  final pw.Font _font;
-
-  _Renderer(
-    this.d,
-    this.logo,
-    this.heroImage,
-    this.designImageTop,
-    this._font,
-  );
-
-  // ── Text style helper ──────────────────────────────────────────────────────
-
-  pw.TextStyle _t(
-    double size, {
-    bool bold = false,
-    PdfColor? color,
-    double? height,
-    double? letterSpacing,
-  }) {
+  pw.TextStyle _t(double size,
+      {bool bold = false,
+      PdfColor? color,
+      double? height,
+      double spacing = 0}) {
     return pw.TextStyle(
-      font: _font,
+      font: pw.Font.helvetica(),
+      fontBold: pw.Font.helveticaBold(),
       fontSize: size,
-      color: color ?? PdfColors.black,
-      height: height ?? 1.05,
-      letterSpacing: letterSpacing,
+      color: color ?? _s800,
+      height: height ?? 1.1,
+      letterSpacing: spacing,
     );
   }
 
-  // ── Financial Summary Block (Page 3) constants ───────────────────────────────
+  String _s(String? v) => (v == null || v.isEmpty) ? '-' : v;
 
-  // SVG icon badges — used inside [pw.SvgImage] for the row icons.
-  static const String _iconRupee =
-      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
-      'xmlns="http://www.w3.org/2000/svg">'
-      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
-      '<text x="14" y="19" text-anchor="middle" font-size="10" '
-      'font-weight="bold" fill="#071440">Rs.</text></svg>';
+  double get _capKw =>
+      double.tryParse(d.plantCapacityKw.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          0;
 
-  static const String _iconHandCoin =
-      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
-      'xmlns="http://www.w3.org/2000/svg">'
-      '<circle cx="14" cy="14" r="12" fill="#88D675"/>'
-      '<path d="M9 8 C8 9 7 11 7 14 C7 17 9 19 12 19 C12 18 12 17 12 15 '
-      'C12 16 13 16 14 16 C15 16 16 15 16 14 C16 12 15 10 13 9 C13 8 12 8 '
-      '11 8 Z" fill="#1B4E1B"/>'
-      '<circle cx="16" cy="16" r="4" fill="#1B4E1B"/>'
-      '</svg>';
-
-  static const String _iconPerson =
-      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
-      'xmlns="http://www.w3.org/2000/svg">'
-      '<circle cx="14" cy="14" r="12" fill="#F7B015"/>'
-      '<path d="M14 8 C12 8 10.5 9.5 10.5 11.5 C10.5 13 11.5 14.5 13 15.5 '
-      'L13 17 L15 17 L15 15.5 C16.5 14.5 17.5 13 17.5 11.5 C17.5 9.5 16 8 '
-      '14 8 Z" fill="#071440"/>'
-      '</svg>';
-
-  static const String _iconCheque =
-      '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" '
-      'xmlns="http://www.w3.org/2000/svg">'
-      '<rect x="4" y="7" width="20" height="14" rx="2" fill="#7CB9E8" '
-      'stroke="#071440" stroke-width="1"/>'
-      '<line x1="4" y1="11" x2="24" y2="11" stroke="#071440" stroke-width="1"/>'
-      '<rect x="10" y="13" width="6" height="4" rx="1" fill="#071440"/>'
-      '<circle cx="16" cy="15" r="1.5" fill="#ffffff"/>'
-      '</svg>';
-
-  // ── Shared header / footer ─────────────────────────────────────────────────
-
-  pw.Widget _header() {
+  // ── Shared header / footer ─────────────────────────────────────────────
+  pw.Widget _header(String sub) {
     return pw.Container(
-      decoration: pw.BoxDecoration(
-        color: navy,
-      ),
-      padding: const pw.EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.center,
-        children: [
-          // Circular orange-red gradient logo icon
-          pw.Container(
-            width: 34,
-            height: 34,
-            decoration: pw.BoxDecoration(
-              shape: pw.BoxShape.circle,
-              gradient: pw.LinearGradient(
-                colors: [gold, PdfColor(0.93, 0.11, 0.14)], // #F7941D → #ED1C24
-                begin: pw.Alignment.topLeft,
-                end: pw.Alignment.bottomRight,
-              ),
-              image: logo.isNotEmpty
-                  ? pw.DecorationImage(
-                      image: pw.MemoryImage(logo),
-                      fit: pw.BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: logo.isEmpty
-                ? pw.Center(child: pw.Text('GS', style: _t(13, bold: true, color: PdfColors.white)))
-                : null,
-          ),
-          pw.SizedBox(width: 6),
-          pw.Text(d.companyName,
-              style: _t(10, bold: true, color: PdfColors.white)),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _footer(int pageNumber, {
-    String? leftText,
-    double iconSize = 16,
-    double iconGap = 1.5,
-  }) {
-    final links = d.socialLinks;
-    return pw.Container(
-      height: 40, // ~40px tall footer bar
-      decoration: pw.BoxDecoration(
-        color: navy,
-      ),
-      padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      color: _navy,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 22, vertical: 8),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          // Left — company name
-          pw.Text(leftText ?? d.companyName,
-              style: _t(7, bold: true, color: PdfColors.white)),
-          // Centre — page number
-          pw.Text('$pageNumber/7',
-              style: _t(7, color: PdfColors.white)),
-          // Right — circular coloured social icons, evenly spaced
-          pw.Row(
+          pw.Row(children: [
+            pw.Container(
+              width: 26,
+              height: 26,
+              decoration: pw.BoxDecoration(
+                shape: pw.BoxShape.circle,
+                gradient: pw.LinearGradient(
+                    colors: [_gold, _goldLight],
+                    begin: pw.Alignment.topLeft,
+                    end: pw.Alignment.bottomRight),
+                image: logo.isNotEmpty
+                    ? pw.DecorationImage(image: pw.MemoryImage(logo), fit: pw.BoxFit.cover)
+                    : null,
+              ),
+              child: logo.isEmpty
+                  ? pw.Center(
+                      child: pw.Text('GS',
+                          style: _t(8, bold: true, color: _navy)))
+                  : null,
+            ),
+            pw.SizedBox(width: 7),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('GLOBAL SOLAR 2.0',
+                    style: _t(10, bold: true, color: _white, spacing: 0.5)),
+                pw.Text('ENGINEERING & EPC SOLUTIONS',
+                    style: _t(5.5, color: _s400, spacing: 0.8)),
+              ],
+            ),
+          ]),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [
-              for (int i = 0; i < links.length; i++)
-                ...[
-                  if (i > 0) pw.SizedBox(width: iconGap),
-                  pw.Container(
-                    width: iconSize,
-                    height: iconSize,
-                    decoration: pw.BoxDecoration(
-                      shape: pw.BoxShape.circle,
-                      color: _socialIconColor(links[i].name),
-                    ),
-                    child: pw.Center(
-                      child: pw.Text(
-                        _socialIconInitial(links[i].name),
-                        style: _t(5,
-                            bold: true, color: PdfColors.white),
-                      ),
-                    ),
-                  ),
-                ],
+              pw.Text('ROOFTOP SOLAR PROPOSAL',
+                  style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
+              pw.Text(sub, style: _t(5.5, color: _s400)),
             ],
           ),
         ],
@@ -340,855 +195,785 @@ class _Renderer {
     );
   }
 
-  /// Returns the brand colour for each social platform.
-  PdfColor _socialIconColor(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('facebook')) return PdfColor.fromHex('#1877F2');
-    if (n.contains('instagram')) return PdfColor.fromHex('#E44053');
-    if (n.contains('linkedin')) return PdfColor.fromHex('#0A66C2');
-    if (n.contains('twitter') || n.contains('x')) {
-      return PdfColor.fromHex('#1DA1F2');
-    }
-    if (n.contains('phone')) return PdfColor.fromHex('#25D36E');
-    if (n.contains('email')) return PdfColor.fromHex('#EA4335');
-    if (n.contains('whatsapp')) return PdfColor.fromHex('#25D36E');
-    return gold;
-  }
-
-  String _socialIconInitial(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('facebook')) return 'f';
-    if (n.contains('instagram')) return 'IG';
-    if (n.contains('linkedin')) return 'in';
-    if (n.contains('twitter') || n.contains('x')) return 'X';
-    if (n.contains('whatsapp')) return 'WA';
-    if (n.contains('phone')) return 'Ph';
-    if (n.contains('email')) return 'EM';
-    return name.substring(0, 1).toUpperCase();
-  }
-
-  /// Replaces Unicode glyphs not supported by the bundled font (₹, ×, —, etc.)
-  /// with ASCII equivalents so they render correctly instead of showing as □.
-  String _s(String text) {
-    return text
-      .replaceAll('\u{20B9}', 'Rs. ')   // ₹
-      .replaceAll('\u{00D7}', 'x')       // ×
-      .replaceAll('\u{2014}', '-')       // em-dash
-      .replaceAll('\u{2013}', '-')       // en-dash
-      .replaceAll('\u{2026}', '...')     // ellipsis
-      .replaceAll('\u{2018}', "'")       // '
-      .replaceAll('\u{2019}', "'")       // '
-      .replaceAll('\u{201C}', '"')       // "
-      .replaceAll('\u{201D}', '"');      // "
-  }
-
-  // ── Image / placeholder helper ─────────────────────────────────────────────
-
-  pw.Widget _img(Uint8List? bytes, double w, double h, String label,
-      {pw.BoxFit fit = pw.BoxFit.cover}) {
-    if (bytes != null && bytes.isNotEmpty) {
-      return pw.Container(
-        width: w,
-        height: h,
-        decoration: pw.BoxDecoration(
-          image: pw.DecorationImage(
-            image: pw.MemoryImage(bytes),
-            fit: fit,
-          ),
-          borderRadius: pw.BorderRadius.circular(8),
-          border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
-        ),
-      );
-    }
+  pw.Widget _footer(int page) {
     return pw.Container(
-      width: w,
-      height: h,
-      decoration: pw.BoxDecoration(
-        color: PdfColors.grey50,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+      color: _navy,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text('Global Solar 2.0 • Sukhsagar Complex, Kaliyabid, Bhavnagar',
+              style: _t(6, color: _s400)),
+          pw.Text('Page $page / 7',
+              style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
+          pw.Text('+91 84888 07797 • contact@globalsolar2.in',
+              style: _t(6, color: _s400)),
+        ],
       ),
-      child: pw.Center(
-        child: label.isNotEmpty
-            ? pw.Text(label,
-                style: _t(7.5, color: PdfColors.grey500))
-             : null,
-       ),
-     );
-   }
-
-  // ── Bullet helper (avoids Unicode • which Helvetica can't render) ──────────
-
-  pw.Widget _bullet(String text, pw.TextStyle style, PdfColor color,
-      {double size = 2.5, double gap = 4, double top = 2}) {
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Container(
-          width: size,
-          height: size,
-          margin: pw.EdgeInsets.only(right: gap, top: top),
-          decoration: pw.BoxDecoration(
-            color: color,
-            shape: pw.BoxShape.circle,
-          ),
-        ),
-        pw.Expanded(child: pw.Text(text, style: style)),
-      ],
     );
   }
 
-  /// Certain line items (Meter Charge, GEDA Registration, Stamp Charge) are
-  /// administrative fees that should not show a Rate or Total value.
-  static bool _hideRateTotal(String description) {
-    final d = description.toLowerCase();
-    return d.contains('meter charge') ||
-        d.contains('geda') ||
-        d.contains('stamp charge');
-  }
-
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 1 — Cover (split: left hero photo / right details)
-  // ════════════════════════════════════════════════════════════════════════════
-
-  pw.Page _cover() {
+  pw.Page _page(pw.Widget body, int n, String sub) {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       margin: pw.EdgeInsets.zero,
-      build: (pw.Context ctx) => pw.Stack(
-        children: [
-          // ── Split: left image (50%) + right sections (50%) ──
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Container(
-                  height: double.infinity,
-                  decoration: pw.BoxDecoration(
-                    image: heroImage.isNotEmpty
-                        ? pw.DecorationImage(
-                            image: pw.MemoryImage(heroImage),
-                            fit: pw.BoxFit.cover,
-                          )
-                        : null,
-                    gradient: heroImage.isEmpty
-                        ? pw.LinearGradient(
-                            colors: [navy, gold],
-                            begin: pw.Alignment.topLeft,
-                            end: pw.Alignment.bottomRight,
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              // ── RIGHT HALF: 3 horizontal bands ──
-              pw.Expanded(
-                child: pw.Column(
-                  children: [
-                    // Top band (27%) — brand color, title right-aligned
-                    pw.Expanded(
-                      flex: 27,
-                      child: pw.Container(
-                        color: navy,
-                        alignment: pw.Alignment.centerRight,
-                        padding: const pw.EdgeInsets.only(right: 36),
-                        child: pw.Text(
-                          d.useHinglish
-                              ? 'रूफ टॉप\nसोलर प्रपोजल'
-                              : 'Roof Top\nSolar Proposal',
-                          style: _t(36,
-                              bold: true,
-                              color: PdfColors.white,
-                              height: 1.1),
-                          textAlign: pw.TextAlign.right,
-                        ),
-                      ),
-                    ),
-                    // Middle band (28%) — white, client name
-                    pw.Expanded(
-                      flex: 28,
-                      child: pw.Container(
-                        color: PdfColors.white,
-                        alignment: pw.Alignment.centerLeft,
-                        padding: const pw.EdgeInsets.only(left: 36),
-                        child: pw.Column(
-                          mainAxisAlignment: pw.MainAxisAlignment.center,
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text(
-                              d.customerName.toUpperCase(),
-                              style: _t(30,
-                                  bold: true, color: PdfColors.black),
-                            ),
-                            pw.SizedBox(height: 6),
-                            pw.Text(
-                              '${d.state} | ${d.customerLocation}',
-                              style: _t(15, color: PdfColors.grey600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Bottom band (45%) — brand color, company info
-                    pw.Expanded(
-                      flex: 45,
-                      child: pw.Container(
-                        color: navy,
-                        padding: const pw.EdgeInsets.symmetric(
-                            horizontal: 36, vertical: 28),
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.center,
-                          children: [
-                            pw.Text(d.companyName,
-                                style: _t(22,
-                                    bold: true, color: PdfColors.white)),
-                            pw.SizedBox(height: 8),
-                            pw.Text(d.companyAddress,
-                                style: _t(12,
-                                    color: PdfColor(1, 1, 1, 0.8)),
-                                textAlign: pw.TextAlign.center),
-                            pw.SizedBox(height: 10),
-                            pw.Container(
-                              width: 60,
-                              height: 1,
-                              color: PdfColors.white,
-                            ),
-                            pw.SizedBox(height: 12),
-                            _coverDetailWhite('Lead', d.leadName),
-                            _coverDetailWhite('ID', d.quotationId),
-                            _coverDetailWhite(
-                                'Date', d.quotationDate),
-                            _coverDetailWhite('By', d.preparedBy),
-                            _coverDetailWhite(
-                                'Plant Capacity',
-                                '${d.plantCapacityKw} kW'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          // ── LOGO BADGE — top-left, floating over split ──
-          pw.Positioned(
-            top: 16,
-            left: 16,
-            child: pw.Container(
-              padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.white,
-                borderRadius: pw.BorderRadius.circular(12),
-                boxShadow: [
-                  pw.BoxShadow(
-                    color: PdfColor(0, 0, 0, 0.15),
-                    blurRadius: 8,
-                    offset: const PdfPoint(0, 2),
-                  ),
-                ],
-              ),
-              child: pw.Row(
-                children: [
-                  pw.Container(
-                    width: 22,
-                    height: 22,
-                    decoration: pw.BoxDecoration(
-                      shape: pw.BoxShape.circle,
-                      gradient: pw.LinearGradient(
-                        colors: [gold, PdfColor(0.93, 0.11, 0.14)],
-                      ),
-                      image: logo.isNotEmpty
-                          ? pw.DecorationImage(
-                              image: pw.MemoryImage(logo),
-                              fit: pw.BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: logo.isEmpty
-                        ? pw.Center(
-                            child: pw.Text('GS',
-                                style: _t(9,
-                                    bold: true, color: PdfColors.white)))
-                        : null,
-                  ),
-                  pw.SizedBox(width: 8),
-                  pw.Text(d.companyName,
-                      style: _t(13,
-                          bold: true, color: navy)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Label:value pair rendered in the purple details block (white text).
-  pw.Widget _coverDetailWhite(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 76,
-            child: pw.Text('$label:',
-                style: _t(8, bold: true, color: PdfColor(1, 1, 1, 0.7)),
-            )),
-            pw.SizedBox(width: 6),
-            pw.SizedBox(
-              width: 170,
-              child: pw.Text(value, style: _t(8, color: PdfColors.white)),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 2 — Solar Plant Designs Showcase
-  // ════════════════════════════════════════════════════════════════════════════
-
-  pw.Page _designShowcase() {
-    return pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(40, 50, 40, 0),
-      build: (pw.Context ctx) => pw.Stack(
-        children: [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [
-              pw.SizedBox(height: 70), // space for logo badge at top
-              // Title — bold, black, ~20pt
-              pw.Text('Solar Plants Designs You Have Previously',
-                  style: _t(20, bold: true, color: PdfColors.black),
-                  textAlign: pw.TextAlign.center),
-              pw.SizedBox(height: 6), // ~6-8px gap to subtitle
-              // Subtitle — regular, gray, ~12pt
-              pw.Text('Solar Plant Photos',
-                  style: _t(12, color: PdfColors.grey500),
-                  textAlign: pw.TextAlign.center),
-              pw.SizedBox(height: 8),
-              pw.Divider(height: 1, thickness: 1, color: gold),
-              pw.SizedBox(height: 24),
-              // Panel-count-specific design photo (5 to 10 panels)
-              if (d.panelCount >= 5 && d.panelCount <= 10)
-                _img(
-                  designImageTop,
-                  double.infinity,
-                  320,
-                  d.useHinglish ? 'પેનલ ડિઝાઇન' : 'Panel Design',
-                  fit: pw.BoxFit.cover,
-                ),
-              pw.Spacer(),
-              _footer(2, iconSize: 20, iconGap: 8),
-            ],
-          ),
-          // ── LOGO — fixed at top-right corner, 20px from top / right edges ──
-          pw.Positioned(
-            top: 20,
-            right: 20,
-            child: _page2Logo(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Top-right badge on Page 2: circular logo (~55px) + company name (bold
-  /// orange / brand colour) + tagline (small gray), positioned ~20px from
-  /// the top and right edges.
-  pw.Widget _page2Logo() {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.end,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // Circular company logo (~55px)
-        pw.Container(
-          width: 55,
-          height: 55,
-          decoration: pw.BoxDecoration(
-            shape: pw.BoxShape.circle,
-            gradient: logo.isNotEmpty
-                ? null
-                : pw.LinearGradient(
-                    colors: [gold, PdfColor(0.93, 0.11, 0.14)],
-                  ),
-            image: logo.isNotEmpty
-                ? pw.DecorationImage(
-                    image: pw.MemoryImage(logo),
-                    fit: pw.BoxFit.cover,
-                  )
-                : null,
-          ),
-          child: logo.isEmpty
-              ? pw.Center(
-                  child: pw.Text('GS',
-                      style: _t(20,
-                          bold: true, color: PdfColors.white)))
-              : null,
-        ),
-        pw.SizedBox(width: 8),
-        // Company name (bold orange) + tagline (small gray)
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.Text(d.companyName,
-                style: _t(13, bold: true, color: gold)),
-            pw.Text(d.companyTagline,
-                style: _t(7, color: PdfColors.grey500)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 3 — Quotation Table
-  // ════════════════════════════════════════════════════════════════════════════
-
-  pw.Page _quotation() {
-    return pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
       build: (pw.Context ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          _header(),
-          pw.SizedBox(height: 18),
-          pw.Text('Quotation', style: _t(18, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          pw.Divider(height: 4, thickness: 1, color: gold),
-          pw.SizedBox(height: 8),
-          _quotationHeaderBlock(),
-          pw.SizedBox(height: 12),
-          _lineItemsTable(),
-          pw.SizedBox(height: 14),
-          _quotationBottom(),
-          pw.Spacer(),
-          _footer(3),
+          _header(sub),
+          pw.Expanded(child: body),
+          _footer(n),
         ],
       ),
     );
   }
 
-  /// From / Bill To / Meta block above the table.
-  pw.Widget _quotationHeaderBlock() {
-    final metaLabels = ['Date', 'Expiry', 'Estimate#', 'Created by', 'Contact'];
-    final metaValues = [
-      d.quotationDate,
-      d.expiryDate,
-      d.quotationId,
-      d.preparedBy,
-      d.contactNumbers
-    ];
+  pw.Widget _sectionTitle(String title) => pw.Row(children: [
+        pw.Container(width: 8, height: 8, color: _gold),
+        pw.SizedBox(width: 6),
+        pw.Text(title,
+            style: _t(11, bold: true, color: _navy, spacing: 0.3)),
+      ]);
 
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
-        borderRadius: pw.BorderRadius.circular(4),
-      ),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 1 — COVER
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page cover() {
+    return _page(
+      pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Expanded(
-            child: _billToColumn('From', [
-              d.companyName,
-              d.companyAddress,
-              'GSTIN: ${d.companyGstin}',
-            ]),
-          ),
-          pw.SizedBox(width: 12),
-          pw.Expanded(
-            child: _billToColumn('Bill To', [
-              d.customerName,
-              d.customerLocation,
-              'Mobile: ${d.customerMobile}',
-            ]),
-          ),
-          pw.SizedBox(
-            width: 170,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                for (int i = 0; i < metaLabels.length; i++)
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 1),
-                    child: pw.Row(
-                      mainAxisSize: pw.MainAxisSize.min,
-                      children: [
-                        pw.Text('${metaLabels[i]}: ', style: _t(7, bold: true, color: PdfColors.grey700)),
-                        pw.Text(metaValues[i], style: _t(7, color: PdfColors.grey700)),
+          // Hero
+          pw.Container(
+            height: 250,
+            color: _navy,
+            child: pw.Stack(children: [
+              if (hero.isNotEmpty)
+                pw.Positioned.fill(
+                    child: pw.Image(pw.MemoryImage(hero), fit: pw.BoxFit.cover)),
+              pw.Positioned.fill(
+                child: pw.Container(
+                  decoration: pw.BoxDecoration(
+                    gradient: pw.LinearGradient(
+                      begin: pw.Alignment.topCenter,
+                      end: pw.Alignment.bottomCenter,
+                      colors: [
+                        PdfColor.fromHex('#071440'),
+                        PdfColor.fromHex('#071440')
                       ],
+                      stops: const [0.35, 1.0],
                     ),
                   ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _billToColumn(String label, List<String> lines) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(label, style: _t(7.5, bold: true, color: navy)),
-        for (final l in lines)
-          pw.Text(l, style: _t(7.5, color: PdfColors.black)),
-      ],
-    );
-  }
-
-  /// The 8-column line-items table.
-  pw.Widget _lineItemsTable() {
-    final headerCells = [
-      '#', 'Item & Description', 'Qty', 'Rate',
-      'Discount', 'CGST', 'SGST', 'Total'
-    ];
-
-    final tableRows = <pw.TableRow>[
-      // Header row
-      pw.TableRow(
-        decoration: pw.BoxDecoration(color: navy),
-        verticalAlignment: pw.TableCellVerticalAlignment.middle,
-        children: [
-          for (int c = 0; c < headerCells.length; c++)
-            pw.Center(
-              child: pw.Padding(
-                padding: const pw.EdgeInsets.all(2),
-                child: pw.Text(headerCells[c],
-                   textAlign: pw.TextAlign.center,
-                   style: _t(
-                     c == 7 ? 8 : 7.5,
-                     bold: true,
-                     color: c == 7 ? gold : PdfColors.white,
-                   )),
+                ),
               ),
-            ),
-        ],
-      ),
-    ];
-
-    for (int i = 0; i < d.lineItems.length; i++) {
-      final item = d.lineItems[i];
-      final isAlt = i.isEven;
-      tableRows.add(pw.TableRow(
-        decoration: pw.BoxDecoration(
-          color: isAlt ? PdfColors.white : PdfColors.grey100,
-        ),
-        verticalAlignment: pw.TableCellVerticalAlignment.top,
-        children: [
-          // 0 — #
-          pw.Center(child: pw.Padding(
-            padding: const pw.EdgeInsets.all(2),
-            child: pw.Text('${i + 1}', style: _t(8), textAlign: pw.TextAlign.center),
-          )),
-          // 1 — Description
-          pw.Padding(
-            padding: const pw.EdgeInsets.all(2),
+              pw.Positioned(
+                top: 12,
+                right: 22,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: pw.BoxDecoration(
+                    color: _navy,
+                    borderRadius: pw.BorderRadius.circular(999),
+                    border: pw.Border.all(color: _gold, width: 0.6),
+                  ),
+                  child: pw.Text('Adani TOPCon Bi-Facial  •  30-Yr Warranty',
+                      style: _t(7, bold: true, color: _goldLight)),
+                ),
+              ),
+            ]),
+          ),
+          // Title band
+          pw.Container(
+            color: _navyDeep,
+            padding: const pw.EdgeInsets.symmetric(horizontal: 30, vertical: 12),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(_s(item.description), style: _t(8, bold: true)),
-                for (final spec in item.specs)
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.only(top: 1.5),
-                    child: _bullet(_s(spec), _t(7), navy),
-                  ),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  color: _gold,
+                  child: pw.Text('OFFICIAL TURNKEY PROPOSAL SET',
+                      style: _t(6, bold: true, color: _navy, spacing: 0.6)),
+                ),
+                pw.SizedBox(height: 4),
+                pw.RichText(
+                  text: pw.TextSpan(children: [
+                    pw.TextSpan(
+                        text: 'Solar Power ',
+                        style: _t(24, bold: true, color: _white)),
+                    pw.TextSpan(
+                        text: 'Proposal',
+                        style: _t(24, bold: true, color: _goldLight)),
+                  ]),
+                ),
+                pw.Text(
+                    'PM Surya Ghar 2.0 — Rooftop Solar Scheme • Engineering Design & Financial Plan',
+                    style: _t(8, color: _sky)),
               ],
             ),
           ),
-          // 2 — Qty
-          pw.Center(child: pw.Text(item.qty, style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 3 — Rate
-          pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.rate), style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 4 — Discount
-          pw.Center(child: pw.Text(item.discount == 0 ? '-' : ProposalPdf.money(item.discount), style: _t(8.5), textAlign: pw.TextAlign.center)),
-          // 5 — CGST
-          pw.Center(child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.Text('${item.cgstPercent}%', style: _t(7.5)),
-              pw.Text(ProposalPdf.money(item.cgstAmount), style: _t(7.5)),
-            ],
-          )),
-          // 6 — SGST
-          pw.Center(child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.Text('${item.sgstPercent}%', style: _t(7.5)),
-              pw.Text(ProposalPdf.money(item.sgstAmount), style: _t(7.5)),
-            ],
-          )),
-          // 7 — Total
-          pw.Center(child: pw.Text(_hideRateTotal(item.description) ? '-' : ProposalPdf.money(item.total), style: _t(8, bold: true, color: navy), textAlign: pw.TextAlign.center)),
+          pw.Expanded(
+            child: pw.Container(
+              color: _skySoft,
+              padding: const pw.EdgeInsets.fromLTRB(30, 16, 30, 12),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  // Meta card
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(14),
+                    decoration: pw.BoxDecoration(
+                      color: _white,
+                      borderRadius: pw.BorderRadius.circular(10),
+                      border: pw.Border.all(color: _s200),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text('DOCUMENT IDENTIFIER',
+                                    style: _t(6, bold: true, color: _s400, spacing: 0.5)),
+                                pw.Text(d.quotationId,
+                                    style: _t(11, bold: true, color: _navy)),
+                              ],
+                            ),
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 3),
+                              decoration: pw.BoxDecoration(
+                                color: _sky,
+                                borderRadius: pw.BorderRadius.circular(4),
+                                border: pw.Border.all(color: _border),
+                              ),
+                              child: pw.Text('Residential Grid-Tied System',
+                                  style: _t(8, bold: true, color: _navyDeep)),
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 6),
+                        pw.Divider(color: _s200, height: 8, thickness: 0.6),
+                        pw.SizedBox(height: 4),
+                        _metaGrid([
+                          ['Proposal Date:', d.quotationDate, null],
+                          ['Valid Until (Expiry):', d.expiryDate, _green],
+                          ['Prepared By:', d.preparedBy, null],
+                          ['Authorized Channel:', 'Adani Solar Authorized Partner', null],
+                          ['Customer Name:', d.customerName, _navy],
+                          ['Contact Number:', d.customerMobile, null],
+                          ['Installation Site:', d.customerLocation, null],
+                          [
+                            'Proposed Capacity:',
+                            '${_capKw.toStringAsFixed(2)} kW (${d.panelCount} × ${d.panelWattpeak} Wp)',
+                            _navyDeep
+                          ],
+                        ]),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  // Highlights
+                  pw.Row(children: [
+                    _highlight('Government Subsidy', 'Rs. 78,000 Direct DBT', _green),
+                    pw.SizedBox(width: 8),
+                    _highlight('Est. Monthly Bill', 'Reduced to Rs. 0', _navy),
+                    pw.SizedBox(width: 8),
+                    _highlight('PGVCL Net-Meter', 'Fast-Track Liaison', _navyDeep),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      1,
+      'PM Surya Ghar: Muft Bijli Yojana',
+    );
+  }
+
+  pw.Widget _metaGrid(List<List<Object?>> rows) {
+    final children = <pw.Widget>[];
+    for (var i = 0; i < rows.length; i += 2) {
+      final left = rows[i];
+      final right = i + 1 < rows.length ? rows[i + 1] : null;
+      children.add(pw.Row(children: [
+        pw.Expanded(child: _metaCell(left)),
+        pw.SizedBox(width: 18),
+        pw.Expanded(
+            child: right != null
+                ? _metaCell(right)
+                : pw.SizedBox()),
+      ]));
+      if (i + 2 < rows.length) children.add(pw.SizedBox(height: 6));
+    }
+    return pw.Column(children: children);
+  }
+
+  pw.Widget _metaCell(List<Object?> row) {
+    final color = row[2] as PdfColor?;
+    return pw.Container(
+      padding: const pw.EdgeInsets.only(bottom: 3),
+      decoration: pw.BoxDecoration(
+        border: pw.Border(bottom: pw.BorderSide(color: _s100, width: 0.6)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(row[0] as String, style: _t(7, color: _s500)),
+          pw.SizedBox(height: 1),
+          pw.Text(row[1] as String,
+              style: _t(9, bold: true, color: color ?? _s800)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _highlight(String label, String value, PdfColor color) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        decoration: pw.BoxDecoration(
+          color: _white,
+          borderRadius: pw.BorderRadius.circular(8),
+          border: pw.Border.all(color: _sky),
+        ),
+        child: pw.Column(children: [
+          pw.Text(label.toUpperCase(),
+              textAlign: pw.TextAlign.center,
+              style: _t(6, bold: true, color: _s400, spacing: 0.4)),
+          pw.SizedBox(height: 3),
+          pw.Text(value,
+              textAlign: pw.TextAlign.center,
+              style: _t(9, bold: true, color: color)),
+        ]),
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 2 — PLANT DESIGN SHOWCASE
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page designShowcase() {
+    return _page(
+      pw.Container(
+        color: _white,
+        padding: const pw.EdgeInsets.fromLTRB(26, 12, 26, 10),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            // Title
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    color: _greenLight,
+                    child: pw.Text('ARCHITECTURAL & ELECTRICAL LAYOUT',
+                        style: _t(6, bold: true, color: _green, spacing: 0.5)),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text('Solar Plant Design & Technical Specifications',
+                      style: _t(16, bold: true, color: _navy)),
+                ]),
+                pw.Text('${_capKw.toStringAsFixed(2)} kW Config',
+                    style: _t(8, bold: true, color: _navyDeep)),
+              ],
+            ),
+            pw.SizedBox(height: 4),
+            pw.Divider(color: _s200, height: 6, thickness: 0.6),
+            pw.SizedBox(height: 8),
+            // Design image card
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: _sky,
+                borderRadius: pw.BorderRadius.circular(10),
+                border: pw.Border.all(color: _border),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Your Solar Plant Design',
+                          style: _t(11, bold: true, color: _navy)),
+                      pw.Container(
+                        padding:
+                            const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: pw.BoxDecoration(
+                          color: _white,
+                          borderRadius: pw.BorderRadius.circular(999),
+                          border: pw.Border.all(color: _border),
+                        ),
+                        child: pw.Text('Computer-Aided 3D Shadow Analysis',
+                            style: _t(6.5, bold: true, color: _navyDeep)),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Container(
+                    height: 180,
+                    decoration: pw.BoxDecoration(
+                      color: _white,
+                      borderRadius: pw.BorderRadius.circular(8),
+                      border: pw.Border.all(color: _s200),
+                    ),
+                    child: pw.Stack(children: [
+                      if (design.isNotEmpty)
+                        pw.Positioned.fill(
+                            child: pw.Image(pw.MemoryImage(design),
+                                fit: pw.BoxFit.cover)),
+                      pw.Positioned(
+                        left: 8,
+                        top: 8,
+                        child: pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          color: _navy,
+                          child: pw.Text(
+                              'ORIENTATION: SOUTH-FACING (AZIMUTH 180° / TILT 22°)',
+                              style: _t(6, color: _white)),
+                        ),
+                      ),
+                      pw.Positioned(
+                        right: 8,
+                        top: 8,
+                        child: pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          color: _green,
+                          child: pw.Text('OPTIMAL ANNUAL SOLAR IRRADIATION',
+                              style: _t(6, bold: true, color: _white)),
+                        ),
+                      ),
+                      pw.Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 8,
+                        child: pw.Center(
+                          child: pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: pw.BoxDecoration(
+                              color: _navy,
+                              border: pw.Border.all(color: _gold, width: 0.6),
+                              borderRadius: pw.BorderRadius.circular(6),
+                            ),
+                            child: pw.Column(children: [
+                              pw.Text('ELEVATED G2G FRAMING GUARANTEE',
+                                  style: _t(6, bold: true, color: _goldLight)),
+                              pw.Text(
+                                  '8.5 ft Walkway Head Clearance • 100% Terrace Walkability Preserved',
+                                  style: _t(6.5, bold: true, color: _white)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                          '*Note: Actual layout may vary slightly post physical site survey.',
+                          style: _t(6, color: _s500)),
+                      pw.Text('Wind Resistance Certified: Up to 160 km/h',
+                          style: _t(6, bold: true, color: _navy)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            _sectionTitle('CORE ENGINEERING BILL OF HARDWARE'),
+            pw.SizedBox(height: 6),
+            _specGrid(),
+            pw.Spacer(),
+            // Generation strip
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: pw.BoxDecoration(
+                gradient: pw.LinearGradient(
+                    colors: [_navy, _navyDeep],
+                    begin: pw.Alignment.centerLeft,
+                    end: pw.Alignment.centerRight),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Expected Daily Generation: 14.5 – 18.0 Units (kWh) per day',
+                      style: _t(7.5, bold: true, color: _goldLight)),
+                  pw.Text('Annual CO₂ Offset: 4.2 Metric Tons / Year',
+                      style: _t(7.5, bold: true, color: _white)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      2,
+      'Technical Plant Blueprint',
+    );
+  }
+
+  pw.Widget _specGrid() {
+    final cards = <List<String>>[
+      ['TOTAL SYSTEM CAPACITY', '${_capKw.toStringAsFixed(2)} kWp', '#071440'],
+      ['SOLAR PV MODULES', 'Adani TOPCon ${d.panelWattpeak} Wp', '#0B1F5C'],
+      ['GRID-TIED SMART INVERTER', d.inverterKwValue, '#071440'],
+      ['MOUNTING STRUCTURE', 'Elevated Hot-Dip GI', '#0B1F5C'],
+      ['DC & AC SOLAR CABLING', '${d.dcCableSpecs} UV Tinned Copper', '#071440'],
+      ['PROTECTION & EARTHING', '3-Point Chemical Earthing + LA', '#0B1F5C'],
+    ];
+    final rows = <pw.Widget>[];
+    for (var i = 0; i < cards.length; i += 2) {
+      rows.add(pw.Row(children: [
+        pw.Expanded(child: _specCard(cards[i])),
+        pw.SizedBox(width: 8),
+        pw.Expanded(child: _specCard(cards[i + 1])),
+      ]));
+      if (i + 2 < cards.length) rows.add(pw.SizedBox(height: 8));
+    }
+    return pw.Column(children: rows);
+  }
+
+  pw.Widget _specCard(List<String> c) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: _s200),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(c[0], style: _t(6, bold: true, color: _s400, spacing: 0.4)),
+          pw.SizedBox(height: 2),
+          pw.Text(c[1],
+              style: _t(9, bold: true, color: PdfColor.fromHex(c[2]))),
+        ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 3 — OFFICIAL QUOTATION
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page quotation() {
+    return _page(
+      pw.Container(
+        color: _white,
+        padding: const pw.EdgeInsets.fromLTRB(26, 10, 26, 8),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            // From / Bill To / Meta
+            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Expanded(
+                flex: 4,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: _skySoft,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: _border),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('FROM (EPC CONTRACTOR)',
+                          style: _t(6, bold: true, color: _navyDeep, spacing: 0.5)),
+                      pw.SizedBox(height: 2),
+                      pw.Text('Global Solar 2.0',
+                          style: _t(9, bold: true, color: _navy)),
+                      pw.SizedBox(height: 2),
+                      pw.Text(d.companyAddress,
+                          style: _t(6.5, color: _s600)),
+                      pw.SizedBox(height: 2),
+                      pw.Text('GSTIN: ${d.companyGstin}',
+                          style: _t(6.5, bold: true, color: _s900)),
+                      pw.Text('DISCOM: PGVCL Empanelled',
+                          style: _t(6.5, color: _s600)),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                flex: 4,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: _white,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: _s200),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('BILL TO (CLIENT)',
+                          style: _t(6, bold: true, color: _s400, spacing: 0.5)),
+                      pw.SizedBox(height: 2),
+                      pw.Text(d.customerName,
+                          style: _t(9, bold: true, color: _navy)),
+                      pw.SizedBox(height: 2),
+                      pw.Text(d.customerLocation, style: _t(6.5, color: _s600)),
+                      pw.SizedBox(height: 2),
+                      pw.Text('Mobile: ${d.customerMobile}',
+                          style: _t(6.5, color: _s700)),
+                      pw.Text('State: ${d.state}', style: _t(6.5, color: _s600)),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                flex: 4,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: _navy,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: _gold, width: 0.6),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                    children: [
+                      _metaLine('Estimate No:', d.quotationId, _goldLight),
+                      _metaLine('Quotation Date:', d.quotationDate, _white),
+                      _metaLine('Price Validity:', d.expiryDate, _goldLight),
+                      _metaLine('Created By:', d.preparedBy, _white),
+                    ],
+                  ),
+                ),
+              ),
+            ]),
+            pw.SizedBox(height: 8),
+            _lineItemsTable(),
+            pw.SizedBox(height: 8),
+            _financialSummary(),
+            pw.SizedBox(height: 6),
+            // Amount in words
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: pw.BoxDecoration(
+                color: _goldSoft,
+                borderRadius: pw.BorderRadius.circular(6),
+                border: pw.Border.all(color: _gold, width: 0.6),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Amount in Words (Effective Cost):',
+                      style: _t(7.5, bold: true, color: PdfColor.fromHex('#78350F'))),
+                  pw.Text(_s(d.amountInWords),
+                      style: _t(8, bold: true, color: _navy)),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            // Bank + signature
+            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Expanded(flex: 7, child: _bankBox()),
+              pw.SizedBox(width: 8),
+              pw.Expanded(flex: 5, child: _signatureBox()),
+            ]),
+          ],
+        ),
+      ),
+      3,
+      'Official Commercial Quotation',
+    );
+  }
+
+  pw.Widget _metaLine(String label, String value, PdfColor vc) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: _t(6.5, color: _s400)),
+          pw.Text(value, style: _t(7, bold: true, color: vc)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _lineItemsTable() {
+    final heads = ['#', 'Item & Technical Description', 'Qty', 'Rate (Rs.)', 'Disc.', 'CGST', 'SGST', 'Total (Rs.)'];
+    final rows = <pw.TableRow>[
+      pw.TableRow(
+        decoration: pw.BoxDecoration(color: _navy),
+        children: [
+          for (var c = 0; c < heads.length; c++)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+              child: pw.Text(heads[c],
+                  textAlign: (c == 1) ? pw.TextAlign.left : pw.TextAlign.center,
+                  style: _t(6.8, bold: true, color: c == 7 ? _goldLight : _white, spacing: 0.3)),
+            ),
+        ],
+      ),
+    ];
+    for (var i = 0; i < d.lineItems.length; i++) {
+      final it = d.lineItems[i];
+      final hide = _hideRateTotal(it.description);
+      final subsidy = it.rate < 0;
+      rows.add(pw.TableRow(
+        decoration: pw.BoxDecoration(color: i.isEven ? _white : _s100),
+        verticalAlignment: pw.TableCellVerticalAlignment.top,
+        children: [
+          _cell('${i + 1}'.padLeft(2, '0'), align: pw.TextAlign.center, color: _s400),
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(_s(it.description),
+                    style: _t(7.5, bold: true, color: subsidy ? _green : _navy)),
+                if (it.specs.isNotEmpty)
+                  pw.Text(it.specs.join(' '),
+                      style: _t(6.2, color: subsidy ? _greenDark : _s500)),
+              ],
+            ),
+          ),
+          _cell(it.qty, align: pw.TextAlign.center),
+          _cell(hide ? '-' : ProposalPdf._fmt.format(it.rate.abs()), align: pw.TextAlign.right),
+          _cell(it.discount == 0 ? 'Rs. 0' : ProposalPdf.money(it.discount), align: pw.TextAlign.right),
+          _cell('${_g(it.cgstPercent)}%', align: pw.TextAlign.right),
+          _cell('${_g(it.sgstPercent)}%', align: pw.TextAlign.right),
+          _cell(hide ? '-' : ProposalPdf._fmt.format(it.total.abs()),
+              align: pw.TextAlign.right, bold: true, color: subsidy ? _green : _navy),
         ],
       ));
     }
-
     return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.4),
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.top,
+      border: pw.TableBorder.all(color: _s200, width: 0.4),
       columnWidths: {
         0: pw.FixedColumnWidth(20),
-        1: pw.FlexColumnWidth(2.5),
-        2: pw.FixedColumnWidth(28),
+        1: pw.FlexColumnWidth(3.2),
+        2: pw.FixedColumnWidth(34),
         3: pw.FixedColumnWidth(50),
-        4: pw.FixedColumnWidth(46),
-        5: pw.FixedColumnWidth(44), // CGST — wider for 'Rs. X,XXX' amounts
-        6: pw.FixedColumnWidth(44), // SGST — wider for 'Rs. X,XXX' amounts
-        7: pw.FixedColumnWidth(50),
+        4: pw.FixedColumnWidth(40),
+        5: pw.FixedColumnWidth(34),
+        6: pw.FixedColumnWidth(34),
+        7: pw.FixedColumnWidth(54),
       },
-      children: tableRows,
+      children: rows,
     );
   }
 
-  /// Bottom section of the quotation page: amount-in-words + notes (left),
-  /// totals + bank details + signature (right).
-  pw.Widget _quotationBottom() {
+  String _g(double v) {
+    if (v == v.roundToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(2);
+  }
+
+  static bool _hideRateTotal(String description) {
+    final x = description.toLowerCase();
+    return x.contains('stamp') || x.contains('meter') || x.contains('geda');
+  }
+
+  pw.Widget _cell(String text,
+      {pw.TextAlign align = pw.TextAlign.left,
+      bool bold = false,
+      PdfColor? color}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+      child: pw.Text(text,
+          textAlign: align,
+          style: _t(7, bold: bold, color: color ?? _s700)),
+    );
+  }
+
+  pw.Widget _financialSummary() {
+    final totalBefore = d.grandTotal + d.subsidyAmount;
+    final rows = <pw.Widget>[
+      _fsRow(
+        '1. System Gross Amount (Inclusive of Hardware, Elevation & GST)',
+        'Turnkey EPC',
+        ProposalPdf.moneyINR(totalBefore),
+        _navy,
+        _navyDeep,
+        _goldLight,
+      ),
+      _fsRow(
+        '2. Central Government Subsidy (PM Surya Ghar 2.0 DBT)',
+        'Direct Bank Credit',
+        '- ${ProposalPdf.moneyINR(d.subsidyAmount)}',
+        _green,
+        _greenDark,
+        _white,
+      ),
+      _fsRow(
+        '3. EFFECTIVE NET COST TO CUSTOMER (After DBT Subsidy)',
+        'Realized cost after subsidy disbursement',
+        ProposalPdf.moneyINR(d.grandTotal),
+        _navyDeep,
+        _navy,
+        _goldLight,
+        big: true,
+      ),
+      _fsRow(
+        '4. Total Turnkey Payable to EPC (By Cheque / RTGS / Loan)',
+        'As per Milestone Schedule',
+        ProposalPdf.moneyINR(totalBefore),
+        _sky,
+        _border,
+        _navy,
+        dark: true,
+      ),
+    ];
     return pw.Container(
-      width: double.infinity,
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          // ── Amount in words ──
-          pw.Text(_s(d.amountInWords), style: _t(8.5, color: PdfColors.grey700)),
-          pw.SizedBox(height: 8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: _navyDeep, width: 1.4),
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Column(children: rows),
+    );
+  }
 
-          // ── Financial Summary Block (full-width, page 3) ──
-          _financialSummary(),
-          pw.SizedBox(height: 8),
-
-          // ── Notes + Bank Details (side by side) ──
-          pw.Row(
+  pw.Widget _fsRow(String label, String sub, String amount, PdfColor leftBg,
+      PdfColor rightBg, PdfColor amountColor,
+      {bool big = false, bool dark = false}) {
+    return pw.Row(children: [
+      pw.Expanded(
+        flex: 8,
+        child: pw.Container(
+          color: leftBg,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Expanded(child: _notesBox()),
-              pw.SizedBox(width: 18),
-              pw.Expanded(child: _bankBox()),
+              pw.Text(label,
+                  style: _t(big ? 9 : 7.5, bold: true,
+                      color: dark ? _navy : _white)),
+              pw.Text(sub,
+                  style: _t(6, color: dark ? _s500 : _s400)),
             ],
           ),
-          pw.SizedBox(height: 10),
-
-          // ── Signature ──
-          _signatureBlock(),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _notesBox() {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.grey50,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: gold, width: 0.75),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text('Notes & Required Documents',
-              style: _t(7.5, bold: true, color: navy)),
-          pw.SizedBox(height: 4),
-          for (final note in d.notes)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 1.5),
-              child: _bullet(_s(note), _t(6.5), gold),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// ── Financial Summary Block (replaces totals box, page 3) ─────────────────
-  /// Renders the 4-row angled-divider summary that mirrors the HTML template:
-  /// 1. System Amount w/ GST  (navy/yellow, highlighted total)
-  /// 2. Government Subsidy    (green, NOT highlighted — hidden when 0)
-  /// 3. Net Cost After Subsidy (navy/yellow, highlighted total)
-  /// 4. Payment Mode          (light-blue, no yellow block)
-  pw.Widget _financialSummary() {
-    final totalBeforeSubsidy = d.grandTotal + d.subsidyAmount;
-    final hasSubsidy = d.subsidyAmount > 0;
-    String tl(String en, String hinglish) => d.useHinglish ? hinglish : en;
-
-    return pw.Container(
-      width: double.infinity,
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        children: [
-          // Caption
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 8),
-            child: pw.Text(
-              'Financial Summary (Inclusive of GST)',
-              style: _t(7.5, bold: true, color: navy),
-              textAlign: pw.TextAlign.center,
-            ),
-          ),
-
-          // Row 1 — System Amount w/ GST (navy / yellow)
-          _fsRow(
-            leftGradient: _navyGrad,
-            rightGradient: _yellowGrad,
-            leftTextColor: PdfColors.white,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconRupee,
-            label: tl('कुल मूल्य (System Amount w/ GST)', 'System Amount w/ GST'),
-            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
-          ),
-
-          // Row 2 — Subsidy (green, NOT highlighted), hidden when 0
-          if (hasSubsidy)
-            _fsRow(
-              leftGradient: _greenGrad,
-              rightGradient: _lightGreenGrad,
-              leftTextColor: PdfColors.white,
-              rightTextColor: _fsDarkGreen,
-              iconSvg: _iconHandCoin,
-              label: tl('सरकारी सब्सिडी (Government Subsidy)',
-                  'Government Subsidy (PM Surya Ghar)'),
-              amount: ProposalPdf.moneyINR(d.subsidyAmount),
-            ),
-
-          // Row 3 — Net Cost After Subsidy (navy / yellow)
-          _fsRow(
-            leftGradient: _navyGrad,
-            rightGradient: _yellowGrad,
-            leftTextColor: PdfColors.white,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconPerson,
-            label: tl('अंतिम लागत (Net Cost After Subsidy)',
-                'Net Cost After Subsidy'),
-            amount: ProposalPdf.moneyINR(d.grandTotal),
-          ),
-
-          // Row 4 — Payment Mode (light-blue, no yellow block)
-          _fsRow(
-            leftColor: _fsLightBlue,
-            rightColor: _fsLightBlue,
-            leftBorderColor: _fsLightBlueBorder,
-            rightBorderColor: _fsLightBlueBorder,
-            leftTextColor: _fsNavyStart,
-            rightTextColor: _fsNavyStart,
-            iconSvg: _iconCheque,
-            label: tl('नेट पेबेबल (Net payable by cheque/cash)',
-                'Net payable by cheque/cash'),
-            amount: ProposalPdf.moneyINR(totalBeforeSubsidy),
-            noDiagonal: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds a single financial-summary row with the 60/40 angled divider.
-  /// When [noDiagonal] is `true` a flat light-blue row is produced (Row 4).
-  pw.Widget _fsRow({
-    pw.LinearGradient? leftGradient,
-    pw.LinearGradient? rightGradient,
-    PdfColor? leftColor,
-    PdfColor? rightColor,
-    PdfColor? leftBorderColor,
-    PdfColor? rightBorderColor,
-    required PdfColor leftTextColor,
-    required PdfColor rightTextColor,
-    required String iconSvg,
-    required String label,
-    required String amount,
-    bool noDiagonal = false,
-  }) {
-    // ── Left half content: icon badge + bilingual label ──
-    final leftContent = pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
-      children: [
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 8),
-          child: pw.SvgImage(svg: iconSvg, width: 24, height: 24),
-        ),
-        pw.SizedBox(width: 6),
-        pw.Expanded(
-          child: pw.Padding(
-            padding: const pw.EdgeInsets.only(right: 10),
-            child: pw.Text(
-              label,
-              style: _t(7.5, bold: true, color: leftTextColor),
-              maxLines: 2,
-            ),
-          ),
-        ),
-      ],
-    );
-
-    // ── Right half content: very large amount ──
-    final rightContent = pw.Container(
-      alignment: pw.Alignment.centerRight,
-      padding: const pw.EdgeInsets.only(right: 14),
-      child: pw.Text(
-        amount,
-        style: _t(15, bold: true, color: rightTextColor),
-      ),
-    );
-
-    if (noDiagonal) {
-      // Row 4 — flat light-blue with thin border, no gradient
-      return pw.Container(
-        height: 34,
-        margin: const pw.EdgeInsets.only(bottom: 4),
-        decoration: pw.BoxDecoration(
-          color: leftColor,
-          borderRadius: pw.BorderRadius.circular(6),
-          border: pw.Border(
-            top: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
-            bottom: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
-            left: pw.BorderSide(color: leftBorderColor ?? _fsLightBlueBorder, width: 0.7),
-            right: pw.BorderSide(color: rightBorderColor ?? _fsLightBlueBorder, width: 0.7),
-          ),
-        ),
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
-          children: [
-            pw.Expanded(flex: 60, child: leftContent),
-            pw.Expanded(flex: 40, child: rightContent),
-          ],
-        ),
-      );
-    }
-
-    // Rows 1–3 — simple two-tone split with gradient backgrounds
-    return pw.Container(
-      height: 34,
-      margin: const pw.EdgeInsets.only(bottom: 4),
-      child: pw.ClipRRect(
-        horizontalRadius: 6,
-        verticalRadius: 6,
-        child: pw.Row(
-          children: [
-            pw.Expanded(
-              flex: 60,
-              child: pw.Container(
-                decoration: pw.BoxDecoration(gradient: leftGradient),
-                child: leftContent,
-              ),
-            ),
-            pw.Expanded(
-              flex: 40,
-              child: pw.Container(
-                decoration: pw.BoxDecoration(gradient: rightGradient),
-                child: rightContent,
-              ),
-            ),
-          ],
         ),
       ),
-    );
+      pw.Expanded(
+        flex: 4,
+        child: pw.Container(
+          color: rightBg,
+          alignment: pw.Alignment.centerRight,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: pw.Text(amount,
+              style: _t(big ? 11 : 9, bold: true, color: amountColor)),
+        ),
+      ),
+    ]);
   }
 
   pw.Widget _bankBox() {
@@ -1196,352 +981,535 @@ class _Renderer {
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey50,
+        color: _skySoft,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: navy, width: 0.75),
+        border: pw.Border.all(color: _border),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('Bank Details',
-              style: _t(7.5, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          _kv('Bank Name', b.bankName),
-          _kv('A/c Name', b.accountName),
-          _kv('A/c No.', b.accountNo),
-          _kv('IFSC', b.ifsc),
-          _kv('Branch', b.branch),
+          pw.Text('OFFICIAL BANK RTGS / NEFT PARTICULARS',
+              style: _t(7, bold: true, color: _navy, spacing: 0.3)),
+          pw.SizedBox(height: 5),
+          _kv('Bank Name:', b.bankName),
+          _kv('Account Type:', 'Current Account'),
+          _kv('Account Name:', b.accountName),
+          _kv('Account Number:', b.accountNo),
+          _kv('IFSC Code:', b.ifsc),
+          _kv('Branch:', b.branch),
         ],
       ),
     );
   }
 
   pw.Widget _kv(String k, String v) => pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.SizedBox(
-              width: 60,
-              child: pw.Text('$k:', style: _t(7, bold: true, color: navy)),
-            ),
-            pw.Text(v, style: _t(7)),
-          ],
-        ),
+        padding: const pw.EdgeInsets.symmetric(vertical: 1.2),
+        child: pw.Row(children: [
+          pw.SizedBox(
+              width: 74,
+              child: pw.Text(k, style: _t(6.5, color: _s500))),
+          pw.Expanded(
+              child: pw.Text(v,
+                  style: _t(6.8, bold: true, color: _navy))),
+        ]),
       );
 
-  pw.Widget _signatureBlock() {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
-      children: [
-        pw.Container(
-          width: 160,
-          height: 50,
-          decoration: pw.BoxDecoration(
-            border: pw.Border.all(
-              color: PdfColors.grey600,
-              width: 0.75,
-              style: pw.BorderStyle.dashed,
-            ),
-            borderRadius: pw.BorderRadius.circular(4),
-          ),
-          child: pw.Center(
-            child: pw.Text(
-              'AUTHORIZED\nSIGNATURE & STAMP',
-              textAlign: pw.TextAlign.center,
-              style: _t(6, bold: true, color: PdfColors.grey600),
-            ),
-          ),
+  pw.Widget _signatureBox() {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: _s200),
+      ),
+      child: pw.Column(children: [
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text('For Global Solar 2.0',
+              style: _t(6, bold: true, color: _s400, spacing: 0.4)),
         ),
-        pw.SizedBox(height: 4),
-        pw.Text(d.preparedBy, style: _t(8, bold: true)),
-        pw.Text('For ${d.companyName}', style: _t(7, color: PdfColors.grey700)),
-      ],
+        pw.SizedBox(height: 8),
+        pw.Text('Jayrajsinh S. Umat',
+            style: _t(11, bold: true, color: _navy)),
+        pw.Container(
+            width: 120,
+            margin: const pw.EdgeInsets.symmetric(vertical: 3),
+            decoration: pw.BoxDecoration(
+                border: pw.Border(
+                    bottom: pw.BorderSide(
+                        color: _s400, width: 0.7, style: pw.BorderStyle.dashed)))),
+        pw.Text('Founder & Chief Technical Officer',
+            style: _t(6.8, bold: true, color: _navy)),
+        pw.Text('Authorized EPC Signatory & Stamp',
+            style: _t(6, color: _s500)),
+      ]),
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 4 — Terms & Bill of Materials
-  // ════════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 4 — TERMS + BOM
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page termsBom() {
+    final terms = [
+      ['Payment Milestones:', '10% booking token, 70% on material dispatch, 20% post PGVCL net-meter inspection.'],
+      ['Subsidy Disbursal:', 'Rs. 78,000 processed via the National PM Surya Ghar portal to the Aadhaar-linked bank account.'],
+      ['Statutory Clearances:', 'Global Solar 2.0 manages 100% of PGVCL documentation, CEIG approval and meter testing.'],
+      ['Installation Lead Time:', 'Mechanical & electrical installation completed within 5-7 days of site readiness.'],
+      ['Client Scope:', 'Shadow-free rooftop terrace, raw water connection and internet WiFi for inverter monitoring.'],
+      ['Price Validity:', 'Quoted prices guaranteed for 15 calendar days from issuance.'],
+    ];
+    return _page(
+      pw.Container(
+        color: _white,
+        padding: const pw.EdgeInsets.fromLTRB(26, 12, 26, 10),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            _pageHeading('Commercial Terms & Project Conditions',
+                'Applicable to Quotation ${d.quotationId}'),
+            pw.SizedBox(height: 8),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: _skySoft,
+                borderRadius: pw.BorderRadius.circular(10),
+                border: pw.Border.all(color: _border),
+              ),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(child: _termCol(terms.sublist(0, 3))),
+                  pw.SizedBox(width: 12),
+                  pw.Expanded(child: _termCol(terms.sublist(3))),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 12),
+            _pageHeading('Comprehensive Bill of Material (BOM)',
+                'MNRE / ALMM Approved Component List',
+                barColor: _gold),
+            pw.SizedBox(height: 8),
+            _bomTable(),
+          ],
+        ),
+      ),
+      4,
+      'Scope of Work & BOM',
+    );
+  }
 
-  pw.Page _termsBom() {
-    return pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
-      build: (pw.Context ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+  pw.Widget _pageHeading(String title, String right, {PdfColor? barColor}) {
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: [
+      pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
         children: [
-          _header(),
-          pw.SizedBox(height: 18),
-          pw.Text('Terms & Conditions', style: _t(15, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          pw.Divider(height: 4, thickness: 1, color: gold),
-          pw.SizedBox(height: 8),
-          pw.Wrap(
-            runSpacing: 2,
-            spacing: 6,
-            children: [
-              for (final note in d.notes)
-                pw.SizedBox(
-                  width: 210,
-                  child: pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                    pw.Text('- ',
-                          style: _t(7.5, bold: true, color: gold)),
-                      pw.Expanded(
-                        child: pw.Text(note,
-                            style: _t(7.5, color: PdfColors.grey800, height: 1.3)),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          pw.SizedBox(height: 16),
-          pw.Text('Bill of Material', style: _t(12, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          pw.Divider(height: 4, thickness: 1, color: gold),
-          pw.SizedBox(height: 6),
-          _bomTable(),
-          pw.Spacer(),
-          _footer(4),
+          pw.Row(children: [
+            pw.Container(width: 10, height: 10, color: barColor ?? _navyDeep),
+            pw.SizedBox(width: 6),
+            pw.Text(title, style: _t(13, bold: true, color: _navy)),
+          ]),
+          pw.Text(right, style: _t(7, color: _s500)),
         ],
       ),
-    );
+      pw.SizedBox(height: 3),
+      pw.Divider(color: _s200, height: 4, thickness: 0.6),
+    ]);
+  }
+
+  pw.Widget _termCol(List<List<String>> items) {
+    final children = <pw.Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      children.add(pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Container(
+            width: 13,
+            height: 13,
+            alignment: pw.Alignment.center,
+            decoration: pw.BoxDecoration(color: _navy, shape: pw.BoxShape.circle),
+            child: pw.Text('${i + 1}', style: _t(6, bold: true, color: _goldLight)),
+          ),
+          pw.SizedBox(width: 5),
+          pw.Expanded(
+            child: pw.RichText(
+              text: pw.TextSpan(children: [
+                pw.TextSpan(
+                    text: '${items[i][0]} ',
+                    style: _t(7.5, bold: true, color: _s900)),
+                pw.TextSpan(text: items[i][1], style: _t(7.5, color: _s600)),
+              ]),
+            ),
+          ),
+        ],
+      ));
+      if (i != items.length - 1) children.add(pw.SizedBox(height: 6));
+    }
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
   }
 
   pw.Widget _bomTable() {
-    final headerCells = ['Sr No.', 'Item', 'Qty', 'Unit', 'Brand'];
-
+    final heads = ['Sr No.', 'Item Description', 'Qty', 'Unit', 'Approved Brand'];
     final rows = <pw.TableRow>[
       pw.TableRow(
-        decoration: pw.BoxDecoration(color: navy),
+        decoration: pw.BoxDecoration(color: _navy),
         children: [
-          for (final h in headerCells)
-            pw.Center(
-              child: pw.Padding(
-                padding: const pw.EdgeInsets.all(2.5),
-                child: pw.Text(h,
-                    textAlign: pw.TextAlign.center,
-                    style: _t(7.5, bold: true, color: PdfColors.white)),
-              ),
+          for (final h in heads)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+              child: pw.Text(h,
+                  style: _t(6.8, bold: true, color: _white, spacing: 0.3)),
             ),
         ],
       ),
     ];
-
-    // Group items by category for section headers
-    String? currentCategory;
-    int srNo = 0;
-
-    for (int i = 0; i < d.bomItems.length; i++) {
-      final item = d.bomItems[i];
-
-      // Add category section header when category changes
-      if (item.category != currentCategory) {
-        currentCategory = item.category;
+    String? cat;
+    var sr = 0;
+    for (final b in d.bomItems) {
+      if (b.category != cat) {
+        cat = b.category;
         rows.add(pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey200),
+          decoration: pw.BoxDecoration(color: _s200),
           children: [
-            pw.Center(child: pw.Text('', style: _t(7.5))),
+            pw.SizedBox(),
             pw.Padding(
-              padding: const pw.EdgeInsets.all(2.5),
-              child: pw.Text(currentCategory!,
-                  style: _t(7.5, bold: true, color: navy)),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+              child: pw.Text((cat ?? '').toUpperCase(),
+                  style: _t(6.8, bold: true, color: _s800)),
             ),
-            pw.Center(child: pw.Text('', style: _t(7.5))),
-            pw.Center(child: pw.Text('', style: _t(7.5))),
-            pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text('', style: _t(7.5))),
+            pw.SizedBox(),
+            pw.SizedBox(),
+            pw.SizedBox(),
           ],
         ));
       }
-
-      srNo++;
-      final isAlt = srNo.isEven;
+      sr++;
       rows.add(pw.TableRow(
-        decoration: pw.BoxDecoration(
-          color: isAlt ? PdfColors.white : PdfColors.grey100,
-        ),
+        decoration: pw.BoxDecoration(color: sr.isEven ? _s100 : _white),
         children: [
-          pw.Center(child: pw.Text('$srNo', style: _t(7.5), textAlign: pw.TextAlign.center)),
-          pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text(item.item, style: _t(7.5))),
-          pw.Center(child: pw.Text(item.qty, style: _t(7.5), textAlign: pw.TextAlign.center)),
-          pw.Center(child: pw.Text(item.unit, style: _t(7.5), textAlign: pw.TextAlign.center)),
-          pw.Padding(padding: const pw.EdgeInsets.all(2.5), child: pw.Text(item.brand, style: _t(7.5))),
+          _cell('$sr', align: pw.TextAlign.center, color: _s500),
+          _cell(b.item),
+          _cell(b.qty, align: pw.TextAlign.center, bold: true),
+          _cell(b.unit, align: pw.TextAlign.center, color: _s600),
+          _cell(b.brand, bold: true, color: _navyDeep),
         ],
       ));
     }
-
     return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.4),
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+      border: pw.TableBorder.all(color: _s200, width: 0.4),
       columnWidths: {
-        0: pw.FixedColumnWidth(30),
-        1: pw.FlexColumnWidth(3),
-        2: pw.FixedColumnWidth(50),
-        3: pw.FixedColumnWidth(48),
-        4: pw.FlexColumnWidth(1),
+        0: pw.FixedColumnWidth(40),
+        1: pw.FlexColumnWidth(3.2),
+        2: pw.FixedColumnWidth(40),
+        3: pw.FixedColumnWidth(45),
+        4: pw.FlexColumnWidth(1.6),
       },
       children: rows,
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGES 5–6 — Warranty Terms
-  // ════════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGES 5–6 — WARRANTY
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page warrantyA() => _warrantyPage(
+        5,
+        'Warranty Policy (Part I)',
+        'Tier-1 Warranty Policy & Performance Guarantees',
+        'Comprehensive Asset Security',
+        'Sections 1 to 6 of 12',
+        0,
+        6,
+        'All warranties are backed by OEM certificates + Global Solar 2.0 direct contractor bond.',
+      );
 
-  pw.Page _warrantyPage(int pageNumber, int start, int end) {
-    final sections = d.warrantySections;
-    final count = sections.length;
-    final safeStart = start > count ? count : start;
-    final safeEnd = end > count ? count : end;
-    final slice = safeEnd > safeStart
-        ? sections.sublist(safeStart, safeEnd)
-        : <WarrantySection>[];
+  pw.Page warrantyB() => _warrantyPage(
+        6,
+        'Warranty Policy (Part II)',
+        'Warranty Scope, Exclusions & Claim SLA',
+        'Service Protocol & Liability',
+        'Sections 7 to 12 of 12',
+        6,
+        12,
+        'ISO 9001:2015 Quality Certified Rooftop Solar Engineering Execution',
+      );
 
-    return pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
-      build: (pw.Context ctx) => pw.Column(
+  pw.Page _warrantyPage(int page, String sub, String title, String tag,
+      String count, int start, int end, String banner) {
+    final all = d.warrantySections;
+    final slice = all.sublist(
+        start.clamp(0, all.length), end.clamp(0, all.length));
+    return _page(
+      pw.Container(
+        color: _white,
+        padding: const pw.EdgeInsets.fromLTRB(26, 12, 26, 10),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    color: _sky,
+                    child: pw.Text(tag.toUpperCase(),
+                        style: _t(6, bold: true, color: _navyDeep, spacing: 0.5)),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(title, style: _t(15, bold: true, color: _navy)),
+                ]),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: pw.BoxDecoration(
+                    color: _greenLight,
+                    borderRadius: pw.BorderRadius.circular(999),
+                    border: pw.Border.all(color: _green, width: 0.5),
+                  ),
+                  child: pw.Text(count, style: _t(7, bold: true, color: _green)),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 4),
+            pw.Divider(color: _s200, height: 6, thickness: 0.6),
+            pw.SizedBox(height: 6),
+            for (var i = 0; i < slice.length; i++) ...[
+              _warrantyCard(start + i + 1, slice[i]),
+              if (i != slice.length - 1) pw.SizedBox(height: 7),
+            ],
+            pw.Spacer(),
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: pw.BoxDecoration(
+                color: _navy,
+                borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: _gold, width: 0.5),
+              ),
+              child: pw.Text(banner,
+                  style: _t(7.5, bold: true, color: _goldLight)),
+            ),
+          ],
+        ),
+      ),
+      page,
+      sub,
+    );
+  }
+
+  pw.Widget _warrantyCard(int n, WarrantySection sec) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(9),
+      decoration: pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: _s200),
+      ),
+      child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          _header(),
-          pw.SizedBox(height: 18),
-          pw.Text('Warranty Terms', style: _t(18, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          pw.Divider(height: 4, thickness: 1, color: gold),
-          pw.SizedBox(height: 12),
-          for (final section in slice) ...[
+          pw.Row(children: [
+            pw.Container(
+              width: 15,
+              height: 15,
+              alignment: pw.Alignment.center,
+              decoration:
+                  pw.BoxDecoration(color: _navy, shape: pw.BoxShape.circle),
+              child: pw.Text('$n', style: _t(7, bold: true, color: _goldLight)),
+            ),
+            pw.SizedBox(width: 6),
+            pw.Expanded(
+              child: pw.Text(_s(sec.heading),
+                  style: _t(9, bold: true, color: _navy)),
+            ),
+          ]),
+          pw.SizedBox(height: 3),
+          pw.Container(height: 0.6, color: _s100),
+          pw.SizedBox(height: 3),
+          for (final b in sec.bullets)
             pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 6, bottom: 2),
-              child: pw.Text(section.heading,
-                  style: _t(8.5, bold: true, color: navy)),
-            ),
-            for (final bullet in section.bullets)
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 0.5, left: 4),
-                child: _bullet(_s(bullet), _t(7.5), gold, size: 2.2),
+              padding: const pw.EdgeInsets.only(bottom: 1.5),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('•  ', style: _t(7, color: _gold)),
+                  pw.Expanded(
+                      child: pw.Text(b, style: _t(7, color: _s600))),
+                ],
               ),
-            pw.SizedBox(height: 4),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 7 — PAYMENT & CONTACT
+  // ══════════════════════════════════════════════════════════════════════
+  pw.Page payment() {
+    return _page(
+      pw.Container(
+        color: _skySoft,
+        padding: const pw.EdgeInsets.fromLTRB(26, 12, 26, 10),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            pw.Column(children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                color: _greenLight,
+                child: pw.Text('INSTANT ZERO-CONTACT BOOKING',
+                    style: _t(6, bold: true, color: _green, spacing: 0.5)),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text('Scan & Pay via Unified Payments Interface (UPI)',
+                  textAlign: pw.TextAlign.center,
+                  style: _t(15, bold: true, color: _navy)),
+              pw.Text(
+                  'Compatible with Google Pay, PhonePe, Paytm, BHIM and all banking UPI apps',
+                  textAlign: pw.TextAlign.center,
+                  style: _t(7.5, color: _s500)),
+            ]),
+            pw.SizedBox(height: 10),
+            pw.Center(
+              child: pw.Container(
+                width: 330,
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: _white,
+                  borderRadius: pw.BorderRadius.circular(14),
+                  border: pw.Border.all(color: _border, width: 1.4),
+                ),
+                child: pw.Column(children: [
+                  pw.Container(
+                    padding:
+                        const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: pw.BoxDecoration(
+                      color: _greenLight,
+                      borderRadius: pw.BorderRadius.circular(999),
+                    ),
+                    child: pw.Text('✓  NPCI Verified Merchant Account',
+                        style: _t(7, bold: true, color: _green)),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(8),
+                    decoration: pw.BoxDecoration(
+                      color: _white,
+                      border: pw.Border.all(color: _s800, width: 1.2),
+                      borderRadius: pw.BorderRadius.circular(10),
+                    ),
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: d.upiQrUpiId.isNotEmpty
+                          ? d.upiQrUpiId
+                          : 'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+                      width: 130,
+                      height: 130,
+                      color: _navy,
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: pw.BoxDecoration(
+                      color: _skySoft,
+                      borderRadius: pw.BorderRadius.circular(6),
+                      border: pw.Border.all(color: _border),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Merchant UPI VPA:', style: _t(7, color: _s500)),
+                        pw.Text(d.upiId,
+                            style: _t(8.5, bold: true, color: _navy)),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: pw.BoxDecoration(
+                      gradient: pw.LinearGradient(
+                          colors: [_navy, _navyDeep],
+                          begin: pw.Alignment.centerLeft,
+                          end: pw.Alignment.centerRight),
+                      borderRadius: pw.BorderRadius.circular(10),
+                      border: pw.Border.all(color: _gold, width: 0.6),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('BOOKING REGISTRATION ADVANCE',
+                                style: _t(6.5, bold: true, color: _goldLight, spacing: 0.4)),
+                            pw.Text('Token for Site Survey & Liaison',
+                                style: _t(7, color: _s400)),
+                          ],
+                        ),
+                        pw.Text('Rs. 10,000.00',
+                            style: _t(15, bold: true, color: _goldLight)),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            // Contacts
+            pw.Container(
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: _navy,
+                borderRadius: pw.BorderRadius.circular(12),
+                border: pw.Border.all(color: _gold, width: 0.5),
+              ),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                      child: _contactCol('FOUNDERS DIRECT HELPLINE', [
+                    'Jayrajsinh S. Umat — +91 84888 07797',
+                    'Gopalsinh J. Parmar — +91 88665 68543',
+                  ])),
+                  pw.SizedBox(width: 10),
+                  pw.Expanded(
+                      child: _contactCol('ONLINE & PORTAL SUPPORT', [
+                    'WhatsApp: +91 84888 07797',
+                    'Email: contact@globalsolar2.in',
+                    'Website: www.globalsolar2.in',
+                  ])),
+                  pw.SizedBox(width: 10),
+                  pw.Expanded(
+                      child: _contactCol('REGIONAL PHYSICAL OFFICES', [
+                    'Bhavnagar HQ: Shop 4A, Sukhsagar Complex, Kaliyabid.',
+                    'Talaja Desk: Main Market Highway Rd, Opp. PGVCL Sub-station.',
+                  ])),
+                ],
+              ),
+            ),
           ],
-          pw.Spacer(),
-          _footer(pageNumber),
-        ],
+        ),
       ),
+      7,
+      'Payment Gateway & Helpdesk',
     );
   }
 
-  pw.Page _warrantyA() => _warrantyPage(5, 0, 6);
-  pw.Page _warrantyB() => _warrantyPage(6, 6, 12);
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 7 — Payment / Contact
-  // ════════════════════════════════════════════════════════════════════════════
-
-  pw.Page _payment() {
-    return pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(22, 24, 22, 32),
-      build: (pw.Context ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        children: [
-          _header(),
-          pw.SizedBox(height: 18),
-          pw.Text('Payment & Contact',
-              style: _t(18, bold: true, color: navy)),
-          pw.SizedBox(height: 6),
-          pw.Divider(height: 4, thickness: 1, color: gold),
-          pw.SizedBox(height: 16),
-          pw.Spacer(),
-          // Mint-colored rounded rectangle containing QR code
-          pw.Container(
-            padding: const pw.EdgeInsets.all(20),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.green100,
-              borderRadius: pw.BorderRadius.circular(16),
-              border: pw.Border.all(color: gold, width: 1.5),
-            ),
-            child: pw.Center(child: _qrCode(120, 120)),
+  pw.Widget _contactCol(String title, List<String> lines) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(title,
+            style: _t(6.5, bold: true, color: _goldLight, spacing: 0.4)),
+        pw.SizedBox(height: 3),
+        for (final l in lines)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 1.5),
+            child: pw.Text(l, style: _t(7, color: _s400)),
           ),
-          pw.SizedBox(height: 12),
-          // Rounded card with company name + UPI ID
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey50,
-              borderRadius: pw.BorderRadius.circular(12),
-              border: pw.Border.all(color: gold, width: 0.75),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(d.companyName, style: _t(10, bold: true, color: PdfColors.grey600)),
-                pw.SizedBox(height: 2),
-                pw.Text('UPI ID: ${d.upiId}', style: _t(8, color: navy)),
-              ],
-            ),
-          ),
-          pw.Spacer(),
-          // Three-column contact strip
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(vertical: 10),
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                top: pw.BorderSide(width: 0.7, color: PdfColors.grey300),
-              ),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text(d.companyName, style: _t(7.5, bold: true, color: navy)),
-                    pw.Text(d.companyAddress,
-                        textAlign: pw.TextAlign.center,
-                        style: _t(6.5, color: PdfColors.grey700)),
-                  ],
-                ),
-                 pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text('Phone', style: _t(6.5, bold: true, color: navy)),
-                    pw.Text(d.companyPhone, style: _t(6.5, color: PdfColors.grey700)),
-                  ],
-                ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text('Email', style: _t(6.5, bold: true, color: navy)),
-                    pw.Text(d.companyEmail, style: _t(6.5, color: PdfColors.grey700)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          _footer(7),
-        ],
-      ),
+      ],
     );
-  }
-
-  /// QR code: pre-generated image if supplied, else generated from UPI ID,
-  /// else a placeholder box.
-  pw.Widget _qrCode(double w, double h) {
-    if (d.upiQrImage != null && d.upiQrImage!.isNotEmpty) {
-      return pw.Image(pw.MemoryImage(d.upiQrImage!), width: w, height: h, fit: pw.BoxFit.contain);
-    }
-    if (d.upiQrUpiId.isNotEmpty) {
-      return pw.BarcodeWidget(
-        data: d.upiQrUpiId,
-        barcode: pw.Barcode.qrCode(),
-        drawText: false,
-        width: w,
-        height: h,
-      );
-    }
-    // Placeholder
-    return _img(null, w, h, 'UPI QR Code');
   }
 }

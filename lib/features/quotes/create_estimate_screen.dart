@@ -118,6 +118,14 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           DateTime.now().add(Duration(days: master.expiryDays));
       _estimate.gstProfileLabel =
           master.gstProfiles.isNotEmpty ? master.gstProfiles.last.label : '';
+      _estimate.bomLines = master.bosItems
+          .map((b) => BomLine(
+                name: b.name,
+                qty: b.qty,
+                unit: b.unit,
+                brand: _autoBrand(b.name),
+              ))
+          .toList();
 
       if (!mounted) return;
       setState(() {
@@ -388,12 +396,13 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           _header(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _leadCard(),
                   _systemCard(),
+                  _bomCard(),
                   _lineItemsCard(),
                   _trustNote(),
                 ],
@@ -448,56 +457,76 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   // ── Header ──
 
   Widget _header() {
+    final top = MediaQuery.of(context).padding.top;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [_navyDark, Color(0xFF091A4F), _navy],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF071440), Color(0xFF0B1E58), Color(0xFF0B1F5C)],
         ),
+        boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 8)],
       ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 10,
-        left: 16,
-        right: 16,
-        bottom: 12,
-      ),
-      child: Column(
+      child: Stack(
         children: [
-          Row(
-            children: [
-              _circleButton(
-                icon: Icons.arrow_back_ios_new,
-                onTap: () => Navigator.of(context).pop(),
+          Positioned(
+            right: 24,
+            top: -40,
+            child: Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _gold.withValues(alpha: 0.15),
+                boxShadow: [
+                  BoxShadow(
+                      color: _gold.withValues(alpha: 0.15), blurRadius: 60),
+                ],
               ),
-              Expanded(
-                child: Column(
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, top + 10, 20, 10),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Create Quotation',
-                            style: _th(18, FontWeight.w700, Colors.white)),
-                        const SizedBox(width: 6),
-                        _pulseDot(),
-                      ],
+                    _circleButton(
+                      icon: Icons.arrow_back_rounded,
+                      onTap: () => Navigator.of(context).pop(),
                     ),
-                    const SizedBox(height: 2),
-                    Text('PM Surya Ghar 2.0',
-                        style: _t(12, FontWeight.w500,
-                            const Color(0xFFBFD8F5))),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Create Quotation',
+                                  style: _th(20, FontWeight.w700, Colors.white,
+                                      ls: -0.3)),
+                              const SizedBox(width: 6),
+                              _pulseDot(),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text('PM Surya Ghar 2.0',
+                              style: _t(12, FontWeight.w500,
+                                  const Color(0xFFBFD8F5))),
+                        ],
+                      ),
+                    ),
+                    _circleButton(
+                      icon: Icons.bookmark_border_rounded,
+                      gold: true,
+                      onTap: _saveEstimate,
+                    ),
                   ],
                 ),
-              ),
-              _circleButton(
-                icon: Icons.bookmark_border,
-                gold: true,
-                onTap: _saveEstimate,
-              ),
-            ],
+                const SizedBox(height: 14),
+                _progressBar(),
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
-          _progressBar(),
         ],
       ),
     );
@@ -536,7 +565,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                 border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
         child: Icon(icon,
-            size: 18, color: gold ? _navyDark : Colors.white),
+            size: gold ? 20 : 22, color: gold ? _navyDark : Colors.white),
       ),
     );
   }
@@ -662,7 +691,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
         const SizedBox(height: 14),
         if (!isIndividual) ...[
-          _lbl('Company Name *'),
+          _lbl('Company Name', required: true),
           _field(
             controller: _companyCtrl,
             icon: Icons.business_center_outlined,
@@ -671,7 +700,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        _lbl('Client Full Name *'),
+        _lbl('Client Full Name', required: true),
         _field(
           controller: _nameCtrl,
           icon: Icons.person_outline,
@@ -679,7 +708,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),
-        _lbl('Mobile Contact *'),
+        _lbl('Mobile Contact', required: true),
         _field(
           controller: _mobileCtrl,
           icon: Icons.phone_outlined,
@@ -1066,6 +1095,238 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
 
   // ── Card 3: Additional Line Items ──
 
+  // ── Card 3: Bill of Materials ──
+
+  Widget _bomCard() {
+    final lines = _estimate.bomLines;
+    return _card(children: [
+      _sectionHeader(
+        icon: Icons.inventory_2_outlined,
+        title: 'Bill of Materials',
+        subtitle: 'Choose materials & quantities used in the quotation',
+        trailing: GestureDetector(
+          onTap: _addBomMaterial,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_gold, _goldLight]),
+              borderRadius: BorderRadius.circular(99),
+              boxShadow: [
+                BoxShadow(color: _gold.withValues(alpha: 0.4), blurRadius: 8),
+              ],
+            ),
+            child: Row(children: [
+              const Icon(Icons.add, size: 16, color: _navyDark),
+              const SizedBox(width: 4),
+              Text('Add Material', style: _th(12, FontWeight.w800, _navyDark)),
+            ]),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _bgSky.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _borderSky),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.info, size: 16, color: _gold),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Set the quantity for each material. Unit is detected automatically; brand is pre-filled and can be set when adding a new material.',
+              style: _t(11, FontWeight.w500, _labelMuted, h: 1.4),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      if (lines.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text('No materials yet — tap "Add Material".',
+              style: _t(12, FontWeight.w500, _labelMuted)),
+        )
+      else
+        ...lines.asMap().entries.map((e) => _bomRow(e.value, e.key)),
+    ]);
+  }
+
+  Widget _bomRow(BomLine l, int index) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _bgSky.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _borderSky.withValues(alpha: 0.9)),
+      ),
+      child: Row(children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.name, style: _th(13, FontWeight.w700, _navy)),
+              const SizedBox(height: 2),
+              Text(
+                '${l.unit}  •  ${l.brand.trim().isEmpty ? 'As per standard' : l.brand}',
+                style: _t(11, FontWeight.w500, _labelMuted),
+              ),
+            ],
+          ),
+        ),
+        _qtyBtn(Icons.remove_rounded, () {
+          if (l.qty > 1) setState(() => l.qty--);
+        }),
+        SizedBox(
+          width: 34,
+          child: Text('${l.qty}',
+              textAlign: TextAlign.center,
+              style: _t(14, FontWeight.w700, _navy)),
+        ),
+        _qtyBtn(Icons.add_rounded, () => setState(() => l.qty++)),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => setState(() => _estimate.bomLines.removeAt(index)),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3F2),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFECDCA)),
+            ),
+            child: const Icon(Icons.delete_outline,
+                size: 16, color: Color(0xFFF04438)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: _borderSky),
+          ),
+          child: Icon(icon, size: 16, color: _navy),
+        ),
+      );
+
+  void _addBomMaterial() {
+    final nameCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '1');
+    final brandCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Add Material', style: _th(18, FontWeight.w700, _navy)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                  labelText: 'Material name',
+                  hintText: 'e.g. DC Cable 6 sq.mm'),
+            ),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: qtyCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Quantity'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: brandCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Brand', hintText: 'e.g. POLYCAB'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Unit is added automatically.',
+                  style: _t(11, FontWeight.w500, _labelMuted)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: _gold, foregroundColor: _navyDark),
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final qty = int.tryParse(qtyCtrl.text.trim()) ?? 1;
+              setState(() {
+                _estimate.bomLines.add(BomLine(
+                  name: name,
+                  qty: qty < 1 ? 1 : qty,
+                  unit: _unitFor(name),
+                  brand: brandCtrl.text.trim(),
+                ));
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _unitFor(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('cable') ||
+        n.contains('wire') ||
+        n.contains('conductor') ||
+        n.contains('mtr')) {
+      return 'mtr';
+    }
+    if (n.contains('registration') ||
+        n.contains('application') ||
+        n.contains('net meter')) {
+      return 'set';
+    }
+    if (n.contains('structure') ||
+        n.contains('pipe') ||
+        n.contains('frame') ||
+        n.contains('channel')) {
+      return 'Set';
+    }
+    return 'Nos';
+  }
+
+  static String _autoBrand(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('cable') || n.contains('wire') || n.contains('mc4')) {
+      return 'POLYCAB';
+    }
+    if (n.contains('earthing')) return 'Copper Bonded';
+    if (n.contains('net meter')) return 'PGVCL';
+    if (n.contains('geda')) return 'GEDA';
+    return '';
+  }
+
   Widget _lineItemsCard() {
     return _card(
       children: [
@@ -1217,51 +1478,62 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   Widget _bottomBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        border: Border(top: BorderSide(color: _borderSky.withValues(alpha: 0.9))),
+        color: Colors.white.withValues(alpha: 0.94),
+        border:
+            Border(top: BorderSide(color: _borderSky.withValues(alpha: 0.9))),
         boxShadow: [
           BoxShadow(
-              color: _navy.withValues(alpha: 0.08),
-              blurRadius: 24,
+              color: _navy.withValues(alpha: 0.10),
+              blurRadius: 20,
               offset: const Offset(0, -8)),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: _saveEstimate,
-            child: Container(
-              height: 50,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [_gold, _goldLight, _goldHover]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                      color: _gold.withValues(alpha: 0.4), blurRadius: 20),
-                ],
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _saveEstimate,
+                child: Container(
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [_gold, _goldLight, _goldHover]),
+                    borderRadius: BorderRadius.circular(16),
+                    border:
+                        Border.all(color: _goldLight.withValues(alpha: 0.6)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: _gold.withValues(alpha: 0.45),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          size: 22, color: _navyDark),
+                      const SizedBox(width: 8),
+                      Text('Create Quotation',
+                          style: _th(15, FontWeight.w800, _navyDark,
+                              ls: -0.2)),
+                    ],
+                  ),
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle_outline,
-                      size: 20, color: _navyDark),
-                  const SizedBox(width: 8),
-                  Text('Create Quotation',
-                      style: _th(15, FontWeight.w800, _navyDark)),
-                ],
+              const SizedBox(height: 8),
+              Text(
+                'Prices last updated ${GSTax.pricesLastUpdated}  •  Gujarat Discom Tariff Verified',
+                style: _t(11, FontWeight.w500, _labelMuted),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Prices last updated ${GSTax.pricesLastUpdated}  •  Gujarat Discom Tariff Verified',
-            style: _t(11, FontWeight.w500, _labelMuted),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1270,7 +1542,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
 
   Widget _card({required List<Widget> children}) => Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -1288,7 +1560,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ],
         ),
         child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, children: children),
+            crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
       );
 
   Widget _sectionHeader({
@@ -1324,10 +1596,20 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ],
       );
 
-  Widget _lbl(String s) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(s.toUpperCase(),
-            style: _t(11, FontWeight.w700, _labelMuted, ls: 0.6)),
+  Widget _lbl(String s, {bool required = false}) => Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Text.rich(
+          TextSpan(
+            text: s.toUpperCase(),
+            style: _t(11, FontWeight.w700, _labelMuted, ls: 0.6),
+            children: [
+              if (required)
+                TextSpan(
+                    text: ' *',
+                    style: _t(11, FontWeight.w700, const Color(0xFFF43F5E))),
+            ],
+          ),
+        ),
       );
 
   Widget _field({
@@ -1343,53 +1625,50 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: readOnly ? _bgSky.withValues(alpha: 0.7) : _bgSky,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderSky),
-      ),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: _navy.withValues(alpha: 0.55)),
-            const SizedBox(width: 8),
-          ],
-          if (prefixText != null) ...[
-            Text(prefixText,
-                style: _t(big ? 15 : 13, FontWeight.w800, _navy)),
-            const SizedBox(width: 6),
-            Container(
-                width: 1, height: 18, color: _borderSky),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: TextField(
-              controller: controller,
-              readOnly: readOnly,
-              maxLines: maxLines,
-              keyboardType: keyboardType,
-              onChanged: onChanged,
-              style: big
-                  ? _th(18, FontWeight.w800, _navy)
-                  : _t(14, bold ? FontWeight.w700 : FontWeight.w600, _navy),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText: hint,
-                hintStyle: _t(13, FontWeight.w500,
-                    _labelMuted.withValues(alpha: 0.6)),
-              ),
-            ),
-          ),
-          if (suffixText != null) ...[
-            const SizedBox(width: 6),
-            Text(suffixText,
-                style: _t(12, FontWeight.w700, _labelMuted)),
-          ],
-        ],
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      textAlignVertical:
+          maxLines > 1 ? TextAlignVertical.top : TextAlignVertical.center,
+      style: big
+          ? _th(18, FontWeight.w800, _navy)
+          : _t(14, bold ? FontWeight.w700 : FontWeight.w500, _navy),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: _t(14, FontWeight.w500, _labelMuted.withValues(alpha: 0.7)),
+        prefixIcon: icon == null
+            ? null
+            : (maxLines > 1
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 13, left: 14),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Icon(icon,
+                          size: 20, color: _navy.withValues(alpha: 0.6)),
+                    ),
+                  )
+                : Icon(icon, size: 20, color: _navy.withValues(alpha: 0.6))),
+        prefixIconConstraints: const BoxConstraints(minWidth: 46),
+        prefixText: prefixText,
+        prefixStyle: _t(13, FontWeight.w700, _navy, ls: 0.5),
+        suffixText: suffixText,
+        suffixStyle: _t(12, FontWeight.w700, _labelMuted),
+        filled: true,
+        fillColor: readOnly ? _bgSky.withValues(alpha: 0.7) : _bgSky,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _navy, width: 1.2)),
       ),
     );
   }

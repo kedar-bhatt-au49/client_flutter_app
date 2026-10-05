@@ -323,6 +323,36 @@ class EstimateLineItem {
       );
 }
 
+// ── Bill of Materials line (form-editable; drives the quotation BOM page) ──
+
+class BomLine {
+  String name;
+  int qty;
+  String unit;
+  String brand;
+
+  BomLine({
+    required this.name,
+    this.qty = 1,
+    this.unit = 'Nos',
+    this.brand = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'qty': qty,
+        'unit': unit,
+        'brand': brand,
+      };
+
+  factory BomLine.fromJson(Map<String, dynamic> j) => BomLine(
+        name: j['name'] as String? ?? '',
+        qty: (j['qty'] as num?)?.toInt() ?? 1,
+        unit: j['unit'] as String? ?? 'Nos',
+        brand: j['brand'] as String? ?? '',
+      );
+}
+
 // â”€â”€ Price breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PriceBreakdown {
@@ -713,6 +743,7 @@ class EstimateModel {
   int? stampChargeOverride; // editable stamp charge
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
+  List<BomLine> bomLines; // form-editable Bill of Materials
 
   // â”€â”€ Step 3: Structure Details â”€â”€
   final Map<String, int> structureQuantities; // pipe label -> meters
@@ -753,6 +784,7 @@ class EstimateModel {
     this.stampChargeOverride,
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
+    List<BomLine>? bomLines,
     Map<String, int>? structureQuantities,
     this.discountPerKw = 0,
     this.gstProfileLabel = '',
@@ -764,6 +796,7 @@ class EstimateModel {
   })  : expiryDate = expiryDate ??
             DateTime.now().add(const Duration(days: 7)),
         lineItems = lineItems ?? [],
+        bomLines = bomLines ?? [],
         structureQuantities =
             Map<String, int>.from(structureQuantities ?? {});
 
@@ -844,6 +877,7 @@ class EstimateModel {
         'stamp_charge_override': stampChargeOverride,
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
+        'bom_lines': bomLines.map((e) => e.toJson()).toList(),
         'structure_quantities': structureQuantities,
         'discount_per_kw': discountPerKw,
         'gst_profile_label': gstProfileLabel,
@@ -888,6 +922,9 @@ class EstimateModel {
       lineItems: (j['line_items'] as List? ?? [])
           .map((e) =>
               EstimateLineItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      bomLines: (j['bom_lines'] as List? ?? [])
+          .map((e) => BomLine.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       structureQuantities: structureQty,
       discountPerKw: (j['discount_per_kw'] as num?)?.toDouble() ?? 0,

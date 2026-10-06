@@ -254,6 +254,7 @@ class GSQuoteSystem {
   final int totalPayable; // GST-inclusive, pre-subsidy
   final int subsidy;
   final int afterSubsidy;
+  final int moduleWarrantyYears; // panel linear-performance warranty
 
   const GSQuoteSystem({
     required this.id,
@@ -266,6 +267,7 @@ class GSQuoteSystem {
     required this.totalPayable,
     this.subsidy = GSTax.subsidyMax,
     required this.afterSubsidy,
+    this.moduleWarrantyYears = 30,
   });
 
   int get stampCharge => GSTax.stampCharge;
@@ -289,23 +291,23 @@ final List<GSQuoteSystem> gsQuoteSystems = const [
   // ── Adani Bi-Facial 540/545/550 W ──
   GSQuoteSystem(
       id: 'abf6', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
-      wattLabel: '540/545/550', kw: 3.27, panels: 6,
+      wattLabel: '540/545/550', moduleWarrantyYears: 25, kw: 3.27, panels: 6,
       totalPayable: 163000, afterSubsidy: 85000),
   GSQuoteSystem(
       id: 'abf7', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
-      wattLabel: '540/545/550', kw: 3.81, panels: 7,
+      wattLabel: '540/545/550', moduleWarrantyYears: 25, kw: 3.81, panels: 7,
       totalPayable: 193000, afterSubsidy: 115000),
   GSQuoteSystem(
       id: 'abf8', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
-      wattLabel: '540/545/550', kw: 4.36, panels: 8,
+      wattLabel: '540/545/550', moduleWarrantyYears: 25, kw: 4.36, panels: 8,
       totalPayable: 216000, afterSubsidy: 138000),
   GSQuoteSystem(
       id: 'abf9', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
-      wattLabel: '540/545/550', kw: 4.90, panels: 9,
+      wattLabel: '540/545/550', moduleWarrantyYears: 25, kw: 4.90, panels: 9,
       totalPayable: 244000, afterSubsidy: 166000),
   GSQuoteSystem(
       id: 'abf10', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
-      wattLabel: '540/545/550', kw: 5.45, panels: 10,
+      wattLabel: '540/545/550', moduleWarrantyYears: 25, kw: 5.45, panels: 10,
       totalPayable: 266000, afterSubsidy: 188000),
   // ── Adani TOPCon 610/615/620 W ──
   GSQuoteSystem(

@@ -700,11 +700,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
         const SizedBox(height: 12),
         _lbl('Requirement & Site Notes'),
-        _field(
+        _notesField(
           controller: _descriptionCtrl,
-          icon: Icons.edit_outlined,
           hint: 'e.g. 3-phase connection, elevated walkway framing desired.',
-          maxLines: 3,
         ),
       ],
     );
@@ -1497,6 +1495,43 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: _navy, width: 1.2)),
+      ),
+    );
+  }
+
+  Widget _notesField({
+    required TextEditingController controller,
+    String? hint,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _bgSky,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            left: 14,
+            top: 14,
+            child: Icon(Icons.edit_note_rounded, size: 20, color: _labelMuted),
+          ),
+          TextFormField(
+            controller: controller,
+            maxLines: 4,
+            minLines: 4,
+            textAlignVertical: TextAlignVertical.top,
+            style: _t(14, FontWeight.w500, _navy, h: 1.4),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: _t(14, FontWeight.w500,
+                  _labelMuted.withValues(alpha: 0.7), h: 1.4),
+              contentPadding: const EdgeInsets.fromLTRB(44, 14, 16, 14),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+            ),
+          ),
+        ],
       ),
     );
   }

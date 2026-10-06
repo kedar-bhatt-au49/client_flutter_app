@@ -51,6 +51,17 @@ class QuotationHtml {
     return html;
   }
 
+  /// Cover block showing the lead's requirement / site notes (empty if none).
+  static String _siteNotesBlock(String? notes) {
+    final n = (notes ?? '').trim();
+    if (n.isEmpty) return '';
+    return '<div class="mt-2 pt-2 border-t border-slate-100">'
+        '<span class="text-[9px] uppercase font-bold tracking-wider '
+        'text-slate-400 block mb-0.5">Site Requirement &amp; Notes</span>'
+        '<p class="text-[10.5px] text-slate-600 leading-snug">${_esc(n)}</p>'
+        '</div>';
+  }
+
   static String _bomRows(List<BomLine> lines) {
     final src = lines.isNotEmpty
         ? lines
@@ -223,6 +234,8 @@ class QuotationHtml {
       'PANEL_BRAND': brandEn,
       'PANEL_BRAND_GU': brandGu,
       'PANEL_WATT': wattLabel,
+      'MODULE_WARRANTY': '${system?.moduleWarrantyYears ?? 30}',
+      'SITE_NOTES_BLOCK': _siteNotesBlock(e.description),
       'TABLE_ROWS': rows.join('\n'),
       'GROSS': '₹${_inr2(gross)}',
       'SUBSIDY_AMT': '− ₹${_inr2(subsidy)}',

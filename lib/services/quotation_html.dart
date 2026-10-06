@@ -121,7 +121,8 @@ class QuotationHtml {
       desc: '$panels × $wattLabel Wp $brandEn Tier-1 Modules '
           '(Glass-to-Glass), 1 × ${invKw.toStringAsFixed(1)} kW Smart MPPT '
           'Inverter, $panels Pairs MC4 Connectors, AC/DC DB boxes, '
-          '${e.wiringSqMm ?? '4.0 sq.mm'} UV cables.',
+          '${e.acWiringSqMm ?? '2.5 sq.mm'} AC & '
+          '${e.dcWiringSqMm ?? '4.0 sq.mm'} DC UV cables.',
       qty: '1 Set',
       rate: pvTaxable,
       cgstPct: cgstPct,

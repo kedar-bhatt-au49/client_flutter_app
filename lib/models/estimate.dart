@@ -745,6 +745,8 @@ class EstimateModel {
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
   List<BomLine> bomLines; // form-editable Bill of Materials
+  String? createdByName; // who created the quotation (founder/co-founder)
+  String? createdByRole; // 'owner' | 'coowner'
 
   // â”€â”€ Step 3: Structure Details â”€â”€
   final Map<String, int> structureQuantities; // pipe label -> meters
@@ -787,6 +789,8 @@ class EstimateModel {
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
     List<BomLine>? bomLines,
+    this.createdByName,
+    this.createdByRole,
     Map<String, int>? structureQuantities,
     this.discountPerKw = 0,
     this.gstProfileLabel = '',
@@ -881,6 +885,8 @@ class EstimateModel {
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
         'bom_lines': bomLines.map((e) => e.toJson()).toList(),
+        'created_by_name': createdByName,
+        'created_by_role': createdByRole,
         'structure_quantities': structureQuantities,
         'discount_per_kw': discountPerKw,
         'gst_profile_label': gstProfileLabel,
@@ -930,6 +936,8 @@ class EstimateModel {
       bomLines: (j['bom_lines'] as List? ?? [])
           .map((e) => BomLine.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
+      createdByName: j['created_by_name'] as String?,
+      createdByRole: j['created_by_role'] as String?,
       structureQuantities: structureQty,
       discountPerKw: (j['discount_per_kw'] as num?)?.toDouble() ?? 0,
       gstProfileLabel: j['gst_profile_label'] as String? ?? '',

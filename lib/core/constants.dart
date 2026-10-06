@@ -421,7 +421,7 @@ class GSUsers {
   static const coFounderUid = 'coowner_gopalsinh';
 
   static const founderEmail = 'jayrajumat7797@gmail.com';
-  static const coFounderEmail = 'gopalsinh.parmar@gmail.com';
+  static const coFounderEmail = 'gsparmar4070@gmail.com';
   static const founderPhone = '8488807797';
   static const coFounderPhone = '8866568543';
   static const whatsappNumber = '918488807797';

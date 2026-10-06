@@ -20,6 +20,7 @@ import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
 import 'quotation_preview_screen.dart';
 
@@ -312,7 +313,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ? _descriptionCtrl.text.trim()
           : null
       ..estimateNumber = _estimateNumberCtrl.text.trim()
-      ..capacityKw = double.tryParse(_capacityCtrl.text);
+      ..capacityKw = double.tryParse(_capacityCtrl.text)
+      ..createdByName = context.read<AuthProvider>().currentUser?.name
+      ..createdByRole = context.read<AuthProvider>().currentUser?.role;
 
     late EstimateRecord record;
     try {

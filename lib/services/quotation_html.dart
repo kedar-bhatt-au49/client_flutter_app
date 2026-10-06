@@ -51,6 +51,24 @@ class QuotationHtml {
     return html;
   }
 
+  /// Name of the logged-in creator (strips the "Mr." style title).
+  static String _creatorName(EstimateModel e) {
+    var n = (e.createdByName ?? '').trim();
+    if (n.isEmpty) return 'Jayrajsinh S. Umat';
+    for (final p in const ['Mr. ', 'Mrs. ', 'Ms. ', 'Dr. ']) {
+      if (n.startsWith(p)) {
+        n = n.substring(p.length).trim();
+        break;
+      }
+    }
+    return n;
+  }
+
+  static String _creatorTitle(EstimateModel e) =>
+      e.createdByRole == 'coowner'
+          ? 'Co-Founder & Operations'
+          : 'Founder & Chief Technical Officer';
+
   /// Cover block showing the lead's requirement / site notes (empty if none).
   static String _siteNotesBlock(String? notes) {
     final n = (notes ?? '').trim();
@@ -217,6 +235,8 @@ class QuotationHtml {
         : 'Bhavnagar, Gujarat';
     final name = e.leadName.trim();
     final cols = panels == 0 ? 2 : ((panels + 1) ~/ 2);
+    final creatorName = _creatorName(e);
+    final creatorTitle = _creatorTitle(e);
 
     return {
       'CLIENT_NAME': _esc(name),
@@ -234,8 +254,9 @@ class QuotationHtml {
       'DATE': date,
       'QUOTE_DATE': quoteDate,
       'VALIDITY_DATE': validity,
-      'CREATED_BY': 'Jayrajsinh S. Umat',
-      'PREPARED_BY': 'Jayrajsinh S. Umat & Gopalsinh J. Parmar',
+      'CREATED_BY': creatorName,
+      'CREATED_BY_TITLE': creatorTitle,
+      'PREPARED_BY': creatorName,
       'CAPACITY': '${kw.toStringAsFixed(2)} kW',
       'CAPACITY_CONFIG': '${kw.toStringAsFixed(2)} kWp Turnkey Config',
       'SUBSIDY_GUARANTEE': '₹${_inr(subsidy)} Guaranteed',

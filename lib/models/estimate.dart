@@ -735,7 +735,8 @@ class EstimateModel {
   String currency; // currency code, default 'INR'
   double? capacityKw; // auto-filled from Price Calculator
   String? systemId; // selected system (gsQuoteSystems), drives pricing + panel image
-  String? wiringSqMm; // manual wiring size (e.g. "4 sq.mm")
+  String? acWiringSqMm; // manual AC wiring size (e.g. "4 sq.mm")
+  String? dcWiringSqMm; // manual DC wiring size (e.g. "4 sq.mm")
   double? inverterKwManual; // manual inverter kW capacity
   int? totalPayableOverride; // manual price override (GST-inclusive)
   bool gstIncluded; // show prices with GST (true) or without (false)
@@ -776,7 +777,8 @@ class EstimateModel {
     this.currency = 'INR',
     this.capacityKw,
     this.systemId,
-    this.wiringSqMm,
+    this.acWiringSqMm,
+    this.dcWiringSqMm,
     this.inverterKwManual,
     this.totalPayableOverride,
     this.gstIncluded = true,
@@ -869,7 +871,8 @@ class EstimateModel {
         'currency': currency,
         'capacity_kw': capacityKw,
         'system_id': systemId,
-        'wiring_sq_mm': wiringSqMm,
+        'ac_wiring_sq_mm': acWiringSqMm,
+        'dc_wiring_sq_mm': dcWiringSqMm,
         'inverter_kw_manual': inverterKwManual,
         'total_payable_override': totalPayableOverride,
         'gst_included': gstIncluded,
@@ -912,7 +915,8 @@ class EstimateModel {
       currency: j['currency'] as String? ?? 'INR',
       capacityKw: (j['capacity_kw'] as num?)?.toDouble(),
       systemId: j['system_id'] as String?,
-      wiringSqMm: j['wiring_sq_mm'] as String?,
+      acWiringSqMm: j['ac_wiring_sq_mm'] as String?,
+      dcWiringSqMm: j['dc_wiring_sq_mm'] as String?,
       inverterKwManual: (j['inverter_kw_manual'] as num?)?.toDouble(),
       totalPayableOverride: j['total_payable_override'] as int?,
       gstIncluded: j['gst_included'] as bool? ?? true,

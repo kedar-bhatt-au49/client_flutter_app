@@ -73,7 +73,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _descriptionCtrl = TextEditingController();
   final _estimateNumberCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController();
-  final _wiringCtrl = TextEditingController();
+  final _acWiringCtrl = TextEditingController();
+  final _dcWiringCtrl = TextEditingController();
   final _inverterKwCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _structureCostCtrl = TextEditingController();
@@ -93,7 +94,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _descriptionCtrl.dispose();
     _estimateNumberCtrl.dispose();
     _capacityCtrl.dispose();
-    _wiringCtrl.dispose();
+    _acWiringCtrl.dispose();
+    _dcWiringCtrl.dispose();
     _inverterKwCtrl.dispose();
     _priceCtrl.dispose();
     _structureCostCtrl.dispose();
@@ -842,21 +844,6 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _lbl('DC Capacity'),
-                _field(
-                  controller: _capacityCtrl,
-                  readOnly: true,
-                  suffixText: 'kW',
-                  hint: '—',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 _lbl('Inverter Rating'),
                 _field(
                   controller: _inverterKwCtrl,
@@ -871,12 +858,21 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           ),
         ]),
         const SizedBox(height: 12),
-        _lbl('AC / DC Wiring Size'),
+        _lbl('AC Wiring Size'),
         _field(
-          controller: _wiringCtrl,
+          controller: _acWiringCtrl,
           suffixText: 'sq.mm',
           hint: '4.0 UV Tinned Copper',
-          onChanged: (v) => _estimate.wiringSqMm =
+          onChanged: (v) => _estimate.acWiringSqMm =
+              v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+        ),
+        const SizedBox(height: 12),
+        _lbl('DC Wiring Size'),
+        _field(
+          controller: _dcWiringCtrl,
+          suffixText: 'sq.mm',
+          hint: '4.0 UV Tinned Copper',
+          onChanged: (v) => _estimate.dcWiringSqMm =
               v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
         ),
         const SizedBox(height: 14),

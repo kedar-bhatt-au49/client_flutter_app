@@ -62,9 +62,9 @@ class QuotationData {
     this.officeAddress =
         'OFFICE ADDRESS: GLOBAL SOLAR, F6, NATRAJ COMPLEX, OPP TOP3 CINEMA, BHAVNAGAR',
     this.mobileNumbers = 'Mo : (+91) 9924900599 / 9924900988',
-    this.bankName = 'BANK OF BARODA - SSI BRANCH BHAVNAGAR',
-    this.accountNumber = '25980500000094',
-    this.ifscCode = 'BARBOSSIBHA',
+    this.bankName = 'Bank of Baroda',
+    this.accountNumber = '41400100011834',
+    this.ifscCode = 'BARBOKALIAB',
 
     // Customer
     required this.date,

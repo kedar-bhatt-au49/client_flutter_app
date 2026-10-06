@@ -461,6 +461,28 @@ class _Renderer {
                             ],
                           ),
                         ),
+                        pw.SizedBox(height: 8),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: _white,
+                            borderRadius: pw.BorderRadius.circular(8),
+                            border: pw.Border.all(color: _border),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Bank Details',
+                                  style: _t(7, bold: true, color: _navy, spacing: 0.3)),
+                              pw.SizedBox(height: 5),
+                              _kv('Bank Name:', d.bankDetails.bankName),
+                              _kv('Account Name:', d.bankDetails.accountName),
+                              _kv('Account No:', d.bankDetails.accountNo),
+                              _kv('IFSC:', d.bankDetails.ifsc),
+                              _kv('Branch:', d.bankDetails.branch),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -563,28 +585,6 @@ class _Renderer {
                   _sectionTitle('CORE ENGINEERING BILL OF HARDWARE'),
                   pw.SizedBox(height: 6),
                   _specGrid(),
-                  pw.SizedBox(height: 12),
-                  pw.Container(
-                    padding:
-                        const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: pw.BoxDecoration(
-                      gradient: pw.LinearGradient(
-                          colors: [_navy, _navyDeep],
-                          begin: pw.Alignment.centerLeft,
-                          end: pw.Alignment.centerRight),
-                      borderRadius: pw.BorderRadius.circular(8),
-                    ),
-                    child: pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(
-                            'Expected Daily Generation: 18.5 – 22.5 Units (kWh) / day',
-                            style: _t(7.5, bold: true, color: _goldLight)),
-                        pw.Text('Annual CO2 Offset: 4.2 Metric Tons / Year',
-                            style: _t(7.5, bold: true, color: _white)),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -814,8 +814,6 @@ class _Renderer {
                       pw.SizedBox(height: 2),
                       pw.Text(d.companyAddress, style: _t(6.5, color: _s600)),
                       pw.SizedBox(height: 2),
-                      pw.Text('GSTIN: ${d.companyGstin}',
-                          style: _t(6.5, bold: true, color: _s900)),
                       pw.Text('DISCOM: PGVCL Empanelled',
                           style: _t(6.5, color: _s600)),
                     ],

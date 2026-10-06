@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/solar_visuals.dart';
@@ -18,8 +17,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: GSUsers.founderEmail);
-  final _passwordController = TextEditingController(text: GSUsers.appPassword);
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _keepSignedIn = true;
 
@@ -238,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   controller: _emailController,
                                   decoration: _fieldDecoration(
                                     icon: Icons.email_outlined,
-                                    hint: GSUsers.founderEmail,
+                                    hint: 'Enter your email',
                                   ),
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,

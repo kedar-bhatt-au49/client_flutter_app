@@ -170,6 +170,11 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
         backgroundColor: GSColors.navy900,
         foregroundColor: GSColors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to form',
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

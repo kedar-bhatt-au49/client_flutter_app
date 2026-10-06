@@ -276,8 +276,22 @@ class DatabaseService {
     return record;
   }
 
-  Future<List<EstimateRecord>> getAllEstimates() async {
-    await init();
+  /// Updates an existing estimate in place (keeps its id + createdAt).
+  Future<EstimateRecord> updateEstimate(String id, EstimateModel estimate,
+      {MasterData? master, DateTime? createdAt}) async {
+    final existing = await getEstimate(id);
+    final record = EstimateRecord(
+      id: id,
+      data: estimate,
+      createdAt: createdAt ?? existing?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    final box = Hive.box(boxEstimates);
+    await box.put(id, record.toJson());
+    return record;
+  }
+
+  Future<List<EstimateRecord>> getAllEstimates() async {    await init();
     final master = await MasterData.load();
     final box = Hive.box(boxEstimates);
     return box.values

@@ -65,6 +65,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   String? _loadError;
 
   final EstimateModel _estimate = EstimateModel();
+  EstimateRecord? _savedRecord; // set after first save (update, not duplicate)
 
   // ── Controllers ──
   final _companyCtrl = TextEditingController();
@@ -315,7 +316,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
 
     late EstimateRecord record;
     try {
-      record = await hub.addEstimate(_estimate);
+      record = _savedRecord == null
+          ? await hub.addEstimate(_estimate)
+          : await hub.updateEstimate(_savedRecord!, _estimate);
+      _savedRecord = record;
     } catch (e) {
       if (!mounted) return;
       _snack('Failed to save estimate: $e');
@@ -323,13 +327,15 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     }
     if (!mounted) return;
 
-    Navigator.of(context).popUntil((r) => r.isFirst);
-    Navigator.of(context).push(
+    // Push the review on top of the form so the back button returns here
+    // (with all details still entered) for further edits.
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
             QuotationPreviewScreen(record: record, master: _master!),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   // ── Build ──────────────────────────────────────────────────────────────
@@ -1488,10 +1494,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none),
+            borderSide: const BorderSide(color: _borderSky)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none),
+            borderSide: const BorderSide(color: _borderSky)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: _navy, width: 1.2)),
@@ -1507,6 +1513,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       decoration: BoxDecoration(
         color: _bgSky,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _borderSky),
       ),
       child: Stack(
         children: [

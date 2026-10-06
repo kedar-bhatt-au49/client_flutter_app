@@ -275,6 +275,21 @@ class DataHub extends ChangeNotifier {
     return record;
   }
 
+  /// Updates a previously-saved estimate (no duplicate row).
+  Future<EstimateRecord> updateEstimate(
+      EstimateRecord existing, EstimateModel estimate) async {
+    final record =
+        await _db.updateEstimate(existing.id, estimate, createdAt: existing.createdAt);
+    final i = _estimates.indexWhere((r) => r.id == existing.id);
+    if (i != -1) {
+      _estimates[i] = record;
+    } else {
+      _estimates.insert(0, record);
+    }
+    notifyListeners();
+    return record;
+  }
+
   int get estimateCount => _estimates.length;
 
   // ── Pipeline ──────────────────────────────────────────────────

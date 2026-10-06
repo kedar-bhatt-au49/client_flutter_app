@@ -159,9 +159,9 @@ class EstimatePdf {
       effectiveUpfront: baseGrandTotal,
       subsidyAmount: subsidy,
       warrantySections: _defaultWarrantySections,
-      upiId: 'global.solar.2.0@oksbi',
+      upiId: 'jayrajsinhumat4444-1@okicici',
       upiQrUpiId:
-          'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Global Solar 2.0&cu=INR',
       useHinglish: useHinglish,
       socialLinks: _defaultSocialLinks,
       logoImage: logoImage,
@@ -380,9 +380,9 @@ class EstimatePdf {
       effectiveUpfront: gross,
       subsidyAmount: subsidy,
       warrantySections: _defaultWarrantySections,
-      upiId: 'global.solar.2.0@oksbi',
+      upiId: 'jayrajsinhumat4444-1@okicici',
       upiQrUpiId:
-          'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Global Solar 2.0&cu=INR',
       useHinglish: useHinglish,
       socialLinks: _defaultSocialLinks,
       logoImage: logoImage,

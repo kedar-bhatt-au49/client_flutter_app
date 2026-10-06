@@ -42,7 +42,7 @@ class QuotationHtml {
     }
 
     // ── Bill of Materials (from the selected lines / master list) ──
-    tokens['BOM_ROWS'] = _bomRows(record.data.bomLines);
+    tokens['BOM_ROWS'] = _bomRows(record.data.bomLines, record.data);
 
     var html = _template!;
     for (final e in tokens.entries) {
@@ -62,7 +62,7 @@ class QuotationHtml {
         '</div>';
   }
 
-  static String _bomRows(List<BomLine> lines) {
+  static String _bomRows(List<BomLine> lines, EstimateModel e) {
     final src = lines.isNotEmpty
         ? lines
         : gsBomItems
@@ -70,13 +70,25 @@ class QuotationHtml {
                 name: b.name, qty: b.qty, unit: b.unit, brand: b.brand))
             .toList();
     if (src.isEmpty) return '';
+    final ac = e.acWiringSqMm?.trim();
+    final dc = e.dcWiringSqMm?.trim();
     final sb = StringBuffer();
     for (var i = 0; i < src.length; i++) {
       final l = src[i];
+      // Show the AC / DC wiring size on the matching cable rows.
+      var name = l.name;
+      final ln = l.name.toLowerCase();
+      if ((ln.contains('ac cable') || ln.contains('earthing cable')) &&
+          ac != null &&
+          ac.isNotEmpty) {
+        name = '$name ($ac)';
+      } else if (ln.contains('dc cable') && dc != null && dc.isNotEmpty) {
+        name = '$name ($dc)';
+      }
       final shade = i.isEven ? 'bg-white' : 'bg-slate-50/50';
       sb.writeln('<tr class="$shade">'
           '<td class="py-1.5 px-3 text-center text-slate-500 font-mono">${i + 1}</td>'
-          '<td class="py-1.5 px-3 font-medium text-slate-800">${_esc(l.name)}</td>'
+          '<td class="py-1.5 px-3 font-medium text-slate-800">${_esc(name)}</td>'
           '<td class="py-1.5 px-3 text-center font-bold">${l.qty}</td>'
           '<td class="py-1.5 px-3 text-center text-slate-600">${_esc(l.unit)}</td>'
           '<td class="py-1.5 px-4 font-semibold text-[#0B1F5C]">'

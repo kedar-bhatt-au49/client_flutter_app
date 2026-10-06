@@ -78,9 +78,7 @@ class QuotationHtml {
       // Show the AC / DC wiring size on the matching cable rows.
       var name = l.name;
       final ln = l.name.toLowerCase();
-      if ((ln.contains('ac cable') || ln.contains('earthing cable')) &&
-          ac != null &&
-          ac.isNotEmpty) {
+      if (ln.contains('ac cable') && ac != null && ac.isNotEmpty) {
         name = '$name ($ac)';
       } else if (ln.contains('dc cable') && dc != null && dc.isNotEmpty) {
         name = '$name ($dc)';

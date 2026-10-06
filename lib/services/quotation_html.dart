@@ -85,7 +85,9 @@ class QuotationHtml {
 
     final kw = e.capacityKw ?? system?.kw ?? 0;
     final panels = system?.panels ?? 0;
-    final panelWatt = system?.panelWatt ?? 545;
+    final wattLabel = system?.wattLabel ?? '540/545/550';
+    final brandEn = system?.brandEn ?? 'Adani Bi-Facial';
+    final brandGu = system?.brandGu ?? 'અદાણી બાય એફિશિયલ';
     final subsidy = system?.subsidy ?? 0;
     final invKw = e.inverterKwManual ??
         (kw > 0 ? (kw + 0.64) : 0);
@@ -116,7 +118,7 @@ class QuotationHtml {
     rows.add(_row(
       no: nextNo(),
       title: '${kw.toStringAsFixed(2)} kW Solar PV System (Grid-Tied)',
-      desc: '$panels × $panelWatt Wp Adani TOPCon Bi-Facial Tier-1 Modules '
+      desc: '$panels × $wattLabel Wp $brandEn Tier-1 Modules '
           '(Glass-to-Glass), 1 × ${invKw.toStringAsFixed(1)} kW Smart MPPT '
           'Inverter, $panels Pairs MC4 Connectors, AC/DC DB boxes, '
           '${e.wiringSqMm ?? '4.0 sq.mm'} UV cables.',
@@ -217,6 +219,9 @@ class QuotationHtml {
       'SUBSIDY_GUARANTEE': '₹${_inr(subsidy)} Guaranteed',
       'PANEL_COUNT': '$panels',
       'ARRAY_RC': '2x$cols',
+      'PANEL_BRAND': brandEn,
+      'PANEL_BRAND_GU': brandGu,
+      'PANEL_WATT': wattLabel,
       'TABLE_ROWS': rows.join('\n'),
       'GROSS': '₹${_inr2(gross)}',
       'SUBSIDY_AMT': '− ₹${_inr2(subsidy)}',

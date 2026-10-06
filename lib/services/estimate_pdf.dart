@@ -229,7 +229,7 @@ class EstimatePdf {
       ProposalLineItem(
         description: '${system.kw.toStringAsFixed(2)} kW Solar PV System',
         specs: [
-          '${system.panels} Ã— ${system.panelWatt} Wp Adani TOPCon solar panels',
+          '${system.panels} × ${system.brandLine} solar panels',
           '${system.panels} Ã— MC4 connectors & MC4 extensions',
         ],
         qty: '1',
@@ -308,7 +308,7 @@ class EstimatePdf {
           item: 'Solar Panels',
           qty: '${system.panels}',
           unit: 'Nos.',
-          brand: 'ADANI TOPCON (610/615)',
+          brand: '${system.brandEn} (${system.wattLabel})',
           category: 'Solar Panels',
         ),
         BomItem(
@@ -369,8 +369,8 @@ class EstimatePdf {
         ),
       ],
       panelCount: system.panels,
-      panelWattpeak: system.panelWatt.toString(),
-      panelBrand: 'Adani TOPCon',
+      panelWattpeak: system.wattLabel,
+      panelBrand: system.brandEn,
       dcCableSpecs: e.wiringSqMm ?? '4 sq.mm',
       acWireSpecs: e.wiringSqMm ?? '2.5 sq.mm',
       earthingWireSpecs: e.wiringSqMm ?? '2.5 sq.mm',

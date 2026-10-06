@@ -174,7 +174,11 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       }
       final pi = _estimate.bomLines
           .indexWhere((b) => b.name.toLowerCase().contains('solar panel'));
-      if (pi != -1) _estimate.bomLines[pi].qty = s.panels;
+      if (pi != -1) {
+        _estimate.bomLines[pi]
+          ..qty = s.panels
+          ..brand = '${s.brandEn} (${s.wattLabel})';
+      }
     });
   }
 
@@ -191,51 +195,73 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   }
 
   void _openSystemSelector() {
+    // Group packages by brand (preserving declaration order).
+    final groups = <String, List<GSQuoteSystem>>{};
+    for (final s in gsQuoteSystems) {
+      groups.putIfAbsent(s.brandLine, () => []).add(s);
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Select Solar System',
-                  textAlign: TextAlign.center, style: _th(18, FontWeight.w700, _navy)),
-            ),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: gsQuoteSystems
-                    .map((s) => ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: _bgSky,
-                            child: Text('${s.panels}',
-                                style: _th(13, FontWeight.w700, _navy)),
-                          ),
-                          title: Text(s.label,
-                              style: _t(14, FontWeight.w700, _navy)),
-                          subtitle: Text(
-                              'After subsidy Rs.${_inr(s.afterSubsidy)}',
-                              style: _t(12, FontWeight.w500, _labelMuted)),
-                          trailing: _estimate.systemId == s.id
-                              ? const Icon(Icons.check_circle,
-                                  color: GSColors.green600)
-                              : null,
-                          onTap: () {
-                            _selectSystem(s);
-                            Navigator.pop(sheetContext);
-                          },
-                        ))
-                    .toList(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.82),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text('Select Solar System',
+                    textAlign: TextAlign.center,
+                    style: _th(18, FontWeight.w700, _navy)),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final entry in groups.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Text(entry.key.toUpperCase(),
+                            style:
+                                _t(11, FontWeight.w800, _labelMuted, ls: 0.6)),
+                      ),
+                      ...entry.value.map((s) => ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              backgroundColor: _bgSky,
+                              child: Text('${s.panels}',
+                                  style: _th(13, FontWeight.w700, _navy)),
+                            ),
+                            title: Text(
+                                '${s.kw.toStringAsFixed(2)} kW  •  ${s.panels} panels',
+                                style: _t(14, FontWeight.w700, _navy)),
+                            subtitle: Text(
+                                'After subsidy Rs.${_inr(s.afterSubsidy)}',
+                                style: _t(12, FontWeight.w500, _labelMuted)),
+                            trailing: _estimate.systemId == s.id
+                                ? const Icon(Icons.check_circle,
+                                    color: GSColors.green600)
+                                : null,
+                            onTap: () {
+                              _selectSystem(s);
+                              Navigator.pop(sheetContext);
+                            },
+                          )),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -701,7 +727,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               borderRadius: BorderRadius.circular(99),
               border: Border.all(color: _gold.withValues(alpha: 0.3)),
             ),
-            child: Text('Adani TOPCon',
+            child: Text(_selectedSystem?.brandEn ?? 'Adani',
                 style: _t(10, FontWeight.w700, const Color(0xFF8A5A00))),
           ),
         ),
@@ -741,7 +767,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
                     Text(
                       s == null
                           ? 'Tap to choose capacity'
-                          : 'Adani TOPCon ${s.panelWatt}Wp Bifacial  •  Rs.${_inr(s.subsidy)} Subsidy',
+                          : '${s.brandLine}  •  Rs.${_inr(s.subsidy)} Subsidy',
                       style: _t(11, FontWeight.w500, _labelMuted),
                     ),
                   ],

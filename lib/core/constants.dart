@@ -245,9 +245,11 @@ GSPackage? gsPackageById(String id) {
 /// [afterSubsidy] = totalPayable − PM Surya Ghar subsidy (₹78,000).
 class GSQuoteSystem {
   final String id;
+  final String brandEn; // e.g. 'Adani Bi-Facial'
+  final String brandGu; // e.g. 'અદાણી બાય એફિશિયલ'
+  final String wattLabel; // e.g. '540/545/550'
   final double kw;
   final int panels;
-  final int panelWatt;
   final int structureCost; // GST-excluded
   final int totalPayable; // GST-inclusive, pre-subsidy
   final int subsidy;
@@ -255,10 +257,12 @@ class GSQuoteSystem {
 
   const GSQuoteSystem({
     required this.id,
+    required this.brandEn,
+    required this.brandGu,
+    required this.wattLabel,
     required this.kw,
     required this.panels,
-    required this.panelWatt,
-    required this.structureCost,
+    this.structureCost = 10000,
     required this.totalPayable,
     this.subsidy = GSTax.subsidyMax,
     required this.afterSubsidy,
@@ -266,8 +270,11 @@ class GSQuoteSystem {
 
   int get stampCharge => GSTax.stampCharge;
 
-  /// e.g. "3.27 kW • 6 panels"
+  /// e.g. "3.27 kW  •  6 panels"
   String get label => '${kw.toStringAsFixed(2)} kW  •  $panels panels';
+
+  /// e.g. "Adani Bi-Facial 540/545/550 W"
+  String get brandLine => '$brandEn $wattLabel W';
 
   /// Panel-count design image (assets/images/solar_pannel_N).
   /// 6 panels uses the corrected PNG; the others are JPGs.
@@ -276,28 +283,100 @@ class GSQuoteSystem {
       : 'assets/images/solar_pannel_$panels.jpg';
 }
 
-/// Master quotation systems — the 5 standard offerings.
+/// Master quotation systems — three panel brands (Adani Bi-Facial,
+/// Adani TOPCon, Waaree TOPCon). Gross = after-subsidy + ₹78,000.
 final List<GSQuoteSystem> gsQuoteSystems = const [
+  // ── Adani Bi-Facial 540/545/550 W ──
   GSQuoteSystem(
-      id: 's6', kw: 3.27, panels: 6, panelWatt: 545,
-      structureCost: 10000, totalPayable: 163000, afterSubsidy: 85000),
+      id: 'abf6', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
+      wattLabel: '540/545/550', kw: 3.27, panels: 6,
+      totalPayable: 163000, afterSubsidy: 85000),
   GSQuoteSystem(
-      id: 's7', kw: 3.81, panels: 7, panelWatt: 545,
-      structureCost: 12000, totalPayable: 193000, afterSubsidy: 115000),
+      id: 'abf7', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
+      wattLabel: '540/545/550', kw: 3.81, panels: 7,
+      totalPayable: 193000, afterSubsidy: 115000),
   GSQuoteSystem(
-      id: 's8', kw: 4.36, panels: 8, panelWatt: 545,
-      structureCost: 13000, totalPayable: 216000, afterSubsidy: 138000),
+      id: 'abf8', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
+      wattLabel: '540/545/550', kw: 4.36, panels: 8,
+      totalPayable: 216000, afterSubsidy: 138000),
   GSQuoteSystem(
-      id: 's9', kw: 4.90, panels: 9, panelWatt: 545,
-      structureCost: 15000, totalPayable: 244000, afterSubsidy: 166000),
+      id: 'abf9', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
+      wattLabel: '540/545/550', kw: 4.90, panels: 9,
+      totalPayable: 244000, afterSubsidy: 166000),
   GSQuoteSystem(
-      id: 's10', kw: 5.45, panels: 10, panelWatt: 545,
-      structureCost: 16000, totalPayable: 266000, afterSubsidy: 188000),
+      id: 'abf10', brandEn: 'Adani Bi-Facial', brandGu: 'અદાણી બાય એફિશિયલ',
+      wattLabel: '540/545/550', kw: 5.45, panels: 10,
+      totalPayable: 266000, afterSubsidy: 188000),
+  // ── Adani TOPCon 610/615/620 W ──
+  GSQuoteSystem(
+      id: 'atc5', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 3.08, panels: 5,
+      totalPayable: 162000, afterSubsidy: 84000),
+  GSQuoteSystem(
+      id: 'atc6', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 3.69, panels: 6,
+      totalPayable: 185000, afterSubsidy: 107000),
+  GSQuoteSystem(
+      id: 'atc7', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 4.31, panels: 7,
+      totalPayable: 215000, afterSubsidy: 137000),
+  GSQuoteSystem(
+      id: 'atc8', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 4.92, panels: 8,
+      totalPayable: 242000, afterSubsidy: 164000),
+  GSQuoteSystem(
+      id: 'atc9', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 5.54, panels: 9,
+      totalPayable: 265000, afterSubsidy: 187000),
+  GSQuoteSystem(
+      id: 'atc10', brandEn: 'Adani TOPCon', brandGu: 'અદાણી ટોપકોન',
+      wattLabel: '610/615/620', kw: 6.15, panels: 10,
+      totalPayable: 290000, afterSubsidy: 212000),
+  // ── Waaree TOPCon 610/615/620 W ──
+  GSQuoteSystem(
+      id: 'wtc5', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 3.07, panels: 5,
+      totalPayable: 154000, afterSubsidy: 76000),
+  GSQuoteSystem(
+      id: 'wtc6', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 3.69, panels: 6,
+      totalPayable: 178000, afterSubsidy: 100000),
+  GSQuoteSystem(
+      id: 'wtc7', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 4.30, panels: 7,
+      totalPayable: 212000, afterSubsidy: 134000),
+  GSQuoteSystem(
+      id: 'wtc8', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 4.92, panels: 8,
+      totalPayable: 234000, afterSubsidy: 156000),
+  GSQuoteSystem(
+      id: 'wtc9', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 5.54, panels: 9,
+      totalPayable: 256000, afterSubsidy: 178000),
+  GSQuoteSystem(
+      id: 'wtc10', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '610/615/620', kw: 6.15, panels: 10,
+      totalPayable: 279000, afterSubsidy: 201000),
 ];
+
+/// Legacy system ids (pre brand split) → new ids.
+const _legacySystemIds = {
+  's6': 'abf6',
+  's7': 'abf7',
+  's8': 'abf8',
+  's9': 'abf9',
+  's10': 'abf10',
+};
 
 GSQuoteSystem? gsQuoteSystemById(String id) {
   for (final s in gsQuoteSystems) {
     if (s.id == id) return s;
+  }
+  final mapped = _legacySystemIds[id];
+  if (mapped != null) {
+    for (final s in gsQuoteSystems) {
+      if (s.id == mapped) return s;
+    }
   }
   return null;
 }

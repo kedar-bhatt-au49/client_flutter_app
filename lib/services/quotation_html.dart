@@ -269,6 +269,7 @@ class QuotationHtml {
       'CREATED_BY': creatorName,
       'CREATED_BY_TITLE': creatorTitle,
       'PREPARED_BY': creatorName,
+      'FOUNDER_NAME': 'Jayrajsinh S. Umat',
       'CAPACITY': '${kw.toStringAsFixed(2)} kW',
       'CAPACITY_CONFIG': lang == 'gu'
           ? '${kw.toStringAsFixed(2)} kWp ટર્નકી કન્ફિગ'

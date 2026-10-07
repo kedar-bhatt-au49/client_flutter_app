@@ -325,17 +325,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ],
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.check_circle,
-                                              size: 13, color: GSColors.green600),
-                                          const SizedBox(width: 4),
-                                          Text('256-bit Encrypted',
-                                              style: GSTextStyles.bodySmall.copyWith(
-                                                  color: GSColors.green600,
-                                                  fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
                                     ],
                                   ),
                                 ),
@@ -350,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Version 1.0.0  â€¢  Internal EPC Ops',
+                                  'Version 1.0.0  Internal EPC Ops',
                                   textAlign: TextAlign.center,
                                   style: GSTextStyles.bodySmall.copyWith(
                                       color: Colors.grey.shade400,
@@ -366,7 +355,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Bottom security badge
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text('Global Solar 2.0  â€¢  Bhavnagar & Talaja EPC Division',
+                    child: Text('Global Solar 2.0  Bhavnagar & Talaja EPC Division',
                         style: GSTextStyles.bodySmall.copyWith(
                             color: Colors.grey.shade700,
                             fontWeight: FontWeight.w600,

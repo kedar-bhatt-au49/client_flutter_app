@@ -22,6 +22,7 @@ import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
+import '../../services/firestore_service.dart';
 import 'quotation_preview_screen.dart';
 
 // ── Design tokens (Stitch) ──
@@ -113,9 +114,17 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     try {
       final master = await MasterData.load();
 
-      _estimate.estimateNumber = EstimateModel.generateNumber(
-          master.estimateNumberPrefix, hub.estimateCount);
-      _estimateNumberCtrl.text = _estimate.estimateNumber;
+      // Safe, device-independent numbering via a Firestore counter.
+      String number;
+      try {
+        number = await FirestoreService.instance
+            .nextEstimateNumber(master.estimateNumberPrefix);
+      } catch (_) {
+        number = EstimateModel.generateNumber(
+            master.estimateNumberPrefix, hub.estimateCount);
+      }
+      _estimate.estimateNumber = number;
+      _estimateNumberCtrl.text = number;
       _estimate.currency = master.defaultCurrency;
       _estimate.leadStage = master.defaultLeadStage;
       _estimate.expiryDate =

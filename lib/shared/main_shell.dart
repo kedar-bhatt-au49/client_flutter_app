@@ -28,6 +28,15 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Start Firestore real-time sync now that the user is authenticated.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<DataHub>().startSync();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GSColors.sky100,

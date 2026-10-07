@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/data_hub.dart';
 import '../auth/login_screen.dart';
 
 /// Settings — exact design: navy header, profile, app settings, security,
@@ -463,6 +464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return InkWell(
       onTap: () async {
         final navigator = Navigator.of(context);
+        context.read<DataHub>().stopSync();
         await auth.signOut();
         if (!mounted) return;
         navigator.pushAndRemoveUntil(

@@ -27,7 +27,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
 
   String _area = GSArea.talaja;
   String _propertyType = GSPropertyType.residential;
-  String _preferredPackage = '3.08';
+  String _preferredPackage = gsQuoteSystems.first.id;
   String _source = GSSource.website;
 
   static const _muted = Color(0xFF627193);
@@ -54,7 +54,10 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
       _villageController.text = c.village ?? '';
       _propertyType = c.propertyType;
       _billController.text = c.monthlyBill.toInt().toString();
-      _preferredPackage = c.preferredPackage == 'not-sure' ? '3.08' : c.preferredPackage;
+      final p = c.preferredPackage;
+      _preferredPackage = (p == 'not-sure' || gsQuoteSystemById(p) == null)
+          ? gsQuoteSystems.first.id
+          : p;
       _source = c.source;
       _notesController.text = c.notes ?? '';
     }
@@ -347,16 +350,18 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                             iconColor: _goldDark,
                             value: _preferredPackage,
                             items: [
-                              DropdownMenuItem(
+                              const DropdownMenuItem(
                                   value: 'not-sure', child: Text('Not sure yet')),
-                              ...gsPackages.map((p) => DropdownMenuItem(
-                                  value: p.kw.toString(),
-                                  child: Text('${p.kw} kW (${p.panels} Panels) — Adani TOPCon',
+                              ...gsQuoteSystems.map((p) => DropdownMenuItem(
+                                  value: p.id,
+                                  child: Text(
+                                      '${p.kw.toStringAsFixed(2)} kW • ${p.panels} Panels — ${p.brandEn}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis))),
                             ],
-                            onChanged: (v) =>
-                                setState(() => _preferredPackage = v ?? '3.08'),
+                            onChanged: (v) => setState(
+                                () => _preferredPackage =
+                                    v ?? gsQuoteSystems.first.id),
                           ),
                           const SizedBox(height: 16),
 

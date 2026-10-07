@@ -277,40 +277,63 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
             color: GSColors.white,
             border: Border(top: BorderSide(color: GSColors.sky100)),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: (_html == null || _busy) ? null : _share,
-                  icon: const Icon(Icons.ios_share, size: 18),
-                  label: const Text('Share'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: GSColors.navy700,
-                    side: const BorderSide(color: GSColors.navy700),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: (_html == null || _busy) ? null : _share,
+                      icon: const Icon(Icons.ios_share, size: 18),
+                      label: const Text('Share'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: GSColors.navy700,
+                        side: const BorderSide(color: GSColors.navy700),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (_html == null || _busy) ? null : _download,
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: GSColors.navy900),
+                            )
+                          : const Icon(Icons.download_rounded, size: 18),
+                      label: Text(_busy ? 'Generating…' : 'Download'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GSColors.gold500,
+                        foregroundColor: GSColors.navy900,
+                        disabledBackgroundColor:
+                            GSColors.gold500.withValues(alpha: 0.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: (_html == null || _busy) ? null : _download,
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: GSColors.navy900),
-                        )
-                      : const Icon(Icons.download_rounded, size: 18),
-                  label: Text(_busy ? 'Generating…' : 'Download'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: GSColors.gold500,
-                    foregroundColor: GSColors.navy900,
-                    disabledBackgroundColor:
-                        GSColors.gold500.withValues(alpha: 0.5),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => Navigator.of(context).popUntil((r) => r.isFirst),
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('Done'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: GSColors.green600,
+                    side: const BorderSide(color: GSColors.green600),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),

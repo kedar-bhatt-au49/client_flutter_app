@@ -49,14 +49,28 @@ class DataHub extends ChangeNotifier {
   Future<void> init() async {
     await _db.init();
     await _db.seedIfNeeded();
+    await _loadAll();
+  }
 
-    // Shared, real-time data (clients + quotations) from Firestore.
+  /// Starts real-time Firestore sync for clients + quotations.
+  /// Must be called AFTER the user is authenticated (security rules require
+  /// an authenticated session, otherwise the listener errors and dies).
+  Future<void> startSync() async {
+    if (_clientsSub != null) return;
     final master = await MasterData.load();
     _clientsSub = _fire.watchClients().listen(_onClients, onError: _onError);
     _estimatesSub =
         _fire.watchEstimates(master).listen(_onEstimates, onError: _onError);
+  }
 
-    await _loadAll();
+  void stopSync() {
+    _clientsSub?.cancel();
+    _estimatesSub?.cancel();
+    _clientsSub = null;
+    _estimatesSub = null;
+    _clients = [];
+    _estimates = [];
+    notifyListeners();
   }
 
   void _onClients(List<ClientModel> list) {

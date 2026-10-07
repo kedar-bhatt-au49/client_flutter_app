@@ -33,7 +33,8 @@ class GSSource {
   static const whatsapp = 'WhatsApp';
   static const walkIn = 'Walk-in';
   static const referral = 'Referral';
-  static const all = [website, whatsapp, walkIn, referral];
+  static const phone = 'Phone';
+  static const all = [website, whatsapp, walkIn, referral, phone];
 }
 
 /// Client pipeline statuses — used for filter chips and status chips.

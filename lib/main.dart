@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -20,7 +22,13 @@ late DataHub gDataHub;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // Firebase must never block the app from starting.
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase.initializeApp failed: $e');
+  }
   await Hive.initFlutter();
 
   final authService = FirebaseAuthService();
@@ -29,15 +37,27 @@ Future<void> main() async {
 
   await databaseService.init();
   await databaseService.seedIfNeeded();
-  await authService.init();
-  await notificationService.init();
 
   gAuthProvider = AuthProvider(authService);
   gDataHub = DataHub(databaseService, FirestoreService.instance);
-  await gAuthProvider.init();
-  await gDataHub.init();
+
+  // Every step is guarded by a timeout + try/catch so startup can never hang
+  // (e.g. offline first run on a new phone).
+  try {
+    await gAuthProvider.init().timeout(const Duration(seconds: 6));
+  } catch (e) {
+    debugPrint('authProvider.init failed: $e');
+  }
+  try {
+    await gDataHub.init().timeout(const Duration(seconds: 10));
+  } catch (e) {
+    debugPrint('dataHub.init failed: $e');
+  }
 
   runApp(const GlobalSolarApp());
+
+  // Non-critical — never blocks startup.
+  notificationService.init().catchError((_) {});
 }
 
 class GlobalSolarApp extends StatelessWidget {

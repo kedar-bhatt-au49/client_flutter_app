@@ -292,6 +292,23 @@ class DataHub extends ChangeNotifier {
 
   int get estimateCount => _estimates.length;
 
+  Future<EstimateRecord?> updateEstimatePdfPath(
+      String recordId, String? pdfPath) async {
+    final record = await _db.setEstimatePdfPath(recordId, pdfPath);
+    final i = _estimates.indexWhere((r) => r.id == recordId);
+    if (i != -1 && record != null) {
+      _estimates[i] = record;
+      notifyListeners();
+    }
+    return record;
+  }
+
+  Future<void> deleteEstimate(String recordId) async {
+    await _db.deleteEstimate(recordId);
+    _estimates.removeWhere((r) => r.id == recordId);
+    notifyListeners();
+  }
+
   // ── Pipeline ──────────────────────────────────────────────────
 
   Map<String, int> getPipelineCounts() {

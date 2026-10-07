@@ -961,19 +961,30 @@ class EstimateRecord {
   final EstimateModel data;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? pdfPath;
 
   EstimateRecord({
     required this.id,
     required this.data,
     required this.createdAt,
     required this.updatedAt,
+    this.pdfPath,
   });
+
+  EstimateRecord copyWith({String? pdfPath}) => EstimateRecord(
+        id: id,
+        data: data,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        pdfPath: pdfPath ?? this.pdfPath,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'data': data.toJson(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
+        'pdf_path': pdfPath,
       };
 
   factory EstimateRecord.fromJson(
@@ -988,6 +999,7 @@ class EstimateRecord {
       updatedAt: j['updated_at'] != null
           ? DateTime.parse(j['updated_at'] as String)
           : DateTime.now(),
+      pdfPath: j['pdf_path'] as String?,
     );
   }
 }

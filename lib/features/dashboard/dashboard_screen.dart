@@ -9,6 +9,7 @@ import '../../features/followups/add_follow_up_screen.dart';
 import '../../features/installations/installation_screen.dart';
 import '../../features/payments/payment_screen.dart';
 import '../../features/quotes/create_estimate_screen.dart';
+import '../../features/quotes/quotation_history_screen.dart';
 import '../../models/client.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
@@ -580,7 +581,7 @@ class DashboardScreen extends StatelessWidget {
                   BoxShadow(color: GSColors.gold500.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
                 ],
               ),
-              child: const Row(
+               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('Create Quotation',
@@ -593,6 +594,22 @@ class DashboardScreen extends StatelessWidget {
                   Icon(Icons.arrow_forward_rounded, size: 18, color: Color(0xFF050E26)),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.center,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const QuotationHistoryScreen(),
+                ));
+              },
+              child: const Text('View Quotation History',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: GSColors.gold500)),
             ),
           ),
         ],

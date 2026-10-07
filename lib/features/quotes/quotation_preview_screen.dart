@@ -4,14 +4,22 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:html_to_pdf/html_to_pdf.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/estimate.dart';
+import '../../providers/data_hub.dart';
 import '../../services/estimate_pdf.dart';
+import '../../services/quotation_archive_service.dart';
 import '../../services/quotation_html.dart';
+import 'quotation_history_screen.dart';
+
+/// When set, the preview screen automatically triggers the matching action
+/// (share or download) immediately after the PDF has been generated and
+/// archived.  Used by the history screen's quick-action buttons.
+enum PreviewAutoAction { share, download }
 
 /// Full-screen quotation preview.
 ///
@@ -21,9 +29,13 @@ import '../../services/quotation_html.dart';
 class QuotationPreviewScreen extends StatefulWidget {
   final EstimateRecord record;
   final MasterData master;
+  final PreviewAutoAction? autoAction;
 
   const QuotationPreviewScreen(
-      {super.key, required this.record, required this.master});
+      {super.key,
+      required this.record,
+      required this.master,
+      this.autoAction});
 
   @override
   State<QuotationPreviewScreen> createState() => _QuotationPreviewScreenState();
@@ -90,41 +102,97 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
         _html = html;
         _controller = controller;
       });
+      // Auto-archive a permanent PDF copy in the background so the
+      // quotation history always has a downloadable artifact. Skip this
+      // when an auto-action is queued — _share/_download will generate it.
+      final action = widget.autoAction;
+      if (action == null &&
+          !await QuotationArchiveService.hasPdf(widget.record)) {
+        _generateAndArchive();
+      }
+      // If launched with an auto-action (share / download), trigger it
+      // once the PDF is ready.
+      if (action != null) {
+        _runAutoAction(action);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = '$e');
     }
   }
 
-  /// HTML → PDF (exact Stitch design) via the native A4 WebView printer.
-  /// Falls back to the native 7-page generator if conversion fails, so
-  /// Share / Download always produce a file.
-  Future<Uint8List> _convert(String html) async {
+  void _runAutoAction(PreviewAutoAction action) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (action == PreviewAutoAction.share) {
+        _share();
+      } else {
+        _download();
+      }
+    });
+  }
+
+  /// Generates the 7-page HTML → PDF, archives it to permanent storage,
+  /// records the path on the estimate record, and returns the PDF bytes.
+  ///
+  /// Falls back to the native [EstimatePdf.generate] (pw-based 7-page PDF)
+  /// if the HTML-to-PDF conversion fails, so Share / Download always produce
+  /// a real file that is permanently archived (never the OS temp directory).
+  Future<Uint8List> _generateAndArchive() async {
+    final html = _html;
+    if (html == null) {
+      throw Exception('No HTML content to convert');
+    }
+
+    final archivePath = await QuotationArchiveService.archivePath(widget.record);
+    final archiveFile = File(archivePath);
+
+    Uint8List bytes;
     try {
-      final dir = (await getTemporaryDirectory()).path;
-      final name = 'gs_quote_${DateTime.now().millisecondsSinceEpoch}';
-      final file = await HtmlToPdf.convertFromHtmlContent(
+      // HTML → PDF conversion, writing to the permanent archive directory.
+      final tmpDir = (await QuotationArchiveService.archiveDirectory).path;
+      final tmpName = 'gs_quote_${DateTime.now().millisecondsSinceEpoch}';
+      final tmpFile = await HtmlToPdf.convertFromHtmlContent(
         htmlContent: html,
         printPdfConfiguration: PrintPdfConfiguration(
-          targetDirectory: dir,
-          targetName: name,
+          targetDirectory: tmpDir,
+          targetName: tmpName,
           printSize: PrintSize.A4,
           printOrientation: PrintOrientation.Portrait,
         ),
       ).timeout(const Duration(seconds: 60));
-      return file.readAsBytes();
+      bytes = await tmpFile.readAsBytes();
+      // Remove the intermediate conversion file (the real archive copy
+      // lives at [archivePath]).
+      try {
+        await tmpFile.delete();
+      } catch (_) {}
+    } on TimeoutException {
+      rethrow;
     } catch (_) {
-      return EstimatePdf.generate(
+      // Fallback: native 7-page pw-based PDF generator.
+      bytes = await EstimatePdf.generate(
           record: widget.record, master: widget.master);
     }
+
+    // Persist to permanent archive.
+    await archiveFile.writeAsBytes(bytes, flush: true);
+
+    // Record the archived path on the estimate so the history screen
+    // can find it later.
+    if (mounted) {
+      unawaited(
+        context.read<DataHub>().updateEstimatePdfPath(widget.record.id, archivePath),
+      );
+    }
+
+    return bytes;
   }
 
   Future<void> _share() async {
-    final html = _html;
-    if (html == null) return;
     setState(() => _busy = true);
     try {
-      final bytes = await _convert(html);
+      final bytes = await _generateAndArchive();
       await Printing.sharePdf(bytes: bytes, filename: _fileName);
     } on TimeoutException {
       if (mounted) {
@@ -142,16 +210,14 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
   }
 
   Future<void> _download() async {
-    final html = _html;
-    if (html == null) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      final bytes = await _convert(html);
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$_fileName');
-      await file.writeAsBytes(bytes, flush: true);
-      messenger.showSnackBar(SnackBar(content: Text('Saved: ${file.path}')));
+      await _generateAndArchive();
+      final path =
+          await QuotationArchiveService.archivePath(widget.record);
+      messenger.showSnackBar(
+          SnackBar(content: Text('PDF saved to: $path')));
     } on TimeoutException {
       messenger.showSnackBar(const SnackBar(
           content: Text('PDF generation timed out. Please try again.')));
@@ -183,12 +249,23 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
                     fontFamily: 'Outfit',
                     fontSize: 17,
                     fontWeight: FontWeight.w700)),
-            Text(_fileName,
+             Text(_fileName,
                 overflow: TextOverflow.ellipsis,
                 style:
                     const TextStyle(fontSize: 11, color: Color(0xB3FFFFFF))),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded, size: 20),
+            tooltip: 'Quotation History',
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const QuotationHistoryScreen()));
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: SafeArea(

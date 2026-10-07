@@ -278,20 +278,22 @@ class DatabaseService {
 
   /// Updates an existing estimate in place (keeps its id + createdAt).
   Future<EstimateRecord> updateEstimate(String id, EstimateModel estimate,
-      {MasterData? master, DateTime? createdAt}) async {
+      {MasterData? master, DateTime? createdAt, String? pdfPath}) async {
     final existing = await getEstimate(id);
     final record = EstimateRecord(
       id: id,
       data: estimate,
       createdAt: createdAt ?? existing?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
+      pdfPath: pdfPath ?? existing?.pdfPath,
     );
     final box = Hive.box(boxEstimates);
     await box.put(id, record.toJson());
     return record;
   }
 
-  Future<List<EstimateRecord>> getAllEstimates() async {    await init();
+  Future<List<EstimateRecord>> getAllEstimates() async {
+    await init();
     final master = await MasterData.load();
     final box = Hive.box(boxEstimates);
     return box.values
@@ -307,6 +309,17 @@ class DatabaseService {
     if (raw == null) return null;
     return EstimateRecord.fromJson(
         Map<String, dynamic>.from(raw as Map), await MasterData.load());
+  }
+
+  /// Persists the archived PDF path for an existing estimate record.
+  Future<EstimateRecord?> setEstimatePdfPath(
+      String id, String? pdfPath) async {
+    final existing = await getEstimate(id);
+    if (existing == null) return null;
+    final record = existing.copyWith(pdfPath: pdfPath);
+    final box = Hive.box(boxEstimates);
+    await box.put(id, record.toJson());
+    return record;
   }
 
   Future<void> deleteEstimate(String id) async {

@@ -36,6 +36,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/templates/quotation.html
+    - assets/templates/quotation_gu.html
     - assets/data/estimate_master.json
     - assets/images/logo.jpg
     - assets/images/logo.png

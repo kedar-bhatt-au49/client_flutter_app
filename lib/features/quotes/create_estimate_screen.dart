@@ -959,6 +959,20 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
             onTap: () => setState(() => _estimate.gstIncluded = false),
           ),
         ]),
+        const SizedBox(height: 14),
+        _lbl('Quotation Language'),
+        _segmented(children: [
+          _segmentButton(
+            label: 'English',
+            selected: _estimate.language == 'en',
+            onTap: () => setState(() => _estimate.language = 'en'),
+          ),
+          _segmentButton(
+            label: 'ગુજરાતી',
+            selected: _estimate.language == 'gu',
+            onTap: () => setState(() => _estimate.language = 'gu'),
+          ),
+        ]),
       ],
     );
   }

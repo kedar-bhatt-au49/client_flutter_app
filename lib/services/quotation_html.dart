@@ -14,19 +14,26 @@ import '../models/estimate.dart';
 class QuotationHtml {
   QuotationHtml._();
 
-  static const _assetPath = 'assets/templates/quotation.html';
-  static String? _template;
+  static const _assetEn = 'assets/templates/quotation.html';
+  static const _assetGu = 'assets/templates/quotation_gu.html';
+  static final Map<String, String> _cache = {};
 
   static final DateFormat _dmy = DateFormat('dd/MM/yyyy');
   static final DateFormat _dMonY = DateFormat('dd MMM yyyy');
 
   /// Returns the fully-populated 7-page HTML document.
+  /// [language] is `'en'` (default) or `'gu'` (Gujarati).
   static Future<String> build({
     required EstimateRecord record,
     required MasterData master,
+    String language = 'en',
   }) async {
-    _template ??= await rootBundle.loadString(_assetPath);
-    final tokens = _tokens(record, master);
+    final lang = language == 'gu' ? 'gu' : 'en';
+    if (_cache[lang] == null) {
+      _cache[lang] =
+          await rootBundle.loadString(lang == 'gu' ? _assetGu : _assetEn);
+    }
+    final tokens = _tokens(record, master, lang);
 
     // ── Panel-count design image (real asset, base64) ──
     final system = record.data.systemId != null
@@ -44,7 +51,7 @@ class QuotationHtml {
     // ── Bill of Materials (from the selected lines / master list) ──
     tokens['BOM_ROWS'] = _bomRows(record.data.bomLines, record.data);
 
-    var html = _template!;
+    var html = _cache[lang]!;
     for (final e in tokens.entries) {
       html = html.replaceAll('{{${e.key}}}', e.value);
     }
@@ -64,10 +71,15 @@ class QuotationHtml {
     return n;
   }
 
-  static String _creatorTitle(EstimateModel e) =>
-      e.createdByRole == 'coowner'
-          ? 'Co-Founder & Operations'
-          : 'Founder & Chief Technical Officer';
+  static String _creatorTitle(EstimateModel e, String lang) {
+    final gu = lang == 'gu';
+    if (e.createdByRole == 'coowner') {
+      return gu ? 'સહ-સ્થાપક અને ઓપરેશન્સ' : 'Co-Founder & Operations';
+    }
+    return gu
+        ? 'સ્થાપક અને મુખ્ય ટેકનિકલ ઓફિસર'
+        : 'Founder & Chief Technical Officer';
+  }
 
   /// Cover block showing the lead's requirement / site notes (empty if none).
   static String _siteNotesBlock(String? notes) {
@@ -117,7 +129,7 @@ class QuotationHtml {
   // ── Token mapping ──────────────────────────────────────────────────────
 
   static Map<String, String> _tokens(
-      EstimateRecord record, MasterData master) {
+      EstimateRecord record, MasterData master, String lang) {
     final e = record.data;
     final system =
         e.systemId != null ? gsQuoteSystemById(e.systemId!) : null;
@@ -236,7 +248,7 @@ class QuotationHtml {
     final name = e.leadName.trim();
     final cols = panels == 0 ? 2 : ((panels + 1) ~/ 2);
     final creatorName = _creatorName(e);
-    final creatorTitle = _creatorTitle(e);
+    final creatorTitle = _creatorTitle(e, lang);
 
     return {
       'CLIENT_NAME': _esc(name),
@@ -258,8 +270,12 @@ class QuotationHtml {
       'CREATED_BY_TITLE': creatorTitle,
       'PREPARED_BY': creatorName,
       'CAPACITY': '${kw.toStringAsFixed(2)} kW',
-      'CAPACITY_CONFIG': '${kw.toStringAsFixed(2)} kWp Turnkey Config',
-      'SUBSIDY_GUARANTEE': '₹${_inr(subsidy)} Guaranteed',
+      'CAPACITY_CONFIG': lang == 'gu'
+          ? '${kw.toStringAsFixed(2)} kWp ટર્નકી કન્ફિગ'
+          : '${kw.toStringAsFixed(2)} kWp Turnkey Config',
+      'SUBSIDY_GUARANTEE': lang == 'gu'
+          ? '₹${_inr(subsidy)} ખાતરીપૂર્વક'
+          : '₹${_inr(subsidy)} Guaranteed',
       'PANEL_COUNT': '$panels',
       'ARRAY_RC': '2x$cols',
       'PANEL_BRAND': brandEn,
@@ -271,7 +287,9 @@ class QuotationHtml {
       'GROSS': '₹${_inr2(gross)}',
       'SUBSIDY_AMT': '− ₹${_inr2(subsidy)}',
       'NET_COST': '₹${_inr2(afterSubsidy)}',
-      'AMOUNT_WORDS': 'Indian Rupee ${_words(afterSubsidy)} Only',
+      'AMOUNT_WORDS': lang == 'gu'
+          ? 'ભારતીય રૂપિયા ${_wordsGu(afterSubsidy)} પૂરા'
+          : 'Indian Rupee ${_words(afterSubsidy)} Only',
     };
   }
 
@@ -371,6 +389,43 @@ class QuotationHtml {
     if (thousand > 0) parts.add('${_twoDigits(thousand)} Thousand');
     if (hundred > 0) parts.add('${_ones[hundred]} Hundred');
     if (num > 0) parts.add(_twoDigits(num));
+    return parts.join(' ');
+  }
+
+  // ── Gujarati number → words ────────────────────────────────────────────
+
+  static const _guOnes = [
+    '', 'એક', 'બે', 'ત્રણ', 'ચાર', 'પાંચ', 'છ', 'સાત', 'આઠ', 'નવ',
+    'દસ', 'અગિયાર', 'બાર', 'તેર', 'ચૌદ', 'પંદર', 'સોળ', 'સત્તર', 'અઢાર',
+    'ઓગણીસ'
+  ];
+  static const _guTens = [
+    '', '', 'વીસ', 'ત્રીસ', 'ચાલીસ', 'પચાસ', 'સાઠ', 'સિત્તેર', 'એંસી',
+    'નેવું'
+  ];
+
+  static String _guTwo(int n) {
+    if (n < 20) return _guOnes[n];
+    return '${_guTens[n ~/ 10]}${n % 10 == 0 ? '' : ' ${_guOnes[n % 10]}'}';
+  }
+
+  static String _wordsGu(int n) {
+    if (n == 0) return 'શૂન્ય';
+    var num = n;
+    final parts = <String>[];
+    final crore = num ~/ 10000000;
+    num %= 10000000;
+    final lakh = num ~/ 100000;
+    num %= 100000;
+    final thousand = num ~/ 1000;
+    num %= 1000;
+    final hundred = num ~/ 100;
+    num %= 100;
+    if (crore > 0) parts.add('${_guTwo(crore)} કરોડ');
+    if (lakh > 0) parts.add('${_guTwo(lakh)} લાખ');
+    if (thousand > 0) parts.add('${_guTwo(thousand)} હજાર');
+    if (hundred > 0) parts.add('${_guOnes[hundred]} સો');
+    if (num > 0) parts.add(_guTwo(num));
     return parts.join(' ');
   }
 }

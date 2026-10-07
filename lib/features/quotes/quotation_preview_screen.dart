@@ -88,6 +88,7 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
       final html = await QuotationHtml.build(
         record: widget.record,
         master: widget.master,
+        language: widget.record.data.language,
       );
       final controller = WebViewController();
       controller

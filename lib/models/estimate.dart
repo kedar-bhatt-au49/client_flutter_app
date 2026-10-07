@@ -747,6 +747,7 @@ class EstimateModel {
   List<BomLine> bomLines; // form-editable Bill of Materials
   String? createdByName; // who created the quotation (founder/co-founder)
   String? createdByRole; // 'owner' | 'coowner'
+  String language; // quotation language: 'en' | 'gu'
 
   // â”€â”€ Step 3: Structure Details â”€â”€
   final Map<String, int> structureQuantities; // pipe label -> meters
@@ -791,6 +792,7 @@ class EstimateModel {
     List<BomLine>? bomLines,
     this.createdByName,
     this.createdByRole,
+    this.language = 'en',
     Map<String, int>? structureQuantities,
     this.discountPerKw = 0,
     this.gstProfileLabel = '',
@@ -887,6 +889,7 @@ class EstimateModel {
         'bom_lines': bomLines.map((e) => e.toJson()).toList(),
         'created_by_name': createdByName,
         'created_by_role': createdByRole,
+        'language': language,
         'structure_quantities': structureQuantities,
         'discount_per_kw': discountPerKw,
         'gst_profile_label': gstProfileLabel,
@@ -938,6 +941,7 @@ class EstimateModel {
           .toList(),
       createdByName: j['created_by_name'] as String?,
       createdByRole: j['created_by_role'] as String?,
+      language: j['language'] as String? ?? 'en',
       structureQuantities: structureQty,
       discountPerKw: (j['discount_per_kw'] as num?)?.toDouble() ?? 0,
       gstProfileLabel: j['gst_profile_label'] as String? ?? '',

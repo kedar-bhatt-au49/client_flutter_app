@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -7,7 +8,7 @@ import '../../core/widgets/solar_visuals.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/main_shell.dart';
 
-/// Login screen — exact "Sunrise over the rooftop" design:
+/// Login screen â€” exact "Sunrise over the rooftop" design:
 /// sky gradient + PV mesh + glass card with email/password + gold sign-in.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _keepSignedIn = true;
 
   @override
   void dispose() {
@@ -34,6 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await auth.signIn(_emailController.text.trim(), _passwordController.text);
 
     if (success && mounted) {
+      // Offer to save the credentials in the device password manager.
+      TextInput.finishAutofillContext();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainShell()),
       );
@@ -44,38 +46,47 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _handleBiometric() async {
+  Future<void> _handleForgotPassword() async {
+    final emailCtrl = TextEditingController(text: _emailController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Reset password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                'Enter your account email and we will send a password reset link.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                  labelText: 'Email', hintText: 'you@example.com'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, emailCtrl.text.trim()),
+            child: const Text('Send link'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty || !mounted) return;
     final auth = context.read<AuthProvider>();
-    final available = await auth.canUseBiometrics();
-
-    if (!available) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometrics not available on this device')),
-      );
-      return;
-    }
-
-    final enabled = auth.biometricsEnabled;
-    if (!enabled) {
-      await auth.setBiometricsEnabled(true);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric unlock enabled. Please login first.')),
-      );
-      return;
-    }
-
-    final success = await auth.tryBiometricUnlock();
-    if (success && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
-    } else if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric authentication failed')),
-      );
-    }
+    final ok = await auth.sendPasswordReset(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? 'Password reset link sent to $email'
+          : (auth.errorMessage ?? 'Could not send the reset link')),
+    ));
   }
 
   @override
@@ -241,6 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
+                                  autofillHints: const [AutofillHints.email],
                                   style: _fieldTextStyle(),
                                 ),
                                 const SizedBox(height: 14),
@@ -250,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: [
                                     _fieldLabel('Password'),
                                     TextButton(
-                                      onPressed: () {},
+                                      onPressed: _handleForgotPassword,
                                       style: TextButton.styleFrom(
                                         padding: EdgeInsets.zero,
                                         minimumSize: const Size(0, 24),
@@ -282,6 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   textInputAction: TextInputAction.done,
                                   onFieldSubmitted: (_) => _handleLogin(),
+                                  autofillHints: const [AutofillHints.password],
                                   style: _fieldTextStyle(),
                                 ),
                                 // Remember me & encrypted row
@@ -291,16 +304,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       InkWell(
-                                        onTap: () => setState(
-                                            () => _keepSignedIn = !_keepSignedIn),
+                                        onTap: () =>
+                                            auth.setRememberMe(!auth.rememberMe),
                                         child: Row(
                                           children: [
                                             Icon(
-                                              _keepSignedIn
+                                              auth.rememberMe
                                                   ? Icons.check_box
                                                   : Icons.check_box_outline_blank,
                                               size: 18,
-                                              color: _keepSignedIn
+                                              color: auth.rememberMe
                                                   ? GSColors.blue500
                                                   : GSColors.ink.withValues(alpha: 0.4),
                                             ),
@@ -328,9 +341,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 // 7. Sign In button
                                 _signInButton(auth),
-                                const SizedBox(height: 12),
-                                // 8. Biometrics button
-                                _biometricButton(auth),
                                 // 9. Version footer
                                 Padding(
                                   padding: const EdgeInsets.only(top: 14),
@@ -340,7 +350,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Version 1.0.0  •  Internal EPC Ops',
+                                  'Version 1.0.0  â€¢  Internal EPC Ops',
                                   textAlign: TextAlign.center,
                                   style: GSTextStyles.bodySmall.copyWith(
                                       color: Colors.grey.shade400,
@@ -356,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Bottom security badge
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text('Global Solar 2.0  •  Bhavnagar & Talaja EPC Division',
+                    child: Text('Global Solar 2.0  â€¢  Bhavnagar & Talaja EPC Division',
                         style: GSTextStyles.bodySmall.copyWith(
                             color: Colors.grey.shade700,
                             fontWeight: FontWeight.w600,
@@ -454,30 +464,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Icon(Icons.arrow_forward_rounded, size: 18, color: GSColors.navy900),
                   ],
                 ),
-        ),
-      ),
-    );
-  }
-
-  Widget _biometricButton(AuthProvider auth) {
-    return GestureDetector(
-      onTap: auth.loading ? null : _handleBiometric,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.fingerprint, size: 18, color: GSColors.blue500),
-            const SizedBox(width: 8),
-            Text('Use Biometrics (Face ID / Fingerprint)',
-                style: GSTextStyles.bodySmall.copyWith(
-                    color: GSColors.navy900, fontWeight: FontWeight.w600)),
-          ],
         ),
       ),
     );

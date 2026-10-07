@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,7 @@ import 'features/auth/login_screen.dart';
 import 'features/quotes/create_estimate_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/data_hub.dart';
-import 'services/auth_service_impl.dart';
+import 'services/firebase_auth_service.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
 import 'shared/main_shell.dart';
@@ -18,9 +19,10 @@ late DataHub gDataHub;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await Hive.initFlutter();
 
-  final authService = MockAuthService();
+  final authService = FirebaseAuthService();
   final databaseService = DatabaseService();
   final notificationService = NotificationService();
 

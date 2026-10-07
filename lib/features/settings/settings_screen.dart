@@ -32,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _notificationsEnabled = true;
   bool _dailyReminder = false;
-  bool _biometricsEnabled = false;
   bool _loading = true;
 
   @override
@@ -42,9 +41,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadPrefs() async {
-    final auth = context.read<AuthProvider>();
-    _biometricsEnabled = auth.biometricsEnabled;
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _changePassword(AuthProvider auth) async {
+    final ctrl = TextEditingController();
+    final newPass = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Change password'),
+        content: TextField(
+          controller: ctrl,
+          obscureText: true,
+          decoration: const InputDecoration(
+              labelText: 'New password', hintText: 'At least 6 characters'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (newPass == null || newPass.isEmpty || !mounted) return;
+    final ok = await auth.changePassword(newPass);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? 'Password updated'
+          : (auth.errorMessage ?? 'Could not update password')),
+    ));
   }
 
   @override
@@ -341,24 +371,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       children: [
-        _toggleRow(
-          icon: Icons.fingerprint_rounded,
-          iconColor: const Color(0xFF2563EB),
-          label: 'Biometric Unlock',
-          subtitle: 'Use fingerprint to open the app',
-          value: _biometricsEnabled,
-          onChanged: (v) async {
-            setState(() => _biometricsEnabled = v);
-            final messenger = ScaffoldMessenger.of(context);
-            await auth.setBiometricsEnabled(v);
-            if (!mounted) return;
-            messenger.showSnackBar(
-              SnackBar(
-                  content: Text(v
-                      ? 'Biometric unlock enabled'
-                      : 'Biometric unlock disabled')),
-            );
-          },
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.lock_reset_rounded,
+              color: Color(0xFF2563EB)),
+          title: const Text('Change Password',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F1B3D))),
+          subtitle: const Text('Update your account password',
+              style: TextStyle(fontSize: 12, color: Color(0xFF627193))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFF627193)),
+          onTap: () => _changePassword(auth),
         ),
       ],
     );

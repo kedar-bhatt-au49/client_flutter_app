@@ -425,8 +425,6 @@ class GSUsers {
   static const founderPhone = '8488807797';
   static const coFounderPhone = '8866568543';
   static const whatsappNumber = '918488807797';
-
-  static const appPassword = 'GS2_Solar@2026';
 }
 
 /// Working hours (mirrors siteConfig).

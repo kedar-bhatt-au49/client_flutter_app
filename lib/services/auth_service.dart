@@ -3,6 +3,9 @@ import '../models/user.dart';
 /// Abstract auth service — mirrors Firebase Auth contract.
 /// A real implementation would swap this for FirebaseAuth.
 abstract class AuthService {
+  /// Initialise the service (load persisted session).
+  Future<void> init();
+
   /// Stream of auth state changes.
   Stream<UserModel?> authStateChanges();
 
@@ -14,20 +17,14 @@ abstract class AuthService {
   Future<UserModel?> signInWithEmailAndPassword(
       String email, String password);
 
+  /// Send a password-reset email.
+  Future<void> sendPasswordResetEmail(String email);
+
+  /// Change the current user's password.
+  Future<void> updatePassword(String newPassword);
+
   /// Sign out and clear session.
   Future<void> signOut();
-
-  /// Try biometric / device unlock.
-  Future<bool> authenticateWithBiometrics();
-
-  /// Check if biometric is available on this device.
-  Future<bool> canUseBiometrics();
-
-  /// Whether the user has enabled biometric unlock.
-  bool get biometricsEnabled;
-
-  /// Enable or disable biometric unlock.
-  Future<void> setBiometricsEnabled(bool value);
 }
 
 /// Simple exception for auth errors.

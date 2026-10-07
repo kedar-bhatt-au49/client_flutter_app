@@ -30,29 +30,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    if (!auth.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-      return;
-    }
-
-    final unlocked = await auth.tryBiometricUnlock();
-    if (!mounted) return;
-
-    if (unlocked) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
-    } else if (auth.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) =>
+            auth.isAuthenticated ? const MainShell() : const LoginScreen(),
+      ),
+    );
   }
 
   @override

@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+﻿import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/client.dart';
 import '../models/follow_up.dart';
@@ -7,9 +7,8 @@ import '../models/payment.dart';
 import '../models/quote.dart';
 import '../models/estimate.dart';
 import '../models/app_settings.dart';
-import 'seed_data.dart';
 
-/// Central data service — persists entities via Hive boxes.
+/// Central data service â€” persists entities via Hive boxes.
 ///
 /// In production this contract is implemented by Firestore; for v1 it is
 /// backed by Hive so the app works fully offline.
@@ -47,7 +46,7 @@ class DatabaseService {
 
   String generateId() => _uuid.v4();
 
-  // ── First-run seed ────────────────────────────────────────────
+  // â”€â”€ First-run seed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<bool> isFirstRun() async {
     final box = Hive.box(boxApp);
@@ -60,13 +59,11 @@ class DatabaseService {
   }
 
   Future<void> seedIfNeeded() async {
-    if (!await isFirstRun()) return;
-    final seed = SeedData();
-    seed.populate(this);
+    // Demo seeding disabled â€” real data now syncs from Firestore.
     await markFirstRunDone();
   }
 
-  // ── Settings ──────────────────────────────────────────────────
+  // â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<AppSettingsModel> getSettings() async {
     final box = Hive.box(boxSettings);
@@ -82,7 +79,7 @@ class DatabaseService {
     await box.put(keySettings, settings.toJson());
   }
 
-  // ── Clients ───────────────────────────────────────────────────
+  // â”€â”€ Clients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<List<ClientModel>> getAllClients() async {
     final box = Hive.box(boxClients);
@@ -136,7 +133,7 @@ class DatabaseService {
     return all.where((c) => c.area == area || c.displayArea == area).toList();
   }
 
-  // ── Follow-ups ──────────────────────────────────────────────────
+  // â”€â”€ Follow-ups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<List<FollowUpModel>> getAllFollowUps() async {
     final box = Hive.box(boxFollowUps);
@@ -189,7 +186,7 @@ class DatabaseService {
     }
   }
 
-  // ── Quotes ────────────────────────────────────────────────────
+  // â”€â”€ Quotes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<List<QuoteModel>> getAllQuotes() async {
     final box = Hive.box(boxQuotes);
@@ -220,7 +217,7 @@ class DatabaseService {
     }
   }
 
-  // ── Payments ──────────────────────────────────────────────────
+  // â”€â”€ Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<PaymentModel?> getPaymentForClient(String clientId) async {
     final box = Hive.box(boxPayments);
@@ -239,7 +236,7 @@ class DatabaseService {
     await box.delete(clientId);
   }
 
-  // ── Installations ──────────────────────────────────────────────
+  // â”€â”€ Installations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<InstallationModel?> getInstallationForClient(String clientId) async {
     final box = Hive.box(boxInstallations);
@@ -258,7 +255,7 @@ class DatabaseService {
     await box.delete(clientId);
   }
 
-  // ── Estimates ──────────────────────────────────────────────────
+  // â”€â”€ Estimates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<EstimateRecord> saveEstimate(EstimateModel estimate,
       {String? id, MasterData? master}) async {
@@ -327,7 +324,7 @@ class DatabaseService {
     await box.delete(id);
   }
 
-  // ── Dashboard stats ──
+  // â”€â”€ Dashboard stats â”€â”€
 
   Future<DashboardStats> getDashboardStats() async {
     final clients = await getAllClients();

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:global_solar_client_app/features/quotes/create_estimate_screen.dart';
 import 'package:global_solar_client_app/providers/data_hub.dart';
 import 'package:global_solar_client_app/services/database_service.dart';
+import 'package:global_solar_client_app/services/firestore_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +14,7 @@ void main() {
       (WidgetTester tester) async {
     // DataHub(DatabaseService()) without init() — estimateCount defaults to 0,
     // which is all _loadMaster needs. MasterData.load() uses rootBundle, not Hive.
-    final hub = DataHub(DatabaseService());
+    final hub = DataHub(DatabaseService(), FirestoreService.instance);
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(

@@ -9,6 +9,7 @@ import 'features/quotes/create_estimate_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/data_hub.dart';
 import 'services/firebase_auth_service.dart';
+import 'services/firestore_service.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
 import 'shared/main_shell.dart';
@@ -32,7 +33,7 @@ Future<void> main() async {
   await notificationService.init();
 
   gAuthProvider = AuthProvider(authService);
-  gDataHub = DataHub(databaseService);
+  gDataHub = DataHub(databaseService, FirestoreService.instance);
   await gAuthProvider.init();
   await gDataHub.init();
 

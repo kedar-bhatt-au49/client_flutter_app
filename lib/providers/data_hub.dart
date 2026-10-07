@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/app_settings.dart';
@@ -8,12 +10,16 @@ import '../models/payment.dart';
 import '../models/quote.dart';
 import '../models/estimate.dart';
 import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// Central data hub — loads, caches, and manages all application data.
 ///
 /// Each method persists to Hive and notifies UI listeners.
 class DataHub extends ChangeNotifier {
   final DatabaseService _db;
+  final FirestoreService _fire;
+  StreamSubscription<List<ClientModel>>? _clientsSub;
+  StreamSubscription<List<EstimateRecord>>? _estimatesSub;
   bool _loading = true;
   String? _error;
 
@@ -25,7 +31,7 @@ class DataHub extends ChangeNotifier {
   List<EstimateRecord> _estimates = [];
   AppSettingsModel? _settings;
 
-  DataHub(this._db);
+  DataHub(this._db, this._fire);
 
   bool get loading => _loading;
   String? get error => _error;
@@ -43,7 +49,32 @@ class DataHub extends ChangeNotifier {
   Future<void> init() async {
     await _db.init();
     await _db.seedIfNeeded();
+
+    // Shared, real-time data (clients + quotations) from Firestore.
+    final master = await MasterData.load();
+    _clientsSub = _fire.watchClients().listen(_onClients, onError: _onError);
+    _estimatesSub =
+        _fire.watchEstimates(master).listen(_onEstimates, onError: _onError);
+
     await _loadAll();
+  }
+
+  void _onClients(List<ClientModel> list) {
+    _clients = list..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    _loading = false;
+    _error = null;
+    notifyListeners();
+  }
+
+  void _onEstimates(List<EstimateRecord> list) {
+    _estimates = list..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    notifyListeners();
+  }
+
+  void _onError(Object e) {
+    _error = e.toString();
+    _loading = false;
+    notifyListeners();
   }
 
   Future<void> _loadAll() async {
@@ -52,12 +83,10 @@ class DataHub extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _clients = await _db.getAllClients();
       _followUps = await _db.getAllFollowUps();
       _quotes = await _db.getAllQuotes();
       _payments = await _db.getAllPayments();
       _installations = await _db.getAllInstallations();
-      _estimates = await _db.getAllEstimates();
       _settings = await _db.getSettings();
       _loading = false;
       _error = null;
@@ -68,28 +97,25 @@ class DataHub extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
+  void dispose() {
+    _clientsSub?.cancel();
+    _estimatesSub?.cancel();
+    super.dispose();
+  }
+
   // ── Clients ───────────────────────────────────────────────────
 
   Future<void> addClient(ClientModel client) async {
-    await _db.saveClient(client);
-    _clients.insert(0, client);
-    _clients.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    notifyListeners();
+    await _fire.saveClient(client); // the listener refreshes _clients
   }
 
   Future<void> updateClient(ClientModel client) async {
-    await _db.saveClient(client);
-    final idx = _clients.indexWhere((c) => c.id == client.id);
-    if (idx >= 0) {
-      _clients[idx] = client;
-      _clients.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      notifyListeners();
-    }
+    await _fire.saveClient(client);
   }
 
   Future<void> deleteClient(String id) async {
-    await _db.deleteClient(id);
-    _clients.removeWhere((c) => c.id == id);
+    await _fire.deleteClient(id);
     _followUps.removeWhere((f) => f.clientId == id);
     _quotes.removeWhere((q) => q.clientId == id);
     _payments.removeWhere((p) => p.clientId == id);
@@ -268,43 +294,32 @@ class DataHub extends ChangeNotifier {
   // ── Estimates ───────────────────────────────────────────────────
 
   Future<EstimateRecord> addEstimate(EstimateModel estimate) async {
-    final record = await _db.saveEstimate(estimate);
-    _estimates.insert(0, record);
-    _estimates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    notifyListeners();
-    return record;
+    return _fire.saveEstimate(estimate); // the listener refreshes _estimates
   }
 
   /// Updates a previously-saved estimate (no duplicate row).
   Future<EstimateRecord> updateEstimate(
       EstimateRecord existing, EstimateModel estimate) async {
-    final record =
-        await _db.updateEstimate(existing.id, estimate, createdAt: existing.createdAt);
-    final i = _estimates.indexWhere((r) => r.id == existing.id);
-    if (i != -1) {
-      _estimates[i] = record;
-    } else {
-      _estimates.insert(0, record);
-    }
-    notifyListeners();
-    return record;
+    return _fire.saveEstimate(estimate,
+        id: existing.id, createdAt: existing.createdAt);
   }
 
   int get estimateCount => _estimates.length;
 
   Future<EstimateRecord?> updateEstimatePdfPath(
       String recordId, String? pdfPath) async {
-    final record = await _db.setEstimatePdfPath(recordId, pdfPath);
+    // PDF path is device-local; not synced.
     final i = _estimates.indexWhere((r) => r.id == recordId);
-    if (i != -1 && record != null) {
-      _estimates[i] = record;
+    if (i != -1 && pdfPath != null) {
+      _estimates[i] = _estimates[i].copyWith(pdfPath: pdfPath);
       notifyListeners();
+      return _estimates[i];
     }
-    return record;
+    return null;
   }
 
   Future<void> deleteEstimate(String recordId) async {
-    await _db.deleteEstimate(recordId);
+    await _fire.deleteEstimate(recordId);
     _estimates.removeWhere((r) => r.id == recordId);
     notifyListeners();
   }

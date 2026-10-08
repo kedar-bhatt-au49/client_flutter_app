@@ -96,6 +96,7 @@ class DataHub extends ChangeNotifier {
         Timer.periodic(const Duration(seconds: 30), (_) => _checkDueFollowUps());
   }
 
+  /// Fires one alarm-style notification when a follow-up becomes due.
   void _checkDueFollowUps() {
     final now = DateTime.now();
     for (final f in _followUps) {
@@ -104,16 +105,14 @@ class DataHub extends ChangeNotifier {
       final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
       final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
       final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
-      final diffMin = now.difference(due).inMinutes;
-      if (diffMin >= 0 && diffMin < 2 && !_alertedFollowUps.contains(f.id)) {
-        _alertedFollowUps.add(f.id);
-        NotificationService.instance.showAlert(
-          'Follow-up due',
-          (f.note != null && f.note!.isNotEmpty)
-              ? f.note!
-              : 'You have a follow-up due now.',
-        );
-      }
+      if (now.isBefore(due) || _alertedFollowUps.contains(f.id)) continue;
+      _alertedFollowUps.add(f.id);
+      NotificationService.instance.showAlert(
+        'Follow-up due',
+        (f.note != null && f.note!.isNotEmpty)
+            ? f.note!
+            : 'You have a follow-up due now.',
+      );
     }
   }
 

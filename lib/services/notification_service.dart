@@ -50,7 +50,6 @@ class NotificationService {
       priority: Priority.high,
       color: const Color(0xFF071440),
       colorized: true,
-      icon: 'ic_launcher',
     );
     const iosDetails = DarwinNotificationDetails();
     final platformDetails =
@@ -92,7 +91,6 @@ class NotificationService {
       channelDescription: _channelDesc,
       importance: Importance.high,
       priority: Priority.high,
-      icon: 'ic_launcher',
     );
     await _plugin.show(
       _alertId++,
@@ -114,7 +112,6 @@ class NotificationService {
       channelDescription: _channelDesc,
       importance: Importance.high,
       priority: Priority.high,
-      icon: 'ic_launcher',
     );
     final platformDetails = NotificationDetails(android: androidDetails);
     await _plugin.show(

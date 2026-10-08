@@ -281,8 +281,12 @@ class DataHub extends ChangeNotifier {
     final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
     final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
     final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
+    final shouldSchedule =
+        f.status == 'pending' && due.isAfter(DateTime.now());
+    debugPrint('GS_REMINDER id=$id time=${f.time} due=$due '
+        'now=${DateTime.now()} status=${f.status} schedule=$shouldSchedule');
     try {
-      if (f.status == 'pending' && due.isAfter(DateTime.now())) {
+      if (shouldSchedule) {
         await NotificationService.instance.scheduleFollowUpReminder(
           id: id,
           title: 'Follow-up reminder',
@@ -291,11 +295,13 @@ class DataHub extends ChangeNotifier {
               : 'You have a follow-up due now.',
           scheduledDate: due,
         );
+        debugPrint('GS_REMINDER scheduled id=$id');
       } else {
         await NotificationService.instance.cancelFollowUp(id);
+        debugPrint('GS_REMINDER cancelled id=$id');
       }
     } catch (e) {
-      debugPrint('Reminder scheduling failed: $e');
+      debugPrint('GS_REMINDER failed id=$id : $e');
     }
   }
 

@@ -2,6 +2,11 @@ import 'package:intl/intl.dart';
 
 /// Warranty expiry years — computed from install date.
 class WarrantyExpiry {
+  static const omYears = 5;
+  static const panelYears = 12;
+  static const performanceYears = 30;
+  static const inverterYears = 8;
+
   final int om;
   final int panel;
   final int performance;

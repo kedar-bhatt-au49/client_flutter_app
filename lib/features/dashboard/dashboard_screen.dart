@@ -290,11 +290,31 @@ class DashboardScreen extends StatelessWidget {
   // ── Stats cards ────────────────────────────────────────────────
   Widget _buildStatsCards(BuildContext context, DataHub dataHub) {
     final stats = dataHub.getDashboardStats();
+    final now = DateTime.now();
+    final weekAgo = now.subtract(const Duration(days: 7));
+    final newThisWeek =
+        dataHub.clients.where((c) => c.createdAt.isAfter(weekAgo)).length;
+    final overdue =
+        dataHub.followUps.where((f) => f.isPending && f.isOverdue).length;
+    final total = dataHub.clients.length;
+    final installedPct =
+        total == 0 ? 0 : ((stats.installed / total) * 100).round();
+
     final items = [
-      (Icons.person_add_rounded, 'New Leads', '${stats.newLeads}', GSColors.blue500, '+18%', _StatStyle.solid),
-      (Icons.schedule_rounded, "Today's FUs", '${stats.todayFollowUps}', GSColors.gold500, 'Action req', _StatStyle.gold),
-      (Icons.request_quote_rounded, 'Pending Quotes', '${stats.pendingQuotes}', GSColors.blue500, 'Active', _StatStyle.solid),
-      (Icons.verified_rounded, 'Installed Plants', '${stats.installed}', GSColors.green600, 'Total', _StatStyle.green),
+      (Icons.person_add_rounded, 'New Leads', '${stats.newLeads}',
+          GSColors.blue500,
+          newThisWeek > 0 ? '+$newThisWeek this week' : 'No new',
+          _StatStyle.solid),
+      (Icons.schedule_rounded, "Today's FUs", '${stats.todayFollowUps}',
+          GSColors.gold500,
+          overdue > 0 ? '$overdue overdue' : 'On track',
+          _StatStyle.gold),
+      (Icons.request_quote_rounded, 'Pending Quotes', '${stats.pendingQuotes}',
+          GSColors.blue500,
+          stats.pendingQuotes > 0 ? 'Awaiting reply' : 'None pending',
+          _StatStyle.solid),
+      (Icons.verified_rounded, 'Installed Plants', '${stats.installed}',
+          GSColors.green600, '$installedPct% of $total', _StatStyle.green),
     ];
 
     return Column(

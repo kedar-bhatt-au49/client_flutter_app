@@ -64,6 +64,8 @@ class _InstallationScreenState extends State<InstallationScreen> {
                       children: [
                         _buildStageBanner(installation),
                         const SizedBox(height: 16),
+                        _buildInstallDateCard(context, hub, installation),
+                        const SizedBox(height: 16),
                         _buildTimeline(context, hub, installation),
                         const SizedBox(height: 16),
                         _buildPhotos(context, hub, installation),
@@ -256,6 +258,60 @@ class _InstallationScreenState extends State<InstallationScreen> {
     );
     hub.saveInstallation(install);
     setState(() {});
+  }
+
+  Widget _buildInstallDateCard(
+      BuildContext context, DataHub hub, InstallationModel installation) {
+    final date = installation.installDate;
+    return _card(
+      child: Row(
+        children: [
+          _iconTile(Icons.event_available_rounded),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Installation Date',
+                    style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: _dark)),
+                const SizedBox(height: 2),
+                Text(
+                  date != null
+                      ? installation.installDateFormatted
+                      : 'Not set — warranty starts on this date',
+                  style: const TextStyle(fontSize: 12, color: _slate),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => _pickInstallDate(context, hub, installation),
+            child: Text(date != null ? 'Change' : 'Set',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickInstallDate(BuildContext context, DataHub hub,
+      InstallationModel installation) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: installation.installDate ?? now,
+      firstDate: DateTime(now.year - 3),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked == null) return;
+    await hub.saveInstallation(installation.copyWith(
+      installDate: picked,
+      warrantyExpiry: WarrantyExpiry.fromInstallDate(picked),
+    ));
   }
 
   // ── Stage banner ───────────────────────────────────────────────
@@ -959,8 +1015,10 @@ class _InstallationScreenState extends State<InstallationScreen> {
 
   // ── Warranty card ──────────────────────────────────────────────
   Widget _buildWarranty(InstallationModel installation) {
-    final w = installation.warrantyExpiry;
-    final hasWarranty = w.om > 0;
+    final installed = installation.installDate != null;
+    final w = installed
+        ? WarrantyExpiry.fromInstallDate(installation.installDate!)
+        : installation.warrantyExpiry;
 
     return _card(
       child: Column(
@@ -978,62 +1036,54 @@ class _InstallationScreenState extends State<InstallationScreen> {
                         fontWeight: FontWeight.w600,
                         color: _dark)),
               ),
-              if (hasWarranty)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
-                  ),
-                  child: const Text('Active',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: _green)),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: installed
+                      ? const Color(0xFFECFDF5)
+                      : const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                      color: installed
+                          ? const Color(0xFFA7F3D0)
+                          : const Color(0x99FFE0B2)),
                 ),
+                child: Text(installed ? 'Active' : 'From install date',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color:
+                            installed ? _green : const Color(0xFFB45309))),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          if (!hasWarranty)
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xB3F4F9FF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _skyBorder),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.info_outline_rounded,
-                      size: 16, color: _slate),
-                  SizedBox(width: 6),
-                  Text('Warranty calculated after install date',
-                      style: TextStyle(fontSize: 12, color: _slate)),
-                ],
-              ),
-            )
-          else
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.2,
-              children: [
-                _warrantyBadge('OM / Workmanship', w.om.toString(),
-                    const Color(0xFF1E5BD8), const Color(0xFFDBEAFE)),
-                _warrantyBadge('Solar Panels', w.panel.toString(),
-                    _green, const Color(0xFFA7F3D0)),
-                _warrantyBadge('Performance', w.performance.toString(),
-                    _goldDark, const Color(0xFFFDE68A)),
-                _warrantyBadge('Inverter', w.inverter.toString(),
-                    _navy800, const Color(0xFFC7D2FE)),
-              ],
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.2,
+            children: [
+              _warrantyBadge('OM / Workmanship',
+                  '${WarrantyExpiry.omYears}', const Color(0xFF1E5BD8), const Color(0xFFDBEAFE)),
+              _warrantyBadge('Solar Panels',
+                  '${WarrantyExpiry.panelYears}', _green, const Color(0xFFA7F3D0)),
+              _warrantyBadge('Performance',
+                  '${WarrantyExpiry.performanceYears}', _goldDark, const Color(0xFFFDE68A)),
+              _warrantyBadge('Inverter',
+                  '${WarrantyExpiry.inverterYears}', _navy800, const Color(0xFFC7D2FE)),
+            ],
+          ),
+          if (installed) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Performance warranty valid till ${w.performance}  •  Installed ${installation.installDateFormatted}',
+              style: const TextStyle(fontSize: 10.5, color: _slate),
             ),
+          ],
         ],
       ),
     );

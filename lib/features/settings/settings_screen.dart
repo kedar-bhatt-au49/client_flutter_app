@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
+import '../../services/notification_service.dart';
 import '../auth/login_screen.dart';
 
 /// Settings — exact design: navy header, profile, app settings, security,
@@ -385,6 +386,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontSize: 12, color: Color(0xFF627193))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFF627193)),
           onTap: () => _changePassword(auth),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.notifications_active_rounded,
+              color: Color(0xFF2563EB)),
+          title: const Text('Send test notification',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F1B3D))),
+          subtitle: const Text('Checks that reminders, sound & vibration work',
+              style: TextStyle(fontSize: 12, color: Color(0xFF627193))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFF627193)),
+          onTap: () {
+            NotificationService.instance
+                .showAlert('Test reminder', 'Notifications are working.');
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Test notification sent')));
+          },
         ),
       ],
     );

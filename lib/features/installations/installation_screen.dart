@@ -791,23 +791,23 @@ class _InstallationScreenState extends State<InstallationScreen> {
                   Icon(Icons.photo_camera_outlined,
                       size: 16, color: _slate),
                   SizedBox(width: 6),
-                  Text('No photos uploaded yet',
+                  Text('No photos yet — tap “+ Add”',
                       style: TextStyle(fontSize: 12, color: _slate)),
                 ],
               ),
-            )
-          else
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              children: [
-                ...installation.photos.map((p) => _photoTile(p)),
-                _addPhotoTile(context, hub, installation),
-              ],
             ),
+          if (installation.photos.isEmpty) const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            children: [
+              ...installation.photos.map((p) => _photoTile(p)),
+              _addPhotoTile(context, hub, installation),
+            ],
+          ),
         ],
       ),
     );
@@ -815,6 +815,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
 
   Widget _photoTile(InstallationPhoto photo) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ImageViewerScreen(url: photo.url, title: 'Photo'),
       )),

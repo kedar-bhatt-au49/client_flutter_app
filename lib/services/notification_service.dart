@@ -67,6 +67,27 @@ class NotificationService {
     await _plugin.cancel(id);
   }
 
+  int _alertId = 5000;
+
+  /// Shows an immediate alert (used for live sync changes).
+  Future<void> showAlert(String title, String body) async {
+    final androidDetails = AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      channelDescription: _channelDesc,
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: 'ic_launcher',
+    );
+    await _plugin.show(
+      _alertId++,
+      title,
+      body,
+      NotificationDetails(android: androidDetails),
+      payload: 'alert',
+    );
+  }
+
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }

@@ -26,6 +26,16 @@ class DataHub extends ChangeNotifier {
   StreamSubscription<List<PaymentModel>>? _paymentsSub;
   StreamSubscription<List<InstallationModel>>? _installationsSub;
   StreamSubscription<AppSettingsModel>? _settingsSub;
+  final Set<String> _seenClients = {};
+  final Set<String> _seenEstimates = {};
+  final Set<String> _seenFollowUps = {};
+  bool _initialClients = true;
+  bool _initialEstimates = true;
+  bool _initialFollowUps = true;
+  DateTime? _lastLocalWrite;
+  bool get _recentLocalWrite =>
+      _lastLocalWrite != null &&
+      DateTime.now().difference(_lastLocalWrite!).inSeconds < 8;
   bool _loading = true;
   String? _error;
 
@@ -103,6 +113,19 @@ class DataHub extends ChangeNotifier {
   }
 
   void _onFollowUps(List<FollowUpModel> list) {
+    final ids = list.map((f) => f.id).toSet();
+    if (!_initialFollowUps && !_recentLocalWrite) {
+      for (final f in list) {
+        if (!_seenFollowUps.contains(f.id)) {
+          NotificationService.instance.showAlert(
+              'New follow-up', '${f.dateFormatted} • ${f.timeFormatted}');
+        }
+      }
+    }
+    _seenFollowUps
+      ..clear()
+      ..addAll(ids);
+    _initialFollowUps = false;
     _followUps = list;
     _sortFollowUps();
     notifyListeners();
@@ -129,6 +152,18 @@ class DataHub extends ChangeNotifier {
   }
 
   void _onClients(List<ClientModel> list) {
+    final ids = list.map((c) => c.id).toSet();
+    if (!_initialClients && !_recentLocalWrite) {
+      for (final c in list) {
+        if (!_seenClients.contains(c.id)) {
+          NotificationService.instance.showAlert('New client added', c.name);
+        }
+      }
+    }
+    _seenClients
+      ..clear()
+      ..addAll(ids);
+    _initialClients = false;
     _clients = list..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     _loading = false;
     _error = null;
@@ -136,6 +171,19 @@ class DataHub extends ChangeNotifier {
   }
 
   void _onEstimates(List<EstimateRecord> list) {
+    final ids = list.map((e) => e.id).toSet();
+    if (!_initialEstimates && !_recentLocalWrite) {
+      for (final e in list) {
+        if (!_seenEstimates.contains(e.id)) {
+          NotificationService.instance.showAlert('New quotation',
+              '${e.data.estimateNumber} • ${e.data.leadName}');
+        }
+      }
+    }
+    _seenEstimates
+      ..clear()
+      ..addAll(ids);
+    _initialEstimates = false;
     _estimates = list..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
@@ -164,10 +212,12 @@ class DataHub extends ChangeNotifier {
   // ── Clients ───────────────────────────────────────────────────
 
   Future<void> addClient(ClientModel client) async {
+    _lastLocalWrite = DateTime.now();
     await _fire.saveClient(client); // the listener refreshes _clients
   }
 
   Future<void> updateClient(ClientModel client) async {
+    _lastLocalWrite = DateTime.now();
     await _fire.saveClient(client);
   }
 
@@ -208,11 +258,13 @@ class DataHub extends ChangeNotifier {
   // ── Follow-ups ──────────────────────────────────────────────────
 
   Future<void> addFollowUp(FollowUpModel followUp) async {
+    _lastLocalWrite = DateTime.now();
     await _fire.saveFollowUp(followUp);
     _scheduleReminder(followUp);
   }
 
   Future<void> updateFollowUp(FollowUpModel followUp) async {
+    _lastLocalWrite = DateTime.now();
     await _fire.saveFollowUp(followUp);
     _scheduleReminder(followUp);
   }
@@ -338,12 +390,14 @@ class DataHub extends ChangeNotifier {
   // ── Estimates ───────────────────────────────────────────────────
 
   Future<EstimateRecord> addEstimate(EstimateModel estimate) async {
+    _lastLocalWrite = DateTime.now();
     return _fire.saveEstimate(estimate); // the listener refreshes _estimates
   }
 
   /// Updates a previously-saved estimate (no duplicate row).
   Future<EstimateRecord> updateEstimate(
       EstimateRecord existing, EstimateModel estimate) async {
+    _lastLocalWrite = DateTime.now();
     return _fire.saveEstimate(estimate,
         id: existing.id, createdAt: existing.createdAt);
   }

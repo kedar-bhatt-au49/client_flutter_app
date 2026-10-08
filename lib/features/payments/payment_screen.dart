@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
 import '../../models/payment.dart';
 import '../../providers/data_hub.dart';
+import '../../services/storage_service.dart';
 
 /// Payments & Documents — exact design: navy header, summary banner,
 /// milestones, documents, fixed bottom bar.
@@ -1217,89 +1219,60 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  void _uploadDoc(
-      BuildContext context, DataHub hub, PaymentModel payment, String field) {
-    showModalBottomSheet(
+  Future<void> _uploadDoc(BuildContext context, DataHub hub,
+      PaymentModel payment, String field) async {
+    final source = await _pickImageSource(context);
+    if (source == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final file = await ImagePicker()
+          .pickImage(source: source, imageQuality: 70, maxWidth: 1600);
+      if (file == null) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Uploading…')));
+      final bytes = await file.readAsBytes();
+      final url = await StorageService.instance.uploadBytes(
+          bytes, file.name, folder: 'payments/${payment.clientId}');
+      final updated = _markDoc(payment, field, url: url);
+      await hub.savePayment(updated);
+      messenger.showSnackBar(const SnackBar(content: Text('Document uploaded')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    }
+  }
+
+  Future<ImageSource?> _pickImageSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: _dark.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: _navy800),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
-            const SizedBox(height: 16),
-            const Icon(Icons.cloud_upload_rounded, size: 40, color: _navy800),
+            ListTile(
+              leading:
+                  const Icon(Icons.photo_library_rounded, color: _navy800),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
             const SizedBox(height: 8),
-            Text(
-              field == 'replace'
-                  ? 'Re-upload a Document'
-                  : 'Upload Document Photo',
-              style: const TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: _dark),
-            ),
-            const SizedBox(height: 6),
-            const Text('Take a photo or select from gallery',
-                style: TextStyle(fontSize: 13, color: _slate)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      final updated = _markDoc(payment, field);
-                      hub.savePayment(updated);
-                      Navigator.pop(sheetContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Photo uploaded')),
-                      );
-                    },
-                    icon: const Icon(Icons.camera_alt_rounded,
-                        color: _navy800),
-                    label: const Text('Take Photo',
-                        style: TextStyle(color: _navy800)),
-                  ),
-                ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      final updated = _markDoc(payment, field);
-                      hub.savePayment(updated);
-                      Navigator.pop(sheetContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Selected from gallery')),
-                      );
-                    },
-                    icon: const Icon(Icons.photo_library_rounded,
-                        color: _navy800),
-                    label: const Text('Gallery',
-                        style: TextStyle(color: _navy800)),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
     );
   }
 
-  PaymentModel _markDoc(PaymentModel payment, String field) {
+  PaymentModel _markDoc(PaymentModel payment, String field, {String? url}) {
     final uploaded = DocumentStatus(
-        uploaded: true, url: 'mock://$field', uploadedAt: DateTime.now());
+        uploaded: true, url: url, uploadedAt: DateTime.now());
     if (field == 'electricityBill') {
       return payment.copyWith(electricityBill: uploaded);
     } else if (field == 'aadhaar') {

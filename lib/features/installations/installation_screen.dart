@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
 import '../../core/constants.dart';
 import '../../models/client.dart';
 import '../../models/installation.dart';
 import '../../providers/data_hub.dart';
+import '../../services/storage_service.dart';
 
 /// Installation tracking — exact design: navy header, stage banner,
 /// timeline, photos, warranty, notes, fixed bottom bar.
@@ -802,7 +803,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               children: [
-                ...installation.photos.map((p) => _photoTile(p.stage)),
+                ...installation.photos.map((p) => _photoTile(p)),
                 _addPhotoTile(context, hub, installation),
               ],
             ),
@@ -811,18 +812,21 @@ class _InstallationScreenState extends State<InstallationScreen> {
     );
   }
 
-  Widget _photoTile(String stage) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFDBEAFE),
-        borderRadius: BorderRadius.circular(14),
-      ),
+  Widget _photoTile(InstallationPhoto photo) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          Center(
-            child: Icon(Icons.photo_camera_rounded,
-                size: 20,
-                color: const Color(0xFF1D4ED8).withValues(alpha: 0.5)),
+          Image.network(
+            photo.url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(
+              color: const Color(0xFFDBEAFE),
+              child: Icon(Icons.photo_camera_rounded,
+                  size: 20,
+                  color: const Color(0xFF1D4ED8).withValues(alpha: 0.5)),
+            ),
           ),
           Positioned(
             left: 6,
@@ -833,7 +837,7 @@ class _InstallationScreenState extends State<InstallationScreen> {
                 color: _navy900.withValues(alpha: 0.75),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(_shortStage(stage),
+              child: Text(_shortStage(photo.stage),
                   style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
@@ -890,11 +894,61 @@ class _InstallationScreenState extends State<InstallationScreen> {
     );
   }
 
-  void _addPhoto(BuildContext context, DataHub hub,
-      InstallationModel installation) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Add photo for ${installation.stage} (coming soon)')),
+  Future<void> _addPhoto(BuildContext context, DataHub hub,
+      InstallationModel installation) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: _navy900),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.photo_library_rounded, color: _navy900),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
+    if (source == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final file = await ImagePicker()
+          .pickImage(source: source, imageQuality: 70, maxWidth: 1600);
+      if (file == null) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Uploading…')));
+      final bytes = await file.readAsBytes();
+      final url = await StorageService.instance.uploadBytes(
+          bytes, file.name, folder: 'installations/${installation.clientId}');
+      final updated = installation.copyWith(
+        photos: [
+          ...installation.photos,
+          InstallationPhoto(
+            id: hub.generateId(),
+            url: url,
+            stage: installation.stage,
+            uploadedAt: DateTime.now(),
+          ),
+        ],
+      );
+      await hub.saveInstallation(updated);
+      messenger.showSnackBar(const SnackBar(content: Text('Photo uploaded')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    }
   }
 
   // ── Warranty card ──────────────────────────────────────────────

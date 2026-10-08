@@ -4,7 +4,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
 import 'features/quotes/create_estimate_screen.dart';
@@ -30,6 +32,20 @@ Future<void> main() async {
     debugPrint('Firebase.initializeApp failed: $e');
   }
   await Hive.initFlutter();
+
+  // Supabase Storage (payment documents / installation photos).
+  try {
+    await Supabase.initialize(
+        url: SupabaseConfig.url, anonKey: SupabaseConfig.anonKey);
+    final sb = Supabase.instance.client;
+    if (sb.auth.currentSession == null) {
+      try {
+        await sb.auth.signInAnonymously();
+      } catch (_) {}
+    }
+  } catch (e) {
+    debugPrint('Supabase init failed: $e');
+  }
 
   final authService = FirebaseAuthService();
   final databaseService = DatabaseService();

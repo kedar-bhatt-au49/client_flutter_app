@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/follow_up.dart';
 import '../../providers/data_hub.dart';
+import '../../services/notification_service.dart';
 
 /// Create / Edit Follow-up screen — exact design: navy header + form card.
 class AddFollowUpScreen extends StatefulWidget {
@@ -87,12 +88,36 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
     }
 
     if (!mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              widget.existing != null ? 'Follow-up updated' : 'Follow-up added')),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+        content: Text(widget.existing != null
+            ? 'Follow-up updated'
+            : 'Follow-up added')));
+
+    // Nudge the user to allow exact alarms (Android has no runtime dialog).
+    if (!await NotificationService.instance.canScheduleExact() && mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Allow on-time reminders'),
+          content: const Text(
+              'Android needs the “Alarms & reminders” access for follow-up reminders to fire exactly on time. Tap Open settings and allow it for Global Solar 2.0.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Not now')),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                NotificationService.instance.requestExact();
+              },
+              child: const Text('Open settings'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override

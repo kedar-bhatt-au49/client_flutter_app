@@ -36,6 +36,8 @@ class DataHub extends ChangeNotifier {
   bool get _recentLocalWrite =>
       _lastLocalWrite != null &&
       DateTime.now().difference(_lastLocalWrite!).inSeconds < 8;
+  Timer? _dueTimer;
+  final Set<String> _alertedFollowUps = {};
   bool _loading = true;
   String? _error;
 
@@ -86,9 +88,39 @@ class DataHub extends ChangeNotifier {
         .watchInstallations()
         .listen(_onInstallations, onError: _onError);
     _settingsSub = _fire.watchSettings().listen(_onSettings, onError: _onError);
+
+    // In-app due-checker: guarantees a reminder while the app is running,
+    // independent of exact/alarm restrictions.
+    _dueTimer?.cancel();
+    _dueTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) => _checkDueFollowUps());
+  }
+
+  void _checkDueFollowUps() {
+    final now = DateTime.now();
+    for (final f in _followUps) {
+      if (f.status != 'pending') continue;
+      final parts = f.time.split(':');
+      final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
+      final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
+      final diffMin = now.difference(due).inMinutes;
+      if (diffMin >= 0 && diffMin < 2 && !_alertedFollowUps.contains(f.id)) {
+        _alertedFollowUps.add(f.id);
+        NotificationService.instance.showAlert(
+          'Follow-up due',
+          (f.note != null && f.note!.isNotEmpty)
+              ? f.note!
+              : 'You have a follow-up due now.',
+        );
+      }
+    }
   }
 
   void stopSync() {
+    _dueTimer?.cancel();
+    _dueTimer = null;
+    _alertedFollowUps.clear();
     _clientsSub?.cancel();
     _estimatesSub?.cancel();
     _followUpsSub?.cancel();

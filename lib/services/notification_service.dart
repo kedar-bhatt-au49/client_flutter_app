@@ -95,6 +95,18 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
+  Future<bool> canScheduleExact() async {
+    final impl = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    return await impl?.canScheduleExactNotifications() ?? true;
+  }
+
+  Future<void> requestExact() async {
+    final impl = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await impl?.requestExactAlarmsPermission();
+  }
+
   int _alertId = 5000;
 
   /// Immediate alert (used for live sync changes).

@@ -597,15 +597,29 @@ class ClientDetailScreen extends StatelessWidget {
 
     return _sectionCard(
       title: 'Pipeline Status',
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0x99FFE0B2)),
+      trailing: GestureDetector(
+        onTap: () => _changeStatus(context, client),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0x99FFE0B2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Stage ${current + 1} of ${stages.length}',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFB45309))),
+              const SizedBox(width: 4),
+              const Icon(Icons.expand_more_rounded,
+                  size: 16, color: Color(0xFFB45309)),
+            ],
+          ),
         ),
-        child: Text('Stage ${current + 1} of ${stages.length}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB45309))),
       ),
       child: Column(
         children: [
@@ -708,6 +722,52 @@ class ClientDetailScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _changeStatus(BuildContext context, ClientModel client) {
+    final hub = context.read<DataHub>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Update Pipeline Status',
+                  style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
+            ),
+            ...GSClientStatus.all.map((s) => ListTile(
+                  leading: Icon(
+                    client.status == s
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: client.status == s
+                        ? GSColors.gold500
+                        : const Color(0xFF94A3B8),
+                  ),
+                  title: Text(GSClientStatus.labelOf(s)),
+                  onTap: () {
+                    hub.updateClient(
+                        client.copyWith(status: s, updatedAt: DateTime.now()));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content:
+                            Text('Status: ${GSClientStatus.labelOf(s)}')));
+                  },
+                )),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

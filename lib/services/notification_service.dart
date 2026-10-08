@@ -5,6 +5,8 @@ import 'package:timezone/timezone.dart' as tz;
 
 /// Lightweight notification service — schedules follow-up reminders.
 class NotificationService {
+  static final NotificationService instance = NotificationService();
+
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -19,6 +21,11 @@ class NotificationService {
         InitializationSettings(android: android, iOS: ios);
     await _plugin.initialize(initSettings);
     tz.initializeTimeZones();
+    // Android 13+ runtime permission.
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   Future<void> scheduleFollowUpReminder({
@@ -49,10 +56,9 @@ class NotificationService {
       body,
       tzDate,
       platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exact,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dateAndTime,
       payload: 'followup:$id',
     );
   }

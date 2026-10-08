@@ -253,8 +253,6 @@ class _InstallationScreenState extends State<InstallationScreen> {
       id: hub.generateId(),
       clientId: widget.client!.id,
       stage: GSInstallStage.materialsDispatched,
-      installDate: DateTime.now(),
-      warrantyExpiry: WarrantyExpiry.fromInstallDate(DateTime.now()),
     );
     hub.saveInstallation(install);
     setState(() {});

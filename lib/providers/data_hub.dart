@@ -11,6 +11,7 @@ import '../models/quote.dart';
 import '../models/estimate.dart';
 import '../services/database_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 
 /// Central data hub — loads, caches, and manages all application data.
 ///
@@ -208,14 +209,38 @@ class DataHub extends ChangeNotifier {
 
   Future<void> addFollowUp(FollowUpModel followUp) async {
     await _fire.saveFollowUp(followUp);
+    _scheduleReminder(followUp);
   }
 
   Future<void> updateFollowUp(FollowUpModel followUp) async {
     await _fire.saveFollowUp(followUp);
+    _scheduleReminder(followUp);
   }
 
   Future<void> deleteFollowUp(String id) async {
     await _fire.deleteFollowUp(id);
+    NotificationService.instance.cancelFollowUp(id.hashCode & 0x7fffffff);
+  }
+
+  /// Schedules (or cancels) the local reminder for a follow-up.
+  void _scheduleReminder(FollowUpModel f) {
+    final id = f.id.hashCode & 0x7fffffff;
+    final parts = f.time.split(':');
+    final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
+    final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
+    if (f.status == 'pending' && due.isAfter(DateTime.now())) {
+      NotificationService.instance.scheduleFollowUpReminder(
+        id: id,
+        title: 'Follow-up reminder',
+        body: (f.note != null && f.note!.isNotEmpty)
+            ? f.note!
+            : 'You have a follow-up due now.',
+        scheduledDate: due,
+      );
+    } else {
+      NotificationService.instance.cancelFollowUp(id);
+    }
   }
 
   List<FollowUpModel> getFollowUpsForClient(String clientId) =>

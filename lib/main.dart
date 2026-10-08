@@ -49,7 +49,7 @@ Future<void> main() async {
 
   final authService = FirebaseAuthService();
   final databaseService = DatabaseService();
-  final notificationService = NotificationService();
+  final notificationService = NotificationService.instance;
 
   await databaseService.init();
   await databaseService.seedIfNeeded();

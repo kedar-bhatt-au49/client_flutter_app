@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
+import '../../core/alarm_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
 import '../../services/notification_service.dart';
@@ -402,8 +403,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onTap: () {
             NotificationService.instance
                 .showAlert('Test reminder', 'Notifications are working.');
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Test notification sent')));
+            showFollowUpAlarm(
+                title: 'Follow-up due', body: 'This is a test alarm.');
           },
         ),
       ],

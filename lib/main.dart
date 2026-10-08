@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/alarm_launcher.dart';
 import 'core/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
@@ -70,6 +71,16 @@ Future<void> main() async {
     debugPrint('dataHub.init failed: $e');
   }
 
+  // Notification taps / Stop action.
+  NotificationService.instance.onAction = (actionId, payload) {
+    if (actionId == 'stop') {
+      gNavKey.currentState?.popUntil((r) => r.isFirst);
+    } else {
+      showFollowUpAlarm(
+          title: 'Follow-up due', body: 'You have a follow-up due now.');
+    }
+  };
+
   runApp(const GlobalSolarApp());
 
   // Non-critical — never blocks startup.
@@ -89,6 +100,7 @@ class GlobalSolarApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Global Solar 2.0',
         theme: GSTheme.light,
+        navigatorKey: gNavKey,
         home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
         routes: {

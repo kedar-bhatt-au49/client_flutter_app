@@ -17,8 +17,12 @@ class NotificationService {
   static const _channelName = 'Follow-up Reminders';
   static const _channelDesc = 'Follow-up reminder notifications';
 
-  // The device's alarm ringtone (long, loud) → alarm-like behaviour.
-  static const _alarmSound = 'content://settings/system/alarm_alert';
+  // Bundled alarm ringtone (res/raw/alarm.wav) → plays as the notification sound.
+  static const AndroidNotificationSound _sound =
+      RawResourceAndroidNotificationSound('alarm');
+
+  /// Called when the user taps a notification or its action button.
+  void Function(String? actionId, String? payload)? onAction;
 
   static final Int64List _vibration =
       Int64List.fromList([0, 1000, 500, 1500, 500, 1500]);
@@ -27,7 +31,12 @@ class NotificationService {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
     const initSettings = InitializationSettings(android: android, iOS: ios);
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (resp) {
+        onAction?.call(resp.actionId, resp.payload);
+      },
+    );
 
     tz.initializeTimeZones();
     try {
@@ -44,7 +53,7 @@ class NotificationService {
         description: _channelDesc,
         importance: Importance.max,
         playSound: true,
-        sound: const UriAndroidNotificationSound(_alarmSound),
+        sound: _sound,
         enableVibration: true,
         vibrationPattern: _vibration,
       ),
@@ -61,12 +70,15 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.max,
           playSound: true,
-          sound: const UriAndroidNotificationSound(_alarmSound),
+          sound: _sound,
           enableVibration: true,
           vibrationPattern: _vibration,
           category: AndroidNotificationCategory.alarm,
           fullScreenIntent: true,
           visibility: NotificationVisibility.public,
+          actions: const [
+            AndroidNotificationAction('stop', 'Stop', showsUserInterface: false),
+          ],
         ),
         iOS: const DarwinNotificationDetails(),
       );

@@ -31,6 +31,7 @@ dependencies:
   supabase_flutter: ^2.18.0
   image_picker: ^1.2.4
   flutter_timezone: ^5.1.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
@@ -42,6 +43,7 @@ flutter:
   assets:
     - assets/templates/quotation.html
     - assets/templates/quotation_gu.html
+    - assets/sounds/alarm.wav
     - assets/data/estimate_master.json
     - assets/images/logo.jpg
     - assets/images/logo.png

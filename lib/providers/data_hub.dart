@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../core/alarm_launcher.dart';
 import '../models/app_settings.dart';
 import '../models/client.dart';
 import '../models/follow_up.dart';
@@ -107,12 +108,11 @@ class DataHub extends ChangeNotifier {
       final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
       if (now.isBefore(due) || _alertedFollowUps.contains(f.id)) continue;
       _alertedFollowUps.add(f.id);
-      NotificationService.instance.showAlert(
-        'Follow-up due',
-        (f.note != null && f.note!.isNotEmpty)
-            ? f.note!
-            : 'You have a follow-up due now.',
-      );
+      final body = (f.note != null && f.note!.isNotEmpty)
+          ? f.note!
+          : 'You have a follow-up due now.';
+      NotificationService.instance.showAlert('Follow-up due', body);
+      showFollowUpAlarm(title: 'Follow-up due', body: body);
     }
   }
 

@@ -20,6 +20,11 @@ class DataHub extends ChangeNotifier {
   final FirestoreService _fire;
   StreamSubscription<List<ClientModel>>? _clientsSub;
   StreamSubscription<List<EstimateRecord>>? _estimatesSub;
+  StreamSubscription<List<FollowUpModel>>? _followUpsSub;
+  StreamSubscription<List<QuoteModel>>? _quotesSub;
+  StreamSubscription<List<PaymentModel>>? _paymentsSub;
+  StreamSubscription<List<InstallationModel>>? _installationsSub;
+  StreamSubscription<AppSettingsModel>? _settingsSub;
   bool _loading = true;
   String? _error;
 
@@ -61,15 +66,64 @@ class DataHub extends ChangeNotifier {
     _clientsSub = _fire.watchClients().listen(_onClients, onError: _onError);
     _estimatesSub =
         _fire.watchEstimates(master).listen(_onEstimates, onError: _onError);
+    _followUpsSub =
+        _fire.watchFollowUps().listen(_onFollowUps, onError: _onError);
+    _quotesSub = _fire.watchQuotes().listen(_onQuotes, onError: _onError);
+    _paymentsSub =
+        _fire.watchPayments().listen(_onPayments, onError: _onError);
+    _installationsSub = _fire
+        .watchInstallations()
+        .listen(_onInstallations, onError: _onError);
+    _settingsSub = _fire.watchSettings().listen(_onSettings, onError: _onError);
   }
 
   void stopSync() {
     _clientsSub?.cancel();
     _estimatesSub?.cancel();
+    _followUpsSub?.cancel();
+    _quotesSub?.cancel();
+    _paymentsSub?.cancel();
+    _installationsSub?.cancel();
+    _settingsSub?.cancel();
     _clientsSub = null;
     _estimatesSub = null;
+    _followUpsSub = null;
+    _quotesSub = null;
+    _paymentsSub = null;
+    _installationsSub = null;
+    _settingsSub = null;
     _clients = [];
     _estimates = [];
+    _followUps = [];
+    _quotes = [];
+    _payments = [];
+    _installations = [];
+    notifyListeners();
+  }
+
+  void _onFollowUps(List<FollowUpModel> list) {
+    _followUps = list;
+    _sortFollowUps();
+    notifyListeners();
+  }
+
+  void _onQuotes(List<QuoteModel> list) {
+    _quotes = list..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+    notifyListeners();
+  }
+
+  void _onPayments(List<PaymentModel> list) {
+    _payments = list;
+    notifyListeners();
+  }
+
+  void _onInstallations(List<InstallationModel> list) {
+    _installations = list;
+    notifyListeners();
+  }
+
+  void _onSettings(AppSettingsModel s) {
+    _settings = s;
     notifyListeners();
   }
 
@@ -92,22 +146,10 @@ class DataHub extends ChangeNotifier {
   }
 
   Future<void> _loadAll() async {
-    _loading = true;
+    // Firestore is now the source of truth for all data; the lists are
+    // populated by startSync() once the user is authenticated.
+    _loading = false;
     _error = null;
-    notifyListeners();
-
-    try {
-      _followUps = await _db.getAllFollowUps();
-      _quotes = await _db.getAllQuotes();
-      _payments = await _db.getAllPayments();
-      _installations = await _db.getAllInstallations();
-      _settings = await _db.getSettings();
-      _loading = false;
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-      _loading = false;
-    }
     notifyListeners();
   }
 
@@ -165,26 +207,15 @@ class DataHub extends ChangeNotifier {
   // ── Follow-ups ──────────────────────────────────────────────────
 
   Future<void> addFollowUp(FollowUpModel followUp) async {
-    await _db.saveFollowUp(followUp);
-    _followUps.add(followUp);
-    _sortFollowUps();
-    notifyListeners();
+    await _fire.saveFollowUp(followUp);
   }
 
   Future<void> updateFollowUp(FollowUpModel followUp) async {
-    await _db.saveFollowUp(followUp);
-    final idx = _followUps.indexWhere((f) => f.id == followUp.id);
-    if (idx >= 0) {
-      _followUps[idx] = followUp;
-      _sortFollowUps();
-      notifyListeners();
-    }
+    await _fire.saveFollowUp(followUp);
   }
 
   Future<void> deleteFollowUp(String id) async {
-    await _db.deleteFollowUp(id);
-    _followUps.removeWhere((f) => f.id == id);
-    notifyListeners();
+    await _fire.deleteFollowUp(id);
   }
 
   List<FollowUpModel> getFollowUpsForClient(String clientId) =>
@@ -214,15 +245,7 @@ class DataHub extends ChangeNotifier {
   // ── Quotes ────────────────────────────────────────────────────
 
   Future<void> saveQuote(QuoteModel quote) async {
-    await _db.saveQuote(quote);
-    final idx = _quotes.indexWhere((q) => q.id == quote.id);
-    if (idx >= 0) {
-      _quotes[idx] = quote;
-    } else {
-      _quotes.insert(0, quote);
-    }
-    _quotes.sort((a, b) => b.sentAt.compareTo(a.sentAt));
-    notifyListeners();
+    await _fire.saveQuote(quote);
   }
 
   QuoteModel? getQuoteForClient(String clientId) {
@@ -233,23 +256,13 @@ class DataHub extends ChangeNotifier {
   }
 
   Future<void> deleteQuote(String id) async {
-    // Note: DatabaseService doesn't have deleteQuote by id directly
-    // Would need to add it; for now skip
-    _quotes.removeWhere((q) => q.id == id);
-    notifyListeners();
+    await _fire.deleteQuote(id);
   }
 
   // ── Payments ──────────────────────────────────────────────────
 
   Future<void> savePayment(PaymentModel payment) async {
-    await _db.savePayment(payment);
-    final idx = _payments.indexWhere((p) => p.clientId == payment.clientId);
-    if (idx >= 0) {
-      _payments[idx] = payment;
-    } else {
-      _payments.add(payment);
-    }
-    notifyListeners();
+    await _fire.savePayment(payment);
   }
 
   PaymentModel? getPaymentForClient(String clientId) {
@@ -260,15 +273,7 @@ class DataHub extends ChangeNotifier {
   // ── Installations ──────────────────────────────────────────────
 
   Future<void> saveInstallation(InstallationModel installation) async {
-    await _db.saveInstallation(installation);
-    final idx = _installations.indexWhere(
-        (i) => i.clientId == installation.clientId);
-    if (idx >= 0) {
-      _installations[idx] = installation;
-    } else {
-      _installations.add(installation);
-    }
-    notifyListeners();
+    await _fire.saveInstallation(installation);
   }
 
   InstallationModel? getInstallationForClient(String clientId) {
@@ -300,7 +305,7 @@ class DataHub extends ChangeNotifier {
   // ── Settings ──────────────────────────────────────────────────
 
   Future<void> updateSettings(AppSettingsModel settings) async {
-    await _db.saveSettings(settings);
+    await _fire.saveSettings(settings);
     _settings = settings;
     notifyListeners();
   }

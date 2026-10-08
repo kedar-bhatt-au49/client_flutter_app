@@ -58,17 +58,24 @@ class NotificationService {
 
     final tzDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzDate,
-      platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'followup:$id',
-    );
+    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          tzDate,
+          platformDetails,
+          androidScheduleMode: mode,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'followup:$id',
+        );
+
+    try {
+      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+    } catch (_) {
+      // Exact alarms not permitted → fall back to inexact (still fires).
+      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+    }
   }
 
   Future<void> cancelFollowUp(int id) async {

@@ -260,13 +260,13 @@ class DataHub extends ChangeNotifier {
   Future<void> addFollowUp(FollowUpModel followUp) async {
     _lastLocalWrite = DateTime.now();
     await _fire.saveFollowUp(followUp);
-    _scheduleReminder(followUp);
+    await _scheduleReminder(followUp);
   }
 
   Future<void> updateFollowUp(FollowUpModel followUp) async {
     _lastLocalWrite = DateTime.now();
     await _fire.saveFollowUp(followUp);
-    _scheduleReminder(followUp);
+    await _scheduleReminder(followUp);
   }
 
   Future<void> deleteFollowUp(String id) async {
@@ -275,23 +275,27 @@ class DataHub extends ChangeNotifier {
   }
 
   /// Schedules (or cancels) the local reminder for a follow-up.
-  void _scheduleReminder(FollowUpModel f) {
+  Future<void> _scheduleReminder(FollowUpModel f) async {
     final id = f.id.hashCode & 0x7fffffff;
     final parts = f.time.split(':');
     final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
     final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
     final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
-    if (f.status == 'pending' && due.isAfter(DateTime.now())) {
-      NotificationService.instance.scheduleFollowUpReminder(
-        id: id,
-        title: 'Follow-up reminder',
-        body: (f.note != null && f.note!.isNotEmpty)
-            ? f.note!
-            : 'You have a follow-up due now.',
-        scheduledDate: due,
-      );
-    } else {
-      NotificationService.instance.cancelFollowUp(id);
+    try {
+      if (f.status == 'pending' && due.isAfter(DateTime.now())) {
+        await NotificationService.instance.scheduleFollowUpReminder(
+          id: id,
+          title: 'Follow-up reminder',
+          body: (f.note != null && f.note!.isNotEmpty)
+              ? f.note!
+              : 'You have a follow-up due now.',
+          scheduledDate: due,
+        );
+      } else {
+        await NotificationService.instance.cancelFollowUp(id);
+      }
+    } catch (e) {
+      debugPrint('Reminder scheduling failed: $e');
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -10,10 +12,16 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
-  // New id so the channel is (re)created with vibration + max importance.
-  static const _channelId = 'followup_reminders_v2';
+  // v3 → forces the channel to be (re)created with the alarm sound + vibration.
+  static const _channelId = 'followup_reminders_v3';
   static const _channelName = 'Follow-up Reminders';
   static const _channelDesc = 'Follow-up reminder notifications';
+
+  // The device's alarm ringtone (long, loud) → alarm-like behaviour.
+  static const _alarmSound = 'content://settings/system/alarm_alert';
+
+  static final Int64List _vibration =
+      Int64List.fromList([0, 1000, 500, 1500, 500, 1500]);
 
   Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -21,7 +29,6 @@ class NotificationService {
     const initSettings = InitializationSettings(android: android, iOS: ios);
     await _plugin.initialize(initSettings);
 
-    // Correct timezone (defaults to UTC otherwise → reminders fire at the wrong time).
     tz.initializeTimeZones();
     try {
       final info = await FlutterTimezone.getLocalTimezone();
@@ -31,20 +38,22 @@ class NotificationService {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         _channelId,
         _channelName,
         description: _channelDesc,
         importance: Importance.max,
         playSound: true,
+        sound: const UriAndroidNotificationSound(_alarmSound),
         enableVibration: true,
+        vibrationPattern: _vibration,
       ),
     );
     await androidImpl?.requestNotificationsPermission();
     await androidImpl?.requestExactAlarmsPermission();
   }
 
-  NotificationDetails get _details => const NotificationDetails(
+  NotificationDetails get _details => NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -52,12 +61,14 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.max,
           playSound: true,
+          sound: const UriAndroidNotificationSound(_alarmSound),
           enableVibration: true,
+          vibrationPattern: _vibration,
           category: AndroidNotificationCategory.alarm,
           fullScreenIntent: true,
           visibility: NotificationVisibility.public,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(),
       );
 
   Future<void> scheduleFollowUpReminder({
@@ -82,10 +93,13 @@ class NotificationService {
         );
 
     try {
-      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+      await schedule(AndroidScheduleMode.alarmClock);
     } catch (_) {
-      // Exact alarms not permitted on this device → inexact (fires near time).
-      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+      try {
+        await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+      } catch (_) {
+        await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+      }
     }
   }
 
@@ -111,7 +125,7 @@ class NotificationService {
 
   int _alertId = 5000;
 
-  /// Immediate alert (used for live sync changes).
+  /// Immediate alarm-style alert (used for live sync / in-app due checks).
   Future<void> showAlert(String title, String body) async {
     await _plugin.show(_alertId++, title, body, _details, payload: 'alert');
   }

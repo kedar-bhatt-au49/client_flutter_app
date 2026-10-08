@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants.dart';
+import '../../core/widgets/image_viewer.dart';
 import '../../models/client.dart';
 import '../../models/installation.dart';
 import '../../providers/data_hub.dart';
@@ -813,38 +814,44 @@ class _InstallationScreenState extends State<InstallationScreen> {
   }
 
   Widget _photoTile(InstallationPhoto photo) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(
-            photo.url,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              color: const Color(0xFFDBEAFE),
-              child: Icon(Icons.photo_camera_rounded,
-                  size: 20,
-                  color: const Color(0xFF1D4ED8).withValues(alpha: 0.5)),
-            ),
-          ),
-          Positioned(
-            left: 6,
-            bottom: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _navy900.withValues(alpha: 0.75),
-                borderRadius: BorderRadius.circular(6),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ImageViewerScreen(url: photo.url, title: 'Photo'),
+      )),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              photo.url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: const Color(0xFFDBEAFE),
+                child: Icon(Icons.photo_camera_rounded,
+                    size: 20,
+                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.5)),
               ),
-              child: Text(_shortStage(photo.stage),
-                  style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white)),
             ),
-          ),
-        ],
+            Positioned(
+              left: 6,
+              bottom: 6,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _navy900.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(_shortStage(photo.stage),
+                    style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

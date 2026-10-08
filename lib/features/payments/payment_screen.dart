@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
+import '../../core/widgets/image_viewer.dart';
 import '../../models/payment.dart';
 import '../../providers/data_hub.dart';
 import '../../services/storage_service.dart';
@@ -908,9 +909,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const SizedBox(width: 6),
                 InkWell(
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('View $title (mock preview)')),
-                    );
+                    final url = doc.url;
+                    if (url == null || url.isEmpty) return;
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ImageViewerScreen(url: url, title: title),
+                    ));
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

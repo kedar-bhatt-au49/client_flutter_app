@@ -279,11 +279,9 @@ class GSQuoteSystem {
   /// e.g. "Adani Bi-Facial 540/545/550 W"
   String get brandLine => '$brandEn $wattLabel W';
 
-  /// Panel-count design image (assets/images/solar_pannel_N).
-  /// 6 panels uses the corrected PNG; the others are JPGs.
-  String get panelImageAsset => panels == 6
-      ? 'assets/images/solar_pannel_6.png'
-      : 'assets/images/solar_pannel_$panels.jpg';
+  /// Panel-count design image (assets/images/solar_plant_N_panels.png).
+  String get panelImageAsset =>
+      'assets/images/solar_plant_${panels}_panels.png';
 }
 
 /// Master quotation systems — three panel brands (Adani Bi-Facial,

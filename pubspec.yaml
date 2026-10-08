@@ -30,6 +30,7 @@ dependencies:
   cloud_firestore: ^6.10.0
   supabase_flutter: ^2.18.0
   image_picker: ^1.2.4
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -53,10 +54,10 @@ flutter:
     - assets/images/design_view_left.jpg
     - assets/images/design_view_right.jpg
     - assets/images/solar_panel_detail.jpg
-    - assets/images/solar_pannel_6.png
-    - assets/images/solar_pannel_5.jpg
-    - assets/images/solar_pannel_7.jpg
-    - assets/images/solar_pannel_8.jpg
-    - assets/images/solar_pannel_9.jpg
-    - assets/images/solar_pannel_10.jpg
+    - assets/images/solar_plant_5_panels.png
+    - assets/images/solar_plant_6_panels.png
+    - assets/images/solar_plant_7_panels.png
+    - assets/images/solar_plant_8_panels.png
+    - assets/images/solar_plant_9_panels.png
+    - assets/images/solar_plant_10_panels.png
     - assets/fonts/sans_serif.ttf

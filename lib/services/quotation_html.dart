@@ -39,7 +39,8 @@ class QuotationHtml {
     final system = record.data.systemId != null
         ? gsQuoteSystemById(record.data.systemId!)
         : null;
-    final asset = system?.panelImageAsset ?? 'assets/images/solar_pannel_8.jpg';
+    final asset =
+        system?.panelImageAsset ?? 'assets/images/solar_plant_8_panels.png';
     try {
       final bytes = (await rootBundle.load(asset)).buffer.asUint8List();
       final mime = asset.endsWith('.png') ? 'image/png' : 'image/jpeg';

@@ -36,25 +36,25 @@ class ProposalPdf {
     String panelAsset;
     switch (data.panelCount) {
       case 5:
-        panelAsset = 'assets/images/solar_pannel_5.jpg';
+        panelAsset = 'assets/images/solar_plant_5_panels.png';
         break;
       case 6:
-        panelAsset = 'assets/images/solar_pannel_6.png';
+        panelAsset = 'assets/images/solar_plant_6_panels.png';
         break;
       case 7:
-        panelAsset = 'assets/images/solar_pannel_7.jpg';
+        panelAsset = 'assets/images/solar_plant_7_panels.png';
         break;
       case 8:
-        panelAsset = 'assets/images/solar_pannel_8.jpg';
+        panelAsset = 'assets/images/solar_plant_8_panels.png';
         break;
       case 9:
-        panelAsset = 'assets/images/solar_pannel_9.jpg';
+        panelAsset = 'assets/images/solar_plant_9_panels.png';
         break;
       case 10:
-        panelAsset = 'assets/images/solar_pannel_10.jpg';
+        panelAsset = 'assets/images/solar_plant_10_panels.png';
         break;
       default:
-        panelAsset = 'assets/images/solar_rooftop_overview.jpg';
+        panelAsset = 'assets/images/solar_plant_8_panels.png';
     }
     final design = data.designImageTop ?? await _asset(panelAsset);
 

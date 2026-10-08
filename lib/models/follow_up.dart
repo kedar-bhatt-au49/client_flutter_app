@@ -52,8 +52,12 @@ class FollowUpModel {
   bool get isDone => status == 'done';
   bool get isMissed => status == 'missed';
   bool get isOverdue {
-    final due = DateTime(date.year, date.month, date.day);
-    return isPending && DateTime.now().isAfter(due);
+    if (!isPending) return false;
+    final parts = time.split(':');
+    final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 23) : 23;
+    final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 59) : 59;
+    final due = DateTime(date.year, date.month, date.day, h, m);
+    return DateTime.now().isAfter(due);
   }
 
   String get dateFormatted => DateFormat('EEE, dd MMM').format(date);

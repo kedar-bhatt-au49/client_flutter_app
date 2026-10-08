@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/solar_visuals.dart';
 import '../../features/followups/add_follow_up_screen.dart';
+import '../../features/followups/followup_screen.dart';
 import '../../features/installations/installation_screen.dart';
 import '../../features/payments/payment_screen.dart';
 import '../../features/quotes/create_estimate_screen.dart';
@@ -87,6 +88,17 @@ class DashboardScreen extends StatelessWidget {
     final hour = DateTime.now().hour;
     final greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
+    final hub = context.read<DataHub>();
+    final now = DateTime.now();
+    final dueCount = hub.followUps
+        .where((f) =>
+            f.isPending &&
+            (f.isOverdue ||
+                (f.date.year == now.year &&
+                    f.date.month == now.month &&
+                    f.date.day == now.day)))
+        .length;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -166,7 +178,7 @@ class DashboardScreen extends StatelessWidget {
                     onTap: () => _refresh(context),
                   ),
                   const SizedBox(width: 8),
-                  // Notification bell with badge
+                  // Notification bell with live count
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -174,21 +186,34 @@ class DashboardScreen extends StatelessWidget {
                         icon: Icons.notifications_rounded,
                         bg: GSColors.gold500.withValues(alpha: 0.2),
                         fg: GSColors.gold500,
-                        onTap: () {},
-                      ),
-                      Positioned(
-                        top: 5,
-                        right: 5,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: GSColors.followupMissed,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF071440), width: 2),
-                          ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const FollowUpScreen()),
                         ),
                       ),
+                      if (dueCount > 0)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                            constraints: const BoxConstraints(
+                                minWidth: 16, minHeight: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: GSColors.followupMissed,
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                  color: const Color(0xFF071440), width: 1.5),
+                            ),
+                            child: Text('$dueCount',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ),
                     ],
                   ),
                 ],

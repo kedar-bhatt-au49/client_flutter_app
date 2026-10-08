@@ -6,11 +6,12 @@ import '../../core/theme/app_colors.dart';
 import '../../models/follow_up.dart';
 import '../../providers/data_hub.dart';
 
-/// Create Follow-up screen — exact design: navy header + form card.
+/// Create / Edit Follow-up screen — exact design: navy header + form card.
 class AddFollowUpScreen extends StatefulWidget {
   final String? preselectedClientId;
+  final FollowUpModel? existing; // non-null = edit mode
 
-  const AddFollowUpScreen({super.key, this.preselectedClientId});
+  const AddFollowUpScreen({super.key, this.preselectedClientId, this.existing});
 
   @override
   State<AddFollowUpScreen> createState() => _AddFollowUpScreenState();
@@ -35,7 +36,19 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedClientId = widget.preselectedClientId;
+    final e = widget.existing;
+    if (e != null) {
+      _selectedClientId = e.clientId;
+      _selectedDate = e.date;
+      final parts = e.time.split(':');
+      _selectedTime = TimeOfDay(
+        hour: parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 10) : 10,
+        minute: parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0,
+      );
+      _noteController.text = e.note ?? '';
+    } else {
+      _selectedClientId = widget.preselectedClientId;
+    }
   }
 
   @override
@@ -50,24 +63,35 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
 
     setState(() => _loading = true);
     final hub = context.read<DataHub>();
-    final fu = FollowUpModel(
-      id: hub.generateId(),
-      clientId: _selectedClientId!,
-      date: _selectedDate,
-      time:
-          '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-      status: 'pending',
-      note: _noteController.text.trim().isNotEmpty
-          ? _noteController.text.trim()
-          : null,
-      createdAt: DateTime.now(),
-    );
-    await hub.addFollowUp(fu);
+    final timeStr =
+        '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
+    final note = _noteController.text.trim();
+
+    if (widget.existing != null) {
+      await hub.updateFollowUp(widget.existing!.copyWith(
+        date: _selectedDate,
+        time: timeStr,
+        note: note,
+      ));
+    } else {
+      final fu = FollowUpModel(
+        id: hub.generateId(),
+        clientId: _selectedClientId!,
+        date: _selectedDate,
+        time: timeStr,
+        status: 'pending',
+        note: note.isNotEmpty ? note : null,
+        createdAt: DateTime.now(),
+      );
+      await hub.addFollowUp(fu);
+    }
 
     if (!mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Follow-up added')),
+      SnackBar(
+          content: Text(
+              widget.existing != null ? 'Follow-up updated' : 'Follow-up added')),
     );
   }
 

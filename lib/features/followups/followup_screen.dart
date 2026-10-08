@@ -70,6 +70,10 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                         onMarkDone: () => _markDone(context, hub, f),
                         onMarkMissed: () => _markMissed(context, hub, f),
                         onSnooze: () => _showSnoozeSheet(context, hub, f),
+                        onEdit: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => AddFollowUpScreen(existing: f)),
+                        ),
                         onCall: () {
                           final phone = client?.phone ?? '';
                           if (phone.isNotEmpty) {
@@ -587,6 +591,7 @@ class _FollowUpItem extends StatelessWidget {
   final VoidCallback onSnooze;
   final VoidCallback onCall;
   final VoidCallback onWhatsApp;
+  final VoidCallback onEdit;
 
   const _FollowUpItem({
     required this.followUp,
@@ -597,6 +602,7 @@ class _FollowUpItem extends StatelessWidget {
     required this.onSnooze,
     required this.onCall,
     required this.onWhatsApp,
+    required this.onEdit,
   });
 
   @override
@@ -805,6 +811,13 @@ class _FollowUpItem extends StatelessWidget {
                   icon: Icons.chat_rounded,
                   bg: const Color(0xFF25D366),
                   onTap: clientPhone.isNotEmpty ? onWhatsApp : null,
+                ),
+                const SizedBox(width: 6),
+                // Edit (blue circle)
+                _iconBtn(
+                  icon: Icons.edit_rounded,
+                  bg: const Color(0xFF1E5BD8),
+                  onTap: onEdit,
                 ),
               ],
             ),

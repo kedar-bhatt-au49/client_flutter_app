@@ -137,8 +137,28 @@ class NotificationService {
 
   int _alertId = 5000;
 
-  /// Immediate alarm-style alert (used for live sync / in-app due checks).
+  /// Immediate alarm-style alert (used when a follow-up is due).
   Future<void> showAlert(String title, String body) async {
     await _plugin.show(_alertId++, title, body, _details, payload: 'alert');
+  }
+
+  // ── Gentle info notifications (live-sync updates; no alarm) ──
+
+  static const _infoChannelId = 'general_updates';
+  int _infoId = 6000;
+
+  NotificationDetails get _infoDetails => const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _infoChannelId,
+          'App Updates',
+          channelDescription: 'New clients, follow-ups and quotations',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+        iOS: DarwinNotificationDetails(),
+      );
+
+  Future<void> showInfo(String title, String body) async {
+    await _plugin.show(_infoId++, title, body, _infoDetails, payload: 'info');
   }
 }

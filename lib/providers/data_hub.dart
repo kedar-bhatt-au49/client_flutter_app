@@ -158,7 +158,7 @@ class DataHub extends ChangeNotifier {
     if (!_initialFollowUps && !_recentLocalWrite) {
       for (final f in list) {
         if (!_seenFollowUps.contains(f.id)) {
-          NotificationService.instance.showAlert(
+          NotificationService.instance.showInfo(
               'New follow-up', '${f.dateFormatted} • ${f.timeFormatted}');
         }
       }
@@ -205,7 +205,7 @@ class DataHub extends ChangeNotifier {
     if (!_initialClients && !_recentLocalWrite) {
       for (final c in list) {
         if (!_seenClients.contains(c.id)) {
-          NotificationService.instance.showAlert('New client added', c.name);
+          NotificationService.instance.showInfo('New client added', c.name);
         }
       }
     }
@@ -224,7 +224,7 @@ class DataHub extends ChangeNotifier {
     if (!_initialEstimates && !_recentLocalWrite) {
       for (final e in list) {
         if (!_seenEstimates.contains(e.id)) {
-          NotificationService.instance.showAlert('New quotation',
+          NotificationService.instance.showInfo('New quotation',
               '${e.data.estimateNumber} • ${e.data.leadName}');
         }
       }

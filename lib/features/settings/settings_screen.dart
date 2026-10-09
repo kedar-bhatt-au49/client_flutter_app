@@ -474,13 +474,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── App updates ────────────────────────────────────────────────
   Widget _buildUpdates() {
     final version = _appVersion?.versionName ?? '—';
+    final build = _appVersion?.versionCode;
+    final versionLabel =
+        build == null ? 'v$version' : 'v$version (build $build)';
     return _sectionCard(
       icon: Icons.system_update_rounded,
       title: 'App Updates',
       trailing: 'GitHub',
       children: [
         _infoRow(Icons.verified_rounded, const Color(0xFF2563EB),
-            'Installed Version', 'v$version'),
+            'Installed Version', versionLabel),
         InkWell(
           onTap: _checkingForUpdate ? null : () => _checkForUpdates(),
           borderRadius: BorderRadius.circular(12),
@@ -516,6 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
+        _dotInfoRow('Auto-update', _greenLight, 'ON'),
       ],
     );
   }

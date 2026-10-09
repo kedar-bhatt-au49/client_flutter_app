@@ -519,7 +519,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
-        _dotInfoRow('Auto-update', _greenLight, 'ON'),
       ],
     );
   }

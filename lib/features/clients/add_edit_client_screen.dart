@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
@@ -206,6 +207,10 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                             prefix: '+91',
                             hint: '10-digit mobile number',
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
                             validator: (v) =>
                                 v == null || v.trim().length < 10 ? 'Valid phone required' : null,
                           ),
@@ -227,6 +232,10 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                             prefix: '+91',
                             hint: 'Secondary contact number',
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
                           ),
                           const SizedBox(height: 16),
 
@@ -643,6 +652,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
     required String hint,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
     int maxLines = 1,
     bool iconMuted = false,
     Color? iconColor,
@@ -651,6 +661,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLines: maxLines,
       validator: validator,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _ink),

@@ -13,6 +13,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -681,6 +682,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           prefixText: '+91',
           hint: '10-digit number',
           keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),
@@ -1481,6 +1486,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     bool big = false,
     int maxLines = 1,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
@@ -1488,6 +1494,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       readOnly: readOnly,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       onChanged: onChanged,
       textAlignVertical:
           maxLines > 1 ? TextAlignVertical.top : TextAlignVertical.center,

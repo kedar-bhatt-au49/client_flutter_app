@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paths shared with Android's package installer for the downloaded update.
+     The APK is written to <cacheDir>/updates/ by AppUpdateService. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+    <external-cache-path name="updates_external" path="updates/" />
+    <files-path name="updates_files" path="updates/" />
+</paths>

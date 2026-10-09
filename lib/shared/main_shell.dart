@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/widgets/app_update_dialog.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/clients/client_list_screen.dart';
 import '../features/followups/followup_screen.dart';
 import '../features/reports/reports_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../providers/data_hub.dart';
+import '../services/app_update_service.dart';
 
 /// Main app shell — glassmorphic floating bottom navigation with 5 tabs.
 class MainShell extends StatefulWidget {
@@ -33,7 +35,23 @@ class _MainShellState extends State<MainShell> {
     // Start Firestore real-time sync now that the user is authenticated.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<DataHub>().startSync();
+      _checkForUpdateSilently();
     });
+  }
+
+  /// Background update check on launch. Any failure is swallowed so a missing
+  /// network or GitHub outage can never affect app startup.
+  Future<void> _checkForUpdateSilently() async {
+    try {
+      final version = await AppUpdateService.instance.installedVersion();
+      final info = await AppUpdateService.instance
+          .checkForUpdate(currentVersionName: version.versionName);
+      if (info != null && mounted) {
+        await AppUpdateDialogs.showAvailable(context, info);
+      }
+    } catch (_) {
+      // Ignored on purpose — the settings screen has a manual check.
+    }
   }
 
   @override

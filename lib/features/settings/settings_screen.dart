@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
+import '../../core/widgets/app_update_dialog.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_hub.dart';
+import '../../services/app_update_service.dart';
 import '../auth/login_screen.dart';
 
 /// Settings — exact design: navy header, profile, app settings, security,
@@ -34,15 +36,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _dailyReminder = false;
   bool _loading = true;
+  bool _checkingForUpdate = false;
+  AppVersion? _appVersion;
 
   @override
   void initState() {
     super.initState();
     _loadPrefs();
+    _loadVersion();
   }
 
   Future<void> _loadPrefs() async {
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadVersion() async {
+    final v = await AppUpdateService.instance.installedVersion();
+    if (mounted) setState(() => _appVersion = v);
   }
 
   Future<void> _changePassword(AuthProvider auth) async {
@@ -108,6 +118,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildSupport(),
                         const SizedBox(height: 14),
                         _buildAbout(),
+                        const SizedBox(height: 14),
+                        _buildUpdates(),
                         const SizedBox(height: 14),
                         _buildSignOut(auth),
                         const SizedBox(height: 16),
@@ -459,6 +471,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ── App updates ────────────────────────────────────────────────
+  Widget _buildUpdates() {
+    final version = _appVersion?.versionName ?? '—';
+    return _sectionCard(
+      icon: Icons.system_update_rounded,
+      title: 'App Updates',
+      trailing: 'GitHub',
+      children: [
+        _infoRow(Icons.verified_rounded, const Color(0xFF2563EB),
+            'Installed Version', 'v$version'),
+        InkWell(
+          onTap: _checkingForUpdate ? null : () => _checkForUpdates(),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration:
+                      const BoxDecoration(shape: BoxShape.circle, color: _gold),
+                  child: _checkingForUpdate
+                      ? const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.refresh_rounded,
+                          size: 17, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Check for Updates',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _dark)),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 20, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _checkForUpdates({bool silent = false}) async {
+    if (_checkingForUpdate) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _checkingForUpdate = true);
+    try {
+      final version =
+          _appVersion ?? await AppUpdateService.instance.installedVersion();
+      final info = await AppUpdateService.instance
+          .checkForUpdate(currentVersionName: version.versionName);
+      if (!mounted) return;
+      if (info == null) {
+        if (!silent) {
+          messenger.showSnackBar(SnackBar(
+              content: Text(
+                  'You are on the latest version (v${version.versionName}).')));
+        }
+        return;
+      }
+      await AppUpdateDialogs.showAvailable(context, info);
+    } on AppUpdateException catch (e) {
+      if (mounted && !silent) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted && !silent) {
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Could not check for updates. Please try again.')));
+      }
+    } finally {
+      if (mounted) setState(() => _checkingForUpdate = false);
+    }
+  }
+
   // ── Sign out ───────────────────────────────────────────────────
   Widget _buildSignOut(AuthProvider auth) {
     return InkWell(
@@ -504,8 +598,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildFooter() {
     return Column(
       children: [
-        const Text('Global Solar 2.0 v1.0.0',
-            style: TextStyle(
+        Text('Global Solar 2.0 v${_appVersion?.versionName ?? '1.0.0'}',
+            style: const TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600, color: _slate)),
         const SizedBox(height: 4),
         Text(

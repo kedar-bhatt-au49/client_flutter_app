@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 
 import '../../services/notification_service.dart';
 
-/// Full-screen alarm shown when a follow-up is due.
-/// Rings (loops) + vibrates until the user taps Stop.
+/// Popup shown when a follow-up is due. Rings (loops) + vibrates until
+/// the user taps Stop.
 class AlarmScreen extends StatefulWidget {
   final String title;
   final String body;
@@ -61,48 +61,58 @@ class _AlarmScreenState extends State<AlarmScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF071440),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.alarm, size: 80, color: Color(0xFFF9B417)),
-                const SizedBox(height: 24),
-                Text(widget.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontFamily: 'Outfit',
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white)),
-                const SizedBox(height: 12),
-                Text(widget.body,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 15, color: Colors.white70)),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: 58,
-                  child: ElevatedButton.icon(
-                    onPressed: _stop,
-                    icon: const Icon(Icons.stop_circle, size: 24),
-                    label: const Text('Stop',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF9B417),
-                      foregroundColor: const Color(0xFF071440),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                    ),
+      child: Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFF9B417).withValues(alpha: 0.15),
+                ),
+                child: const Icon(Icons.alarm,
+                    size: 34, color: Color(0xFFF9B417)),
+              ),
+              const SizedBox(height: 16),
+              Text(widget.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF071440))),
+              const SizedBox(height: 8),
+              Text(widget.body,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 14, color: Color(0xFF627193))),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _stop,
+                  icon: const Icon(Icons.stop_circle, size: 20),
+                  label: const Text('Stop',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w800)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF9B417),
+                    foregroundColor: const Color(0xFF071440),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -106,7 +106,16 @@ class DataHub extends ChangeNotifier {
       final h = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 9) : 9;
       final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
       final due = DateTime(f.date.year, f.date.month, f.date.day, h, m);
-      if (now.isBefore(due) || _alertedFollowUps.contains(f.id)) continue;
+      // Only today's follow-ups, and only within 60 min of the due time —
+      // never old (e.g. yesterday's) ones.
+      if (due.year != now.year ||
+          due.month != now.month ||
+          due.day != now.day) {
+        continue;
+      }
+      if (now.isBefore(due)) continue;
+      if (now.difference(due).inMinutes > 60) continue;
+      if (_alertedFollowUps.contains(f.id)) continue;
       _alertedFollowUps.add(f.id);
       final body = (f.note != null && f.note!.isNotEmpty)
           ? f.note!
@@ -159,7 +168,15 @@ class DataHub extends ChangeNotifier {
     _initialFollowUps = false;
     _followUps = list;
     _sortFollowUps();
+    _rescheduleAll();
     notifyListeners();
+  }
+
+  /// Keeps scheduled alarms in sync (cancels past/non-pending, schedules future).
+  void _rescheduleAll() {
+    for (final f in _followUps) {
+      if (f.status == 'pending') _scheduleReminder(f);
+    }
   }
 
   void _onQuotes(List<QuoteModel> list) {

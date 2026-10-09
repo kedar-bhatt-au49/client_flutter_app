@@ -3,16 +3,25 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
+import '../../models/follow_up.dart';
+import '../../providers/data_hub.dart';
 import '../../services/notification_service.dart';
 
-/// Popup shown when a follow-up is due. Rings (loops) + vibrates until
-/// the user taps Stop.
+/// Popup shown when a follow-up is due. Rings (loops) + vibrates until the
+/// user taps Stop or Snooze.
 class AlarmScreen extends StatefulWidget {
   final String title;
   final String body;
+  final String? followUpId;
 
-  const AlarmScreen({super.key, required this.title, required this.body});
+  const AlarmScreen({
+    super.key,
+    required this.title,
+    required this.body,
+    this.followUpId,
+  });
 
   @override
   State<AlarmScreen> createState() => _AlarmScreenState();
@@ -39,7 +48,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
     });
   }
 
-  Future<void> _stop() async {
+  Future<void> _close() async {
     if (_stopped) return;
     _stopped = true;
     _vibeTimer?.cancel();
@@ -47,7 +56,32 @@ class _AlarmScreenState extends State<AlarmScreen> {
       await _player.stop();
     } catch (_) {}
     await NotificationService.instance.cancelAll();
-    if (mounted) Navigator.of(context).maybePop();
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _snooze(int minutes) async {
+    final id = widget.followUpId;
+    if (id != null) {
+      try {
+        final hub = context.read<DataHub>();
+        FollowUpModel? f;
+        for (final x in hub.followUps) {
+          if (x.id == id) {
+            f = x;
+            break;
+          }
+        }
+        if (f != null) {
+          final at = DateTime.now().add(Duration(minutes: minutes));
+          await hub.updateFollowUp(f.copyWith(
+            date: at,
+            time: '${at.hour.toString().padLeft(2, '0')}:'
+                '${at.minute.toString().padLeft(2, '0')}',
+          ));
+        }
+      } catch (_) {}
+    }
+    await _close();
   }
 
   @override
@@ -63,7 +97,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
       canPop: false,
       child: Dialog(
         backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
@@ -94,12 +128,56 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 14, color: Color(0xFF627193))),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
+              // Snooze options
+              Row(
+                children: [
+                  for (final m in const [5, 10, 15, 30]) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _snooze(m),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0B1F5C),
+                          side: const BorderSide(color: Color(0xFFD0E3F8)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text('${m}m',
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    if (m != 30) const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _snooze(60),
+                      icon: const Icon(Icons.snooze_rounded, size: 18),
+                      label: const Text('Snooze 1 hr',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0B1F5C),
+                        side: const BorderSide(color: Color(0xFFD0E3F8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: _stop,
+                  onPressed: _close,
                   icon: const Icon(Icons.stop_circle, size: 20),
                   label: const Text('Stop',
                       style: TextStyle(

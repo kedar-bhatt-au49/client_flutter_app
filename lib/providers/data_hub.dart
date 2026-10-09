@@ -121,7 +121,8 @@ class DataHub extends ChangeNotifier {
           ? f.note!
           : 'You have a follow-up due now.';
       NotificationService.instance.showAlert('Follow-up due', body);
-      showFollowUpAlarm(title: 'Follow-up due', body: body);
+      showFollowUpAlarm(
+          title: 'Follow-up due', body: body, followUpId: f.id);
     }
   }
 
@@ -313,6 +314,7 @@ class DataHub extends ChangeNotifier {
 
   Future<void> updateFollowUp(FollowUpModel followUp) async {
     _lastLocalWrite = DateTime.now();
+    _alertedFollowUps.remove(followUp.id); // allow re-alert after snooze/edit
     await _fire.saveFollowUp(followUp);
     await _scheduleReminder(followUp);
   }

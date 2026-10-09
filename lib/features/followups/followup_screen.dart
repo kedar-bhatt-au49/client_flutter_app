@@ -480,7 +480,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             const SizedBox(height: 16),
             _snoozeChip('Tomorrow', () => _snoozeTo(context, hub, f, 1)),
             const SizedBox(height: 8),
-            _snoozeChip('3 days later', () => _snoozeTo(context, hub, f, 3)),
+            _snoozeChip('2 days later', () => _snoozeTo(context, hub, f, 2)),
             const SizedBox(height: 8),
             _snoozeChip('1 week later', () => _snoozeTo(context, hub, f, 7)),
             const SizedBox(height: 8),
@@ -523,19 +523,23 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
   }
 
-  void _snoozeTo(BuildContext context, DataHub hub, FollowUpModel f, int days) {
+  Future<void> _snoozeTo(
+      BuildContext context, DataHub hub, FollowUpModel f, int days) async {
     final newDate = DateTime.now().add(Duration(days: days));
-    hub.updateFollowUp(f.copyWith(date: newDate, status: 'pending'));
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Snoozed to ${DateFormat("dd MMM").format(newDate)}')));
+    await hub.updateFollowUp(f.copyWith(date: newDate, status: 'pending'));
+    messenger.showSnackBar(SnackBar(
+        content: Text('Snoozed to ${DateFormat("dd MMM").format(newDate)}')));
   }
 
-  void _snoozeToDate(BuildContext context, DataHub hub, FollowUpModel f, DateTime date) {
-    hub.updateFollowUp(f.copyWith(date: date, status: 'pending'));
+  Future<void> _snoozeToDate(
+      BuildContext context, DataHub hub, FollowUpModel f, DateTime date) async {
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Snoozed to ${DateFormat("dd MMM").format(date)}')));
+    await hub.updateFollowUp(f.copyWith(date: date, status: 'pending'));
+    messenger.showSnackBar(SnackBar(
+        content: Text('Snoozed to ${DateFormat("dd MMM").format(date)}')));
   }
 }
 

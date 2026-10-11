@@ -28,6 +28,7 @@ class DatabaseService {
   // Keys
   static const keyFirstRun = 'first_run_done';
   static const keySettings = 'single';
+  static const keyPaymentsResetDone = 'payments_reset_done';
 
   bool _initialized = false;
 
@@ -59,9 +60,16 @@ class DatabaseService {
   }
 
   Future<void> seedIfNeeded() async {
-    // Demo seeding disabled â€” real data now syncs from Firestore.
+    // Demo seeding disabled — real data now syncs from Firestore.
     await markFirstRunDone();
   }
+
+  /// One-time flag: all payment records were cleared so revenue restarts at 0.
+  Future<bool> isPaymentsResetDone() async =>
+      Hive.box(boxApp).get(keyPaymentsResetDone) == true;
+
+  Future<void> markPaymentsResetDone() async =>
+      Hive.box(boxApp).put(keyPaymentsResetDone, true);
 
   // â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

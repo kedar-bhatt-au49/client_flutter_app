@@ -188,6 +188,43 @@ class DataHub extends ChangeNotifier {
   void _onPayments(List<PaymentModel> list) {
     _payments = list;
     notifyListeners();
+    _resetPaymentsOnce(list);
+  }
+
+  bool _paymentsResetRunning = false;
+
+  /// One-time migration: clears every stored payment status so the revenue
+  /// total starts from 0 again (no hardcoding — new payments still count).
+  Future<void> _resetPaymentsOnce(List<PaymentModel> list) async {
+    if (_paymentsResetRunning) return;
+    if (await _db.isPaymentsResetDone()) return;
+    final dirty =
+        list.where((p) => p.registrationPaid || p.balancePaid).toList();
+    if (dirty.isEmpty) {
+      await _db.markPaymentsResetDone();
+      return;
+    }
+    _paymentsResetRunning = true;
+    try {
+      for (final p in dirty) {
+        final reset = PaymentModel(
+          id: p.id,
+          clientId: p.clientId,
+          registrationAmount: p.registrationAmount,
+          electricityBill: p.electricityBill,
+          aadhaar: p.aadhaar,
+          cancelledCheque: p.cancelledCheque,
+        );
+        await _fire.savePayment(reset);
+        await _db.savePayment(reset);
+      }
+      await _db.markPaymentsResetDone();
+      debugPrint('GS_RESEED payments reset: ${dirty.length} record(s) cleared');
+    } catch (e) {
+      debugPrint('GS_RESEED payments reset failed, will retry: $e');
+    } finally {
+      _paymentsResetRunning = false;
+    }
   }
 
   void _onInstallations(List<InstallationModel> list) {

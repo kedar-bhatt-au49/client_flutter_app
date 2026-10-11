@@ -781,6 +781,7 @@ class _FollowUpItem extends StatelessWidget {
               border: Border(top: BorderSide(color: overdue ? const Color(0x99FECACA) : const Color(0xFFF1F5F9))),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Mark Done (green, flex)
                 Expanded(
@@ -792,7 +793,7 @@ class _FollowUpItem extends StatelessWidget {
                     onTap: followUp.status == 'done' ? null : onMarkDone,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 // Snooze (blue)
                 _actionBtn(
                   label: 'Snooze',
@@ -800,7 +801,7 @@ class _FollowUpItem extends StatelessWidget {
                   bg: const Color(0xFFEFF6FF),
                   fg: const Color(0xFF1E5BD8),
                   onTap: onSnooze,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                 ),
                 const SizedBox(width: 8),
                 // Call (green circle)
@@ -839,23 +840,42 @@ class _FollowUpItem extends StatelessWidget {
     VoidCallback? onTap,
     EdgeInsets? padding,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: fg.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: fg),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg)),
-          ],
+    final enabled = onTap != null;
+    final radius = BorderRadius.circular(10);
+    final Color fgColor = enabled ? fg : const Color(0xFF94A3B8);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          height: 32,
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: enabled ? bg : const Color(0xFFF1F5F9),
+            borderRadius: radius,
+            border:
+                Border.all(color: fgColor.withValues(alpha: enabled ? 0.3 : 0.2)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: fgColor),
+              const SizedBox(width: 4),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label,
+                      maxLines: 1,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: fgColor)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -866,18 +886,27 @@ class _FollowUpItem extends StatelessWidget {
     required Color bg,
     VoidCallback? onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: bg,
-          boxShadow: [BoxShadow(color: bg.withValues(alpha: 0.3), blurRadius: 6)],
+    final enabled = onTap != null;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: bg,
+              boxShadow: [
+                BoxShadow(color: bg.withValues(alpha: 0.3), blurRadius: 6)
+              ],
+            ),
+            child: Icon(icon, size: 14, color: Colors.white),
+          ),
         ),
-        child: Icon(icon, size: 14, color: Colors.white),
       ),
     );
   }

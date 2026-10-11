@@ -793,7 +793,7 @@ class _FollowUpItem extends StatelessWidget {
                     onTap: followUp.status == 'done' ? null : onMarkDone,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 // Snooze (blue)
                 _actionBtn(
                   label: 'Snooze',
@@ -801,23 +801,23 @@ class _FollowUpItem extends StatelessWidget {
                   bg: const Color(0xFFEFF6FF),
                   fg: const Color(0xFF1E5BD8),
                   onTap: onSnooze,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 // Call (green circle)
                 _iconBtn(
                   icon: Icons.call_rounded,
                   bg: const Color(0xFF22A24A),
                   onTap: clientPhone.isNotEmpty ? onCall : null,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 // WhatsApp (green circle)
                 _iconBtn(
                   icon: Icons.chat_rounded,
                   bg: const Color(0xFF25D366),
                   onTap: clientPhone.isNotEmpty ? onWhatsApp : null,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 // Edit (blue circle)
                 _iconBtn(
                   icon: Icons.edit_rounded,
@@ -851,7 +851,7 @@ class _FollowUpItem extends StatelessWidget {
         borderRadius: radius,
         child: Container(
           height: 32,
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 8),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
             color: enabled ? bg : const Color(0xFFF1F5F9),
             borderRadius: radius,
@@ -863,17 +863,13 @@ class _FollowUpItem extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: fgColor),
               const SizedBox(width: 4),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label,
-                      maxLines: 1,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: fgColor)),
-                ),
-              ),
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: fgColor)),
             ],
           ),
         ),

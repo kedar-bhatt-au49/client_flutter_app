@@ -74,6 +74,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                           MaterialPageRoute(
                               builder: (_) => AddFollowUpScreen(existing: f)),
                         ),
+                        onDelete: () => _confirmDeleteFollowUp(context, hub, f),
                         onCall: () {
                           final phone = client?.phone ?? '';
                           if (phone.isNotEmpty) {
@@ -453,6 +454,34 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
   }
 
+  void _confirmDeleteFollowUp(
+      BuildContext context, DataHub hub, FollowUpModel f) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Follow-up?'),
+        content: const Text('This will remove the follow-up permanently.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              hub.deleteFollowUp(f.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Follow-up deleted')));
+            },
+            child: const Text('Delete',
+                style: TextStyle(color: Color(0xFFDC2626))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSnoozeSheet(BuildContext context, DataHub hub, FollowUpModel f) {
     showModalBottomSheet(
       context: context,
@@ -596,6 +625,7 @@ class _FollowUpItem extends StatelessWidget {
   final VoidCallback onCall;
   final VoidCallback onWhatsApp;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const _FollowUpItem({
     required this.followUp,
@@ -607,6 +637,7 @@ class _FollowUpItem extends StatelessWidget {
     required this.onCall,
     required this.onWhatsApp,
     required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -823,6 +854,13 @@ class _FollowUpItem extends StatelessWidget {
                   icon: Icons.edit_rounded,
                   bg: const Color(0xFF1E5BD8),
                   onTap: onEdit,
+                ),
+                const SizedBox(width: 4),
+                // Delete (red circle)
+                _iconBtn(
+                  icon: Icons.delete_outline_rounded,
+                  bg: const Color(0xFFDC2626),
+                  onTap: onDelete,
                 ),
               ],
             ),

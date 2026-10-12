@@ -27,7 +27,10 @@ class FirestoreService {
       .map((s) => s.docs
           .map((d) {
             try {
-              return ClientModel.fromJson(_map(d.data()));
+              // Always trust the Firestore document id as the model id, so
+              // edits/deletes target the real document even for docs created
+              // elsewhere (e.g. the website form uses an auto id).
+              return ClientModel.fromJson(_map(d.data())).copyWith(id: d.id);
             } catch (e) {
               debugPrint('Skipping bad client doc ${d.id}: $e');
               return null;

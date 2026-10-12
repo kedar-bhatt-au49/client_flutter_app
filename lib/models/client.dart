@@ -89,6 +89,7 @@ class ClientModel {
   bool get isNew => status == 'new';
 
   ClientModel copyWith({
+    String? id,
     String? name,
     String? phone,
     String? altPhone,
@@ -105,7 +106,7 @@ class ClientModel {
     DateTime? updatedAt,
   }) =>
       ClientModel(
-        id: id,
+        id: id ?? this.id,
         name: name ?? this.name,
         phone: phone ?? this.phone,
         altPhone: altPhone ?? this.altPhone,

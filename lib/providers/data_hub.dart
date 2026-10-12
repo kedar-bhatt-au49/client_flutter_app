@@ -175,8 +175,11 @@ class DataHub extends ChangeNotifier {
 
   /// Keeps scheduled alarms in sync (cancels past/non-pending, schedules future).
   void _rescheduleAll() {
+    // Must run for EVERY follow-up: _scheduleReminder cancels when the item is
+    // no longer pending or is in the past, so a done/snoozed follow-up does not
+    // keep buzzing from its previously scheduled alarm.
     for (final f in _followUps) {
-      if (f.status == 'pending') _scheduleReminder(f);
+      _scheduleReminder(f);
     }
   }
 

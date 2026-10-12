@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/branding.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/follow_up.dart';
 import '../../providers/data_hub.dart';
@@ -87,7 +88,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                           final name = client?.name ?? '';
                           if (phone.isNotEmpty) {
                             final msg = Uri.encodeComponent(
-                                'Hello $name, this is Global Solar 2.0. Following up on your solar inquiry.');
+                                'Hello $name, this is $kBrandName. Following up on your solar inquiry.');
                             launchUrl(Uri.parse('https://wa.me/91$phone?text=$msg'),
                                 mode: LaunchMode.externalApplication);
                           }

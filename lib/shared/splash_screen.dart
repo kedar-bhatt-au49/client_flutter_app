@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/branding.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/widgets/solar_visuals.dart';
@@ -103,16 +104,14 @@ class _SplashScreenState extends State<SplashScreen> {
                               ],
                             ),
                             child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/logo.jpg',
-                                fit: BoxFit.cover,
-                              ),
+                              child: BrandLogo(size: 144),
                             ),
                           ),
                           const SizedBox(height: 20),
                           // Brand identity
-                          RichText(
-                            text: TextSpan(
+                          if (kDemoMode)
+                            const Text(
+                              kBrandName,
                               style: TextStyle(
                                 fontFamily: 'Outfit',
                                 fontSize: 30,
@@ -120,20 +119,31 @@ class _SplashScreenState extends State<SplashScreen> {
                                 color: Colors.white,
                                 letterSpacing: -0.5,
                               ),
-                              children: [
-                                const TextSpan(text: 'Global Solar '),
-                                TextSpan(
-                                  text: '2.0',
-                                  style: TextStyle(
-                                    foreground: Paint()
-                                      ..shader = const LinearGradient(
-                                        colors: [Color(0xFFFFD54F), Color(0xFFFFE082), Color(0xFF4CC46A)],
-                                      ).createShader(Rect.fromLTWH(0, 0, 100, 30)),
-                                  ),
+                            )
+                          else
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
                                 ),
-                              ],
+                                children: [
+                                  const TextSpan(text: 'Global Solar '),
+                                  TextSpan(
+                                    text: '2.0',
+                                    style: TextStyle(
+                                      foreground: Paint()
+                                        ..shader = const LinearGradient(
+                                          colors: [Color(0xFFFFD54F), Color(0xFFFFE082), Color(0xFF4CC46A)],
+                                        ).createShader(Rect.fromLTWH(0, 0, 100, 30)),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                           const SizedBox(height: 6),
                           Text('CLIENT MANAGEMENT SYSTEM',
                               style: TextStyle(
@@ -197,7 +207,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                       shape: BoxShape.circle, color: Color(0xFF4CC46A)),
                                 ),
                                 const SizedBox(width: 6),
-                                Text('Bhavnagar & Talaja EPC Operations',
+                                Text(kBrandRegion,
                                     style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.white.withValues(alpha: 0.9))),

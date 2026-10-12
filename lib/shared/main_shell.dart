@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/app_flavor.dart';
 import '../core/theme/app_colors.dart';
 import '../core/widgets/app_update_dialog.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -42,6 +43,7 @@ class _MainShellState extends State<MainShell> {
   /// Background update check on launch. Any failure is swallowed so a missing
   /// network or GitHub outage can never affect app startup.
   Future<void> _checkForUpdateSilently() async {
+    if (kDemoMode) return;
     try {
       final version = await AppUpdateService.instance.installedVersion();
       final info = await AppUpdateService.instance
@@ -58,7 +60,20 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GSColors.sky100,
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Column(
+        children: [
+          if (kDemoMode) const _DemoBanner(),
+          Expanded(
+            child: kDemoMode
+                ? MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: IndexedStack(index: _currentIndex, children: _pages),
+                  )
+                : IndexedStack(index: _currentIndex, children: _pages),
+          ),
+        ],
+      ),
       bottomNavigationBar: _BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
@@ -215,6 +230,37 @@ class _BottomNavBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Thin top strip shown in demo builds so nobody mistakes it for the real app.
+class _DemoBanner extends StatelessWidget {
+  const _DemoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFFFB300),
+      padding: EdgeInsets.only(top: top + 4, bottom: 4, left: 12, right: 12),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.science_outlined, size: 13, color: Colors.black87),
+          SizedBox(width: 6),
+          Text(
+            'DEMO BUILD • sample data only',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }

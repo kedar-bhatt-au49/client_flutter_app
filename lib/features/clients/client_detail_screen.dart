@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/branding.dart';
 import '../../core/constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/client.dart';
@@ -25,7 +26,7 @@ class ClientDetailScreen extends StatelessWidget {
 
   Future<void> _openWhatsApp(BuildContext context, String phone, String name) async {
     final message = Uri.encodeComponent(
-        'Hello $name, this is Global Solar 2.0 following up on your inquiry.');
+        'Hello $name, this is $kBrandName following up on your inquiry.');
     final url = Uri.parse('https://wa.me/91$phone?text=$message');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);

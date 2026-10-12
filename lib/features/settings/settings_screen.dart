@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/branding.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/app_update_dialog.dart';
 import '../../providers/auth_provider.dart';
@@ -183,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _PulseDot(),
                       ],
                     ),
-                    const Text('Global Solar 2.0',
+                    const Text(kBrandName,
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -221,7 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ── Profile card ───────────────────────────────────────────────
   Widget _buildProfileCard(dynamic user) {
-    final name = user?.displayName ?? 'Global Solar Admin';
+    final name = user?.displayName ??
+        (kDemoMode ? 'Administrator' : 'Global Solar Admin');
     final role = user?.displayRole ?? 'Founder • Owner';
     final email = user?.email ?? GSUsers.founderEmail;
     final isOwner = user?.role == 'owner';
@@ -435,7 +437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           bg: _greenLight,
           label: 'WhatsApp Support',
           onTap: () {
-            final msg = Uri.encodeComponent('Hello Global Solar 2.0 team,');
+            final msg = Uri.encodeComponent('Hello $kBrandName team,');
             launchUrl(
                 Uri.parse('https://wa.me/${GSUsers.whatsappNumber}?text=$msg'));
           },
@@ -462,7 +464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       icon: Icons.info_rounded,
       title: 'About',
       children: [
-        _simpleInfoRow('Company', 'Global Solar 2.0'),
+        _simpleInfoRow('Company', kBrandName),
         _addressRow('Address',
             'Shop No. 4A, Sukhsagar Complex, Bhavnagar, Gujarat 364002'),
         _dotInfoRow('Panel Brand', const Color(0xFF3B82F6), 'Adani TOPCon (G2G)'),
@@ -598,12 +600,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildFooter() {
     return Column(
       children: [
-        Text('Global Solar 2.0 v${_appVersion?.versionName ?? '1.0.0'}',
+        Text('$kBrandName v${_appVersion?.versionName ?? '1.0.0'}',
             style: const TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600, color: _slate)),
         const SizedBox(height: 4),
         Text(
-          'Designed & Developed for Mr. Jayrajsinh S. Umat & Mr. Gopalsinh J. Parmar',
+          kDemoMode
+              ? 'Designed & Developed by Solar Client'
+              : 'Designed & Developed for Mr. Jayrajsinh S. Umat & Mr. Gopalsinh J. Parmar',
           textAlign: TextAlign.center,
           style: TextStyle(
               fontSize: 10, color: _slate.withValues(alpha: 0.7), height: 1.4),
@@ -927,10 +931,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontFamily: 'Outfit',
                 fontWeight: FontWeight.w700,
                 color: _navy)),
-        content: const Text(
-          'Global Solar 2.0 — Client Management Suite\n\n'
-          'Designed & Developed for Mr. Jayrajsinh S. Umat & Mr. Gopalsinh J. Parmar.',
-          style: TextStyle(fontSize: 13, height: 1.5, color: _slate),
+        content: Text(
+          kDemoMode
+              ? '$kBrandName — Client Management Suite\n\n'
+                  'Designed & Developed by Solar Client.'
+              : 'Global Solar 2.0 — Client Management Suite\n\n'
+                  'Designed & Developed for Mr. Jayrajsinh S. Umat & Mr. Gopalsinh J. Parmar.',
+          style: const TextStyle(fontSize: 13, height: 1.5, color: _slate),
         ),
         actions: [
           TextButton(

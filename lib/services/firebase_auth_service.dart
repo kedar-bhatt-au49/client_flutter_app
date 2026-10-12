@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
+import '../core/app_flavor.dart';
 import '../core/constants.dart';
 import '../models/user.dart';
 import 'auth_service.dart';
@@ -84,6 +85,26 @@ class FirebaseAuthService implements AuthService {
 
   Future<UserModel> _toUser(fb.User u) async {
     final email = (u.email ?? '').toLowerCase();
+
+    // Demo builds: neutral, non-branded profile (anonymous sign-in).
+    if (kDemoMode) {
+      final demo = UserModel(
+        uid: u.uid,
+        name: 'Administrator',
+        nameGu: 'Administrator',
+        role: 'owner',
+        phone: GSUsers.founderPhone,
+        email: email,
+      );
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(u.uid)
+            .set(demo.toJson());
+      } catch (_) {}
+      return demo;
+    }
+
     final isCoFounder = email == GSUsers.coFounderEmail.toLowerCase();
 
     try {

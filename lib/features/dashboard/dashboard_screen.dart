@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/branding.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/solar_visuals.dart';
 import '../../features/followups/add_follow_up_screen.dart';
@@ -26,7 +27,7 @@ class DashboardScreen extends StatelessWidget {
 
   Future<void> _openWhatsApp(BuildContext context, String phone, String name) async {
     final message = Uri.encodeComponent(
-        'Hello $name, this is Global Solar 2.0. Following up on your solar inquiry.');
+        'Hello $name, this is $kBrandName. Following up on your solar inquiry.');
     final url = Uri.parse('https://wa.me/91$phone?text=$message');
     final messenger = ScaffoldMessenger.of(context);
     if (await canLaunchUrl(url)) {
@@ -138,12 +139,7 @@ class DashboardScreen extends StatelessWidget {
                         color: Color(0xFF050E26),
                       ),
                       child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/logo.jpg',
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                        ),
+                        child: BrandLogo(size: 40),
                       ),
                     ),
                   ),
@@ -160,7 +156,7 @@ class DashboardScreen extends StatelessWidget {
                               color: Colors.white,
                               letterSpacing: -0.3,
                             )),
-                        Text('$role • Global Solar 2.0',
+                        Text('$role • $kBrandName',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,

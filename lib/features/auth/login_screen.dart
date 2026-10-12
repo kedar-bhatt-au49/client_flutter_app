@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/branding.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/solar_visuals.dart';
@@ -127,16 +128,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             Container(
                               width: 32,
                               height: 32,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: DecorationImage(
-                                  image: AssetImage('assets/images/logo.png'),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                              alignment: Alignment.center,
+                              child: BrandLogo(size: 32),
                             ),
                             const SizedBox(width: 10),
-                            const Text('Global Solar 2.0',
+                            const Text(kBrandName,
                                 style: TextStyle(
                                     fontFamily: 'Outfit',
                                     fontWeight: FontWeight.w700,
@@ -196,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 16),
                                 // 2. Headline
                                 const Text(
-                                  'Welcome to Global Solar 2.0',
+                                  'Welcome to $kBrandName',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontFamily: 'Outfit',
@@ -355,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Bottom security badge
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text('Global Solar 2.0  Bhavnagar & Talaja EPC Division',
+                    child: Text(kBrandFooter,
                         style: GSTextStyles.bodySmall.copyWith(
                             color: Colors.grey.shade700,
                             fontWeight: FontWeight.w600,

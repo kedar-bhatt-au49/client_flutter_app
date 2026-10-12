@@ -34,7 +34,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.globalsolar.global_solar_client_app"
+        applicationId = "com.solarclientapp.demo"
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

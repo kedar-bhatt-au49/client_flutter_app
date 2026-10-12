@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/app_flavor.dart';
+
 /// Thrown for any user-facing update failure (network, HTTP, blocked URL...).
 class AppUpdateException implements Exception {
   final String message;
@@ -183,6 +185,8 @@ class AppUpdateService {
   Future<AppUpdateInfo?> checkForUpdate({
     required String currentVersionName,
   }) async {
+    // Demo builds must never pull the production APK.
+    if (kDemoMode) return null;
     final uri = Uri.parse('https://api.github.com/repos/$owner/$repo/releases/latest');
     final client = HttpClient();
     try {

@@ -60,11 +60,11 @@ class QuotationData {
     this.companyName = 'GLOBAL ENTERPRISE',
     this.companyTagline = 'Save Energy • Save Money • Save Earth',
     this.officeAddress =
-        'OFFICE ADDRESS: SOLAR CLIENT, F6, NATRAJ COMPLEX, OPP TOP3 CINEMA, BHAVNAGAR',
+        'OFFICE ADDRESS: SOLAR CLIENT, DEMO OFFICE, SOLAR PLAZA, BHAVNAGAR',
     this.mobileNumbers = 'Mo : (+91) 9924900599 / 9924900988',
-    this.bankName = 'Bank of Baroda',
-    this.accountNumber = '41400100011834',
-    this.ifscCode = 'BARBOKALIAB',
+    this.bankName = 'Demo Bank',
+    this.accountNumber = '00000000000000',
+    this.ifscCode = 'DEMO0000001',
 
     // Customer
     required this.date,

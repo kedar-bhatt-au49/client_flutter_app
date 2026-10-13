@@ -610,7 +610,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       'Final quote after free site survey.\n'
       'Price valid for 1 week.\n\n'
       '📎 A detailed 7-page Rooftop Solar Proposal + Quotation PDF is attached.\n\n'
-      '- Jayrajsinh S. Umat & Gopalsinh J. Parmar\n'
+      '- Solar Client App\n'
       'Solar Client App';
 
   void _shareTextToWhatsApp() {

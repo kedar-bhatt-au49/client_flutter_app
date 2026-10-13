@@ -192,11 +192,11 @@ class _Renderer {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('Solar Client App • Sukhsagar Complex, Kaliyabid, Bhavnagar',
+          pw.Text('Solar Client App • Solar Plaza, Bhavnagar',
               style: _t(6, color: _s400)),
           pw.Text('Page $page / 7',
               style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
-          pw.Text('+91 84888 07797 • contact@solarclientapp.in',
+          pw.Text('+91 90000 00000 • contact@solarclientapp.in',
               style: _t(6, color: _s400)),
         ],
       ),
@@ -1146,7 +1146,7 @@ class _Renderer {
               style: _t(6, bold: true, color: _s400, spacing: 0.4)),
         ),
         pw.SizedBox(height: 8),
-        pw.Text('Jayrajsinh S. Umat', style: _t(11, bold: true, color: _navy)),
+        pw.Text('Authorised Signatory', style: _t(11, bold: true, color: _navy)),
         pw.Container(
             width: 120,
             margin: const pw.EdgeInsets.symmetric(vertical: 3),
@@ -1156,7 +1156,7 @@ class _Renderer {
                         color: _s400,
                         width: 0.7,
                         style: pw.BorderStyle.dashed)))),
-        pw.Text('Founder & Chief Technical Officer',
+        pw.Text('Authorised Signatory',
             style: _t(6.8, bold: true, color: _navy)),
         pw.Text('Authorized EPC Signatory & Stamp', style: _t(6, color: _s500)),
       ]),
@@ -1546,7 +1546,7 @@ class _Renderer {
                       barcode: pw.Barcode.qrCode(),
                       data: d.upiQrUpiId.isNotEmpty
                           ? d.upiQrUpiId
-                          : 'upi://pay?pa=global.solar.2.0@oksbi&pn=Solar Client App&cu=INR',
+                          : 'upi://pay?pa=demo@solarclientapp&pn=Solar Client App&cu=INR',
                       width: 130,
                       height: 130,
                       color: _navy,
@@ -1615,21 +1615,21 @@ class _Renderer {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Expanded(
-                      child: _contactCol('FOUNDERS DIRECT HELPLINE', [
-                    'Jayrajsinh S. Umat — +91 84888 07797',
-                    'Gopalsinh J. Parmar — +91 88665 68543',
+                      child: _contactCol('CUSTOMER HELPLINE', [
+                    'Authorised Signatory — +91 90000 00000',
+                    'Authorised Signatory — +91 90000 00001',
                   ])),
                   pw.SizedBox(width: 10),
                   pw.Expanded(
                       child: _contactCol('ONLINE & PORTAL SUPPORT', [
-                    'WhatsApp: +91 84888 07797',
+                    'WhatsApp: +91 90000 00000',
                     'Email: contact@solarclientapp.in',
                     'Website: www.solarclientapp.in',
                   ])),
                   pw.SizedBox(width: 10),
                   pw.Expanded(
                       child: _contactCol('REGIONAL PHYSICAL OFFICES', [
-                    'Bhavnagar HQ: Shop 4A, Sukhsagar Complex, Kaliyabid.',
+                    'Bhavnagar HQ: Shop 4A, Solar Plaza, Bhavnagar.',
                     'Talaja Desk: Main Market Highway Rd, Opp. PGVCL Sub-station.',
                   ])),
                 ],

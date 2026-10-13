@@ -453,8 +453,8 @@ class PdfService {
                                     color: _PdfColors.ink)),
                             pw.SizedBox(height: 4),
                             pw.Text(
-                                '📞 +91-${GSUsers.founderPhone}  '
-                                '📧 ${GSUsers.founderEmail}\n'
+                                '📞 +91-9000000000  '
+                                '📧 contact@solarclientapp.in\n'
                                 'Talaja, Bhavnagar, Gujarat, India',
                                 style: pw.TextStyle(
                                     fontSize: 9,

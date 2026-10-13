@@ -420,20 +420,20 @@ class SolarProposalData {
       companyTagline: siteConfigTagline,
       companyAddress: siteConfigAddress,
       companyEmail: siteConfigEmail,
-      companyPhone: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      companyPhone: '9000000000 / 9000000001',
       companyGstin: '',
       brandColorHex: '#3D2B6B',
       accentColorHex: '#F7941D',
       customerName: customerName ?? 'Valued Customer',
       customerLocation: customerLocation ?? 'Bhavnagar, Gujarat',
-      customerMobile: customerMobile ?? '+91 ${GSUsers.founderPhone}',
+      customerMobile: customerMobile ?? '+91 9000000000',
       state: state ?? 'Gujarat',
       leadName: leadName ?? customerName ?? 'Valued Customer',
       quotationId: quotationId ?? 'GS-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-001',
       quotationDate: quotationDate ?? dq,
       expiryDate: expiry,
-      preparedBy: preparedBy ?? 'Jayrajsinh S. Umat & Gopalsinh J. Parmar',
-      contactNumbers: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      preparedBy: preparedBy ?? 'Solar Client App',
+      contactNumbers: '9000000000 / 9000000001',
       plantCapacityKw: plantCapacityKw ?? pkg.kw.toStringAsFixed(2),
       lineItems: lineItems,
       subTotal: subTotal,
@@ -444,10 +444,10 @@ class SolarProposalData {
       amountInWords: 'Indian Rupee ${_numberToWords(grandTotal)} Only',
       notes: _defaultNotes(pkg),
       bankDetails: const BankDetails(
-        bankName: 'Bank of Baroda',
-        accountName: 'JAYRAJ S UMAT',
-        accountNo: '41400100011834',
-        ifsc: 'BARBOKALIAB',
+        bankName: 'Demo Bank',
+        accountName: 'SOLAR CLIENT APP',
+        accountNo: '00000000000000',
+        ifsc: 'DEMO0000001',
         branch: 'Bhavnagar',
       ),
       bomItems: _defaultBom(pkg,
@@ -464,8 +464,8 @@ class SolarProposalData {
       effectiveUpfront: upfront,
       subsidyAmount: subsidy,
       warrantySections: _defaultWarranty,
-      upiId: 'global.solar.2.0@oksbi',
-      upiQrUpiId: 'upi://pay?pa=global.solar.2.0@oksbi&pn=Solar Client App&cu=INR',
+      upiId: 'demo@solarclientapp',
+      upiQrUpiId: 'upi://pay?pa=demo@solarclientapp&pn=Solar Client App&cu=INR',
       useHinglish: useHinglish ?? false,
       socialLinks: _defaultSocial,
       logoImage: logoImage,
@@ -610,8 +610,8 @@ class SolarProposalData {
 // ── siteConfig mirrors (kept local to avoid importing the website layer) ─
 const siteConfigTagline = 'Serving Talaja, Bhavnagar and nearby villages';
 const siteConfigAddress =
-    'Shop No. 4A, Sukhsagar Complex, Bhagwati Circle, Kaliyabid, Bhavnagar, Gujarat 364002';
-const siteConfigEmail = 'jayrajumat7797@gmail.com';
+    'Demo Office, Solar Plaza, Bhavnagar, Gujarat 364002';
+const siteConfigEmail = 'contact@solarclientapp.in';
 
 /// Default notes shown on the quotation footer box.
 List<String> _defaultNotes(GSPackage pkg) => [
@@ -742,7 +742,7 @@ List<WarrantySection> get _defaultWarranty => [
   WarrantySection(heading: '7. Operation & Maintenance', bullets: [
     'Free comprehensive O&M for the first year after commissioning.',
     'AMC packages available from year 2 onwards at an additional cost.',
-    '24x7 customer care: +91-${GSUsers.founderPhone}',
+    '24x7 customer care: +91-9000000000',
   ]),
   WarrantySection(heading: '8. Warranty Notes', bullets: [
     'Warranty is non-transferable but benefits the property owner.',
@@ -779,7 +779,7 @@ List<SocialLink> get _defaultSocial => [
   SocialLink(name: 'LinkedIn', url: 'https://linkedin.com/company/global-solar-2-0'),
   SocialLink(name: 'Twitter', url: 'https://twitter.com/global_solar_2_0'),
   SocialLink(name: 'WhatsApp', url: 'https://wa.me/${GSUsers.whatsappNumber}'),
-  SocialLink(name: 'Phone', url: 'tel:${GSUsers.founderPhone}'),
+  SocialLink(name: 'Phone', url: 'tel:9000000000'),
   SocialLink(name: 'Email', url: 'mailto:$siteConfigEmail'),
 ];
 

@@ -62,7 +62,7 @@ class QuotationHtml {
   /// Name of the logged-in creator (strips the "Mr." style title).
   static String _creatorName(EstimateModel e) {
     var n = (e.createdByName ?? '').trim();
-    if (n.isEmpty) return 'Jayrajsinh S. Umat';
+    if (n.isEmpty) return 'Authorised Signatory';
     for (final p in const ['Mr. ', 'Mrs. ', 'Ms. ', 'Dr. ']) {
       if (n.startsWith(p)) {
         n = n.substring(p.length).trim();
@@ -75,11 +75,11 @@ class QuotationHtml {
   static String _creatorTitle(EstimateModel e, String lang) {
     final gu = lang == 'gu';
     if (e.createdByRole == 'coowner') {
-      return gu ? 'સહ-સ્થાપક અને ઓપરેશન્સ' : 'Co-Founder & Operations';
+      return gu ? 'સહ-સ્થાપક અને ઓપરેશન્સ' : 'Authorised Signatory';
     }
     return gu
         ? 'સ્થાપક અને મુખ્ય ટેકનિકલ ઓફિસર'
-        : 'Founder & Chief Technical Officer';
+        : 'Authorised Signatory';
   }
 
   /// Cover block showing the lead's requirement / site notes (empty if none).
@@ -270,7 +270,7 @@ class QuotationHtml {
       'CREATED_BY': creatorName,
       'CREATED_BY_TITLE': creatorTitle,
       'PREPARED_BY': creatorName,
-      'FOUNDER_NAME': 'Jayrajsinh S. Umat',
+      'FOUNDER_NAME': 'Authorised Signatory',
       'CAPACITY': '${kw.toStringAsFixed(2)} kW',
       'CAPACITY_CONFIG': lang == 'gu'
           ? '${kw.toStringAsFixed(2)} kWp ટર્નકી કન્ફિગ'

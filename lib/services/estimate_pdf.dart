@@ -114,7 +114,7 @@ class EstimatePdf {
     }
 
     return SolarProposalData(
-      companyName: 'Global Solar 2.0',
+      companyName: 'Solar Client App',
       companyTagline: siteConfigTagline,
       companyAddress: siteConfigAddress,
       companyEmail: siteConfigEmail,
@@ -161,7 +161,7 @@ class EstimatePdf {
       warrantySections: _defaultWarrantySections,
       upiId: 'jayrajsinhumat4444-1@okicici',
       upiQrUpiId:
-          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Global Solar 2.0&cu=INR',
+          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Solar Client App&cu=INR',
       useHinglish: useHinglish,
       socialLinks: _defaultSocialLinks,
       logoImage: logoImage,
@@ -269,7 +269,7 @@ class EstimatePdf {
     ];
 
     return SolarProposalData(
-      companyName: 'Global Solar 2.0',
+      companyName: 'Solar Client App',
       companyTagline: siteConfigTagline,
       companyAddress: siteConfigAddress,
       companyEmail: siteConfigEmail,
@@ -382,7 +382,7 @@ class EstimatePdf {
       warrantySections: _defaultWarrantySections,
       upiId: 'jayrajsinhumat4444-1@okicici',
       upiQrUpiId:
-          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Global Solar 2.0&cu=INR',
+          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Solar Client App&cu=INR',
       useHinglish: useHinglish,
       socialLinks: _defaultSocialLinks,
       logoImage: logoImage,
@@ -486,7 +486,7 @@ class EstimatePdf {
         item: bos.name,
         qty: '${bos.qty}',
         unit: bos.unit,
-        brand: 'Global Solar',
+        brand: 'Solar Client',
         category: 'BOS',
       ));
     }
@@ -542,7 +542,7 @@ class EstimatePdf {
             bullets: [
               'Subsidy of â‚¹78,000 is applicable for residential connections up to 10 kW.',
               'The subsidy is credited directly by the government to the beneficiary\'s bank account.',
-              'Global Solar 2.0 assists in the subsidy application but is not liable for any government delay.',
+              'Solar Client App assists in the subsidy application but is not liable for any government delay.',
               'Commercial properties are not eligible for this subsidy.',
             ]),
         const WarrantySection(heading: '3. Structure Terms', bullets: [

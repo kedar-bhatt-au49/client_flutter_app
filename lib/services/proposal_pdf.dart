@@ -1,6 +1,6 @@
 ﻿/// ---------------------------------------------------------------------------
 /// Roof Top Solar Proposal + Quotation — 7-page PDF generator.
-/// Matches the "Global Solar 2.0 — Solar Quotation & Proposal (7-Page PDF Set)"
+/// Matches the "Solar Client App — Solar Quotation & Proposal (7-Page PDF Set)"
 /// design (split-view cover, 2D plan + 3D axonometric page 2, quotation, terms
 /// + BOM, warranty x2, UPI payment).
 /// ---------------------------------------------------------------------------
@@ -192,11 +192,11 @@ class _Renderer {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('Global Solar 2.0 • Sukhsagar Complex, Kaliyabid, Bhavnagar',
+          pw.Text('Solar Client App • Sukhsagar Complex, Kaliyabid, Bhavnagar',
               style: _t(6, color: _s400)),
           pw.Text('Page $page / 7',
               style: _t(8, bold: true, color: _goldLight, spacing: 0.5)),
-          pw.Text('+91 84888 07797 • contact@globalsolar2.in',
+          pw.Text('+91 84888 07797 • contact@solarclientapp.in',
               style: _t(6, color: _s400)),
         ],
       ),
@@ -234,7 +234,7 @@ class _Renderer {
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('GLOBAL SOLAR 2.0',
+                pw.Text('SOLAR CLIENT APP',
                     style: _t(10, bold: true, color: _white, spacing: 0.5)),
                 pw.Text('ENGINEERING & EPC SOLUTIONS',
                     style: _t(5.5, color: _s400, spacing: 0.8)),
@@ -325,7 +325,7 @@ class _Renderer {
                           pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('Global Solar 2.0',
+                              pw.Text('Solar Client App',
                                   style: _t(11, bold: true, color: _navy)),
                               pw.Text('SOLAR EPC SOLUTIONS',
                                   style: _t(5.5,
@@ -423,7 +423,7 @@ class _Renderer {
                           ),
                         ),
                         pw.SizedBox(height: 12),
-                        pw.Text('Global Solar 2.0',
+                        pw.Text('Solar Client App',
                             style: _t(13, bold: true, color: _white)),
                         pw.SizedBox(height: 3),
                         pw.Text(d.companyAddress, style: _t(7, color: _s400)),
@@ -538,7 +538,7 @@ class _Renderer {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('GLOBAL SOLAR 2.0',
+                        pw.Text('SOLAR CLIENT APP',
                             style: _t(9, bold: true, color: _gold)),
                         pw.Text('Serving Talaja, Bhavnagar and nearby villages',
                             style: _t(6, color: _s400)),
@@ -809,7 +809,7 @@ class _Renderer {
                       pw.Text('FROM (EPC CONTRACTOR)',
                           style: _t(6, bold: true, color: _navyDeep, spacing: 0.5)),
                       pw.SizedBox(height: 2),
-                      pw.Text('Global Solar 2.0',
+                      pw.Text('Solar Client App',
                           style: _t(9, bold: true, color: _navy)),
                       pw.SizedBox(height: 2),
                       pw.Text(d.companyAddress, style: _t(6.5, color: _s600)),
@@ -1142,7 +1142,7 @@ class _Renderer {
       child: pw.Column(children: [
         pw.Align(
           alignment: pw.Alignment.centerRight,
-          child: pw.Text('For Global Solar 2.0',
+          child: pw.Text('For Solar Client App',
               style: _t(6, bold: true, color: _s400, spacing: 0.4)),
         ),
         pw.SizedBox(height: 8),
@@ -1178,7 +1178,7 @@ class _Renderer {
       ],
       [
         'Statutory Clearances:',
-        'Global Solar 2.0 manages 100% of PGVCL documentation, CEIG approval and meter testing.'
+        'Solar Client App manages 100% of PGVCL documentation, CEIG approval and meter testing.'
       ],
       [
         'Installation Lead Time:',
@@ -1358,7 +1358,7 @@ class _Renderer {
         'Sections 1 to 6 of 12',
         0,
         6,
-        'All warranties are backed by OEM certificates + Global Solar 2.0 direct contractor bond.',
+        'All warranties are backed by OEM certificates + Solar Client App direct contractor bond.',
       );
 
   pw.Page warrantyB() => _warrantyPage(
@@ -1546,7 +1546,7 @@ class _Renderer {
                       barcode: pw.Barcode.qrCode(),
                       data: d.upiQrUpiId.isNotEmpty
                           ? d.upiQrUpiId
-                          : 'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+                          : 'upi://pay?pa=global.solar.2.0@oksbi&pn=Solar Client App&cu=INR',
                       width: 130,
                       height: 130,
                       color: _navy,
@@ -1623,8 +1623,8 @@ class _Renderer {
                   pw.Expanded(
                       child: _contactCol('ONLINE & PORTAL SUPPORT', [
                     'WhatsApp: +91 84888 07797',
-                    'Email: contact@globalsolar2.in',
-                    'Website: www.globalsolar2.in',
+                    'Email: contact@solarclientapp.in',
+                    'Website: www.solarclientapp.in',
                   ])),
                   pw.SizedBox(width: 10),
                   pw.Expanded(

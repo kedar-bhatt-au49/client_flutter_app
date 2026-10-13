@@ -1164,7 +1164,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
     final pkg = _pkg;
     final message = Uri.encodeComponent(
       'Hello,\n\n'
-      'Here is your solar quote from Global Solar 2.0:\n\n'
+      'Here is your solar quote from Solar Client App:\n\n'
       '${pkg.kw} kW System (${pkg.panels} panels)\n'
       'Total (pre-subsidy): ₹${_effectiveUpfront.formatWithComma()}\n'
       'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
@@ -1252,7 +1252,7 @@ class _QuoteBuilderScreenState extends State<QuoteBuilderScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/pdf')],
-          subject: 'Global Solar 2.0 — Roof Top Solar Proposal',
+          subject: 'Solar Client App — Roof Top Solar Proposal',
           text: '${_pkg.kw} kW System (${_pkg.panels} panels)\n'
               'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
               'Total: ₹${_grandTotal.formatWithComma()}\n'

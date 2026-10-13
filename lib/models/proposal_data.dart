@@ -416,7 +416,7 @@ class SolarProposalData {
     final expiry = '${(now.day + 15).toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
 
     return SolarProposalData(
-      companyName: 'Global Solar 2.0',
+      companyName: 'Solar Client App',
       companyTagline: siteConfigTagline,
       companyAddress: siteConfigAddress,
       companyEmail: siteConfigEmail,
@@ -465,7 +465,7 @@ class SolarProposalData {
       subsidyAmount: subsidy,
       warrantySections: _defaultWarranty,
       upiId: 'global.solar.2.0@oksbi',
-      upiQrUpiId: 'upi://pay?pa=global.solar.2.0@oksbi&pn=Global Solar 2.0&cu=INR',
+      upiQrUpiId: 'upi://pay?pa=global.solar.2.0@oksbi&pn=Solar Client App&cu=INR',
       useHinglish: useHinglish ?? false,
       socialLinks: _defaultSocial,
       logoImage: logoImage,
@@ -696,7 +696,7 @@ List<BomItem> _defaultBom(GSPackage pkg, {
     item: 'Chemical Earthing',
     qty: '2',
     unit: 'Nos.',
-    brand: 'Global Solar',
+    brand: 'Solar Client',
     category: 'Earthing / LA',
   ),
   BomItem(
@@ -718,7 +718,7 @@ List<WarrantySection> get _defaultWarranty => [
   WarrantySection(heading: '2. Government Subsidy (PM Surya Ghar)', bullets: [
     'Subsidy of ₹78,000 is applicable for residential connections up to 10 kW.',
     'The subsidy is credited directly by the government to the beneficiary\'s bank account.',
-    'Global Solar 2.0 will assist in subsidy application but is not liable for any delay by the government agency.',
+    'Solar Client App will assist in subsidy application but is not liable for any delay by the government agency.',
     'Commercial properties are not eligible for this subsidy.',
   ]),
   WarrantySection(heading: '3. Structure Terms', bullets: [

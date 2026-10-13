@@ -60,7 +60,7 @@ class QuotationData {
     this.companyName = 'GLOBAL ENTERPRISE',
     this.companyTagline = 'Save Energy • Save Money • Save Earth',
     this.officeAddress =
-        'OFFICE ADDRESS: GLOBAL SOLAR, F6, NATRAJ COMPLEX, OPP TOP3 CINEMA, BHAVNAGAR',
+        'OFFICE ADDRESS: SOLAR CLIENT, F6, NATRAJ COMPLEX, OPP TOP3 CINEMA, BHAVNAGAR',
     this.mobileNumbers = 'Mo : (+91) 9924900599 / 9924900988',
     this.bankName = 'Bank of Baroda',
     this.accountNumber = '41400100011834',

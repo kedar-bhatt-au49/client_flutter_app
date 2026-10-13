@@ -882,7 +882,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text('Report generated from the Global Solar 2.0 client app',
+            const Text('Report generated from the Solar Client App client app',
                 style: TextStyle(fontSize: 10, color: _slate)),
           ],
         ),
@@ -923,14 +923,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final month =
         DateFormat('MMMM yyyy').format(DateTime.parse('$_selectedMonth-01'));
     final text = Uri.encodeComponent(
-      '📊 Global Solar 2.0 — Report ($month)\n'
+      '📊 Solar Client App — Report ($month)\n'
       '─────────────────\n'
       'New Leads: ${stats.newLeads}\n'
       'Conversions: ${stats.conversions}\n'
       'Bookings: ${stats.bookings}\n'
       'Installed: ${stats.installed}\n'
       '─────────────────\n'
-      'Report generated from the Global Solar 2.0 client app.',
+      'Report generated from the Solar Client App client app.',
     );
     launchUrl(
         Uri.parse('https://wa.me/${GSUsers.whatsappNumber}?text=$text'));

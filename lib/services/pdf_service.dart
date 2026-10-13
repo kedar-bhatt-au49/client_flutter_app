@@ -20,9 +20,9 @@ abstract class _PdfColors {
   static final PdfColor white = PdfColors.white;
 }
 
-/// Generates quotation PDFs in the Global Solar 2.0 brand style.
+/// Generates quotation PDFs in the Solar Client App brand style.
 class PdfService {
-  /// Loads the Global Solar 2.0 logo from app assets.
+  /// Loads the Solar Client App logo from app assets.
   /// Returns null if the asset is not available.
   static Future<Uint8List?> _loadLogo() async {
     try {
@@ -126,7 +126,7 @@ class PdfService {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Global Solar 2.0',
+                        pw.Text('Solar Client App',
                             style: pw.TextStyle(
                               color: _PdfColors.white,
                               fontSize: 18,
@@ -441,7 +441,7 @@ class PdfService {
                           crossAxisAlignment:
                               pw.CrossAxisAlignment.start,
                           children: [
-                            pw.Text('Global Solar 2.0',
+                            pw.Text('Solar Client App',
                                 style: pw.TextStyle(
                                     fontSize: 13,
                                     fontWeight: pw.FontWeight.bold,

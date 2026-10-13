@@ -94,8 +94,8 @@ class _DemoLockScreenState extends State<DemoLockScreen> {
                   const SizedBox(height: 12),
                   Text(
                     disabled
-                        ? 'This demo has been deactivated. Please contact Global Solar 2.0 to continue using the app.'
-                        : 'Your 7-day demo has ended. Contact Global Solar 2.0 to activate the full version and keep your data.',
+                        ? 'This demo has been deactivated. Please contact the app provider to continue.'
+                        : 'Your 7-day demo has ended. Contact the app provider to unlock the full version and keep your data.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontFamily: 'Inter',
@@ -148,7 +148,7 @@ class _DemoLockScreenState extends State<DemoLockScreen> {
                         style: TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(height: 8),
-                  Text('Global Solar 2.0 • Client Management',
+                  Text('Solar Client App • Client Management',
                       style: TextStyle(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.55))),

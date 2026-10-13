@@ -51,7 +51,7 @@ class _QuotationPreviewScreenState extends State<QuotationPreviewScreen> {
     final no = widget.record.data.estimateNumber.trim().isNotEmpty
         ? widget.record.data.estimateNumber.trim()
         : widget.record.id;
-    return 'GlobalSolar2.0_Quotation_$no.pdf';
+    return 'SolarClientApp_Quotation_$no.pdf';
   }
 
   @override

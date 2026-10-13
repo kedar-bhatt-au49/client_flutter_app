@@ -18,11 +18,15 @@ param(
 )
 
 $appDir = Join-Path $PSScriptRoot '..\android\app'
-$src = Join-Path $appDir "google-services.$Env.json"
+$candidates = @(
+    (Join-Path $appDir "google-services.$Env.json"),
+    (Join-Path $appDir "google-services-$Env.json")
+)
+$src = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 $dst = Join-Path $appDir 'google-services.json'
 
-if (-not (Test-Path -LiteralPath $src)) {
-    Write-Error "Missing $src - put the $Env google-services.json there first."
+if (-not $src) {
+    Write-Error "Missing google-services.$Env.json (or google-services-$Env.json) in android\app."
     exit 1
 }
 

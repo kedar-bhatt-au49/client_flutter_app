@@ -176,7 +176,7 @@ class DemoSeed {
         capacityKw: 3.07,
         systemId: 'wtc5',
         description: '3 kW Waaree TOPCon rooftop system.',
-        createdByName: 'Global Solar 2.0',
+        createdByName: 'Solar Client App',
         createdByRole: 'owner',
       ),
       EstimateModel(
@@ -189,7 +189,7 @@ class DemoSeed {
         capacityKw: 6.15,
         systemId: 'atc10',
         description: '6 kW Adani TOPCon commercial system.',
-        createdByName: 'Global Solar 2.0',
+        createdByName: 'Solar Client App',
         createdByRole: 'owner',
       ),
     ];

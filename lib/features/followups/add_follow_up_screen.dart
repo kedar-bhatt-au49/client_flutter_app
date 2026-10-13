@@ -101,7 +101,7 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Allow on-time reminders'),
           content: const Text(
-              'Android needs the “Alarms & reminders” access for follow-up reminders to fire exactly on time. Tap Open settings and allow it for Global Solar 2.0.'),
+              'Android needs the “Alarms & reminders” access for follow-up reminders to fire exactly on time. Tap Open settings and allow it for Solar Client App.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),

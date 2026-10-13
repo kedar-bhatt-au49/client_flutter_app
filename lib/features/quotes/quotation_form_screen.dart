@@ -532,7 +532,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
             XFile(file.path,
                 mimeType: 'application/pdf', name: fileName),
           ],
-           subject: 'Global Solar 2.0 — 7-Page Roof Top Solar Proposal',
+           subject: 'Solar Client App — 7-Page Roof Top Solar Proposal',
           text: _shareText,
         ),
       );
@@ -599,7 +599,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
 
   String get _shareText =>
       'Hello ${_nameController.text.trim()},\n\n'
-      'Here is your solar quotation from Global Solar 2.0:\n\n'
+      'Here is your solar quotation from Solar Client App:\n\n'
       '${_pkg.kw} kW System (${_pkg.panels} panels)\n'
       'Upfront: ₹${_effectiveUpfront.formatWithComma()}\n'
       'After subsidy: ₹${_afterSubsidy.formatWithComma()}\n'
@@ -611,7 +611,7 @@ class _QuotationFormScreenState extends State<QuotationFormScreen> {
       'Price valid for 1 week.\n\n'
       '📎 A detailed 7-page Rooftop Solar Proposal + Quotation PDF is attached.\n\n'
       '- Jayrajsinh S. Umat & Gopalsinh J. Parmar\n'
-      'Global Solar 2.0';
+      'Solar Client App';
 
   void _shareTextToWhatsApp() {
     final message = Uri.encodeComponent(_shareText);

@@ -52,6 +52,16 @@ class EstimatePdf {
     final e = record.data;
     final b = e.priceBreakdown;
 
+    // Commercial / C&I → manual system, no package, no subsidy.
+    if (e.clientType == 'business') {
+      return _fromCommercial(
+        e: e,
+        record: record,
+        useHinglish: useHinglish,
+        logoImage: logoImage,
+      );
+    }
+
     // â”€â”€ Standard quotation system selected? â”€â”€
     // Build the exact table-based quotation (GST-inclusive totals) instead
     // of the raw price-calculator line items.
@@ -390,6 +400,170 @@ class EstimatePdf {
   }
 
   // â”€â”€ Line-item conversion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  /// Commercial / C&I proposal: specs come from the manual form fields; there
+  /// is no package, no array-design image and no subsidy.
+  static SolarProposalData _fromCommercial({
+    required EstimateModel e,
+    required EstimateRecord record,
+    bool useHinglish = false,
+    Uint8List? logoImage,
+  }) {
+    final baseTotal = e.totalPayableOverride ?? 0;
+    final structure = e.structureCostOverride ?? 0;
+    final stamp = e.stampChargeOverride ?? 0;
+    final includeGst = e.gstIncluded;
+    final gstMul = 1 + GSGst.totalPercent / 100; // 1.089
+
+    final pvTaxable = ((baseTotal - structure - stamp) / gstMul).round();
+    final cgstPct = includeGst ? GSGst.cgstPercent : 0.0;
+    final sgstPct = includeGst ? GSGst.sgstPercent : 0.0;
+    final cgst = ((pvTaxable * cgstPct) / 100).round();
+    final sgst = ((pvTaxable * sgstPct) / 100).round();
+
+    final custom = <ProposalLineItem>[];
+    var customNet = 0;
+    var customCgst = 0;
+    var customSgst = 0;
+    for (final it in e.lineItems) {
+      final qty = it.qty == 0 ? 1 : it.qty;
+      final base = it.rate * qty;
+      final c = includeGst ? (base * it.cgstPercent / 100).round() : 0;
+      final s = includeGst ? (base * it.sgstPercent / 100).round() : 0;
+      customNet += base;
+      customCgst += c;
+      customSgst += s;
+      custom.add(ProposalLineItem(
+        description: it.description,
+        specs: const [],
+        qty: '$qty',
+        unit: 'set',
+        rate: it.rate,
+        cgstPercent: includeGst ? it.cgstPercent : 0,
+        sgstPercent: includeGst ? it.sgstPercent : 0,
+      ));
+    }
+
+    final baseExclGst = pvTaxable + structure + stamp + customNet;
+    final cgstTotal = cgst + customCgst;
+    final sgstTotal = sgst + customSgst;
+    final gross = baseExclGst + cgstTotal + sgstTotal;
+
+    final kw = e.capacityKw ?? 0;
+    final panels = e.panelCount ?? 0;
+    final brand = (e.panelBrand ?? '').trim();
+    final watt = (e.panelWatt ?? '').trim();
+
+    final lineItems = <ProposalLineItem>[
+      ProposalLineItem(
+        description: '${kw.toStringAsFixed(2)} kW Solar PV System (Grid-Tied)',
+        specs: [
+          if (panels > 0)
+            '$panels solar panels${watt.isNotEmpty ? ' ($watt Wp)' : ''}',
+          if (brand.isNotEmpty) 'Panel brand: $brand',
+        ],
+        qty: '1',
+        unit: 'set',
+        rate: pvTaxable,
+        cgstPercent: cgstPct,
+        sgstPercent: sgstPct,
+      ),
+      ProposalLineItem(
+        description: 'Structure & Mounting (Elevated)',
+        specs: const ['Hot-dip galvanized MS structure'],
+        qty: '1',
+        unit: 'set',
+        rate: structure,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ),
+      ProposalLineItem(
+        description: 'Stamp Charge',
+        specs: const ['Govt. stamp paper & franking'],
+        qty: '1',
+        unit: 'set',
+        rate: stamp,
+        cgstPercent: 0,
+        sgstPercent: 0,
+      ),
+      ...custom,
+    ];
+
+    final customer = (e.companyName ?? '').trim().isNotEmpty
+        ? e.companyName!.trim()
+        : e.leadName;
+
+    return SolarProposalData(
+      companyName: 'Global Solar 2.0',
+      companyTagline: siteConfigTagline,
+      companyAddress: siteConfigAddress,
+      companyEmail: siteConfigEmail,
+      companyPhone: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      companyGstin: '',
+      brandColorHex: '#071440',
+      accentColorHex: '#F9B417',
+      customerName: customer,
+      customerLocation: e.address ?? 'Bhavnagar, Gujarat',
+      customerMobile: '+91 ${e.mobileNumber}',
+      state: 'Gujarat',
+      leadName: e.leadName,
+      quotationId: e.estimateNumber,
+      quotationDate: _dateFmt.format(record.createdAt),
+      expiryDate: _dateFmt.format(e.expiryDate),
+      preparedBy: 'Jayrajsinh S. Umat & Gopalsinh J. Parmar',
+      contactNumbers: '${GSUsers.founderPhone} / ${GSUsers.coFounderPhone}',
+      plantCapacityKw: kw.toStringAsFixed(2),
+      lineItems: lineItems,
+      subTotal: baseExclGst,
+      taxGst: cgstTotal + sgstTotal,
+      cgstTotal: cgstTotal,
+      sgstTotal: sgstTotal,
+      grandTotal: gross,
+      amountInWords: 'Indian Rupee ${_numberToWords(gross)} Only',
+      notes: _estimateNotes(e, useHinglish),
+      bankDetails: const BankDetails(
+        bankName: 'Bank of Baroda',
+        accountName: 'JAYRAJ S UMAT',
+        accountNo: '41400100011834',
+        ifsc: 'BARBOKALIAB',
+        branch: 'Bhavnagar',
+      ),
+      bomItems: [
+        BomItem(
+          item: 'Solar Panels',
+          qty: '$panels',
+          unit: 'Nos.',
+          brand: brand.isNotEmpty ? brand : 'Tier-1 Modules',
+          category: 'Solar Panels',
+        ),
+        BomItem(
+          item: 'Inverter',
+          qty: '1',
+          unit: 'Nos.',
+          brand: 'POLYCAB',
+          category: 'Inverters',
+        ),
+      ],
+      panelCount: panels,
+      panelWattpeak: watt,
+      panelBrand: brand,
+      dcCableSpecs: e.dcWiringSqMm ?? '4 sq.mm',
+      acWireSpecs: e.acWiringSqMm ?? '2.5 sq.mm',
+      earthingWireSpecs: '2.5 sq.mm',
+      inverterKwValue:
+          e.inverterKwManual != null ? '${e.inverterKwManual} kW' : '—',
+      effectiveUpfront: gross,
+      subsidyAmount: 0,
+      warrantySections: _defaultWarrantySections,
+      upiId: 'jayrajsinhumat4444-1@okicici',
+      upiQrUpiId:
+          'upi://pay?pa=jayrajsinhumat4444-1@okicici&pn=Global Solar 2.0&cu=INR',
+      useHinglish: useHinglish,
+      socialLinks: _defaultSocialLinks,
+      logoImage: logoImage,
+      isCommercial: true,
+    );
+  }
 
   static ProposalLineItem _toProposalLineItem(EstimateLineItem item) {
     return ProposalLineItem(

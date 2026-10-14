@@ -83,6 +83,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _priceCtrl = TextEditingController();
   final _structureCostCtrl = TextEditingController();
   final _stampCtrl = TextEditingController();
+  final _panelCompanyCtrl = TextEditingController();
+  final _panelCountCtrl = TextEditingController();
+  final _panelWattCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -104,6 +107,9 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _priceCtrl.dispose();
     _structureCostCtrl.dispose();
     _stampCtrl.dispose();
+    _panelCompanyCtrl.dispose();
+    _panelCountCtrl.dispose();
+    _panelWattCtrl.dispose();
     super.dispose();
   }
 
@@ -160,7 +166,13 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   bool get _leadDone =>
       _nameCtrl.text.trim().isNotEmpty && _mobileCtrl.text.trim().length >= 10;
 
-  bool get _systemDone => _estimate.systemId != null;
+  bool get _isCommercial => _estimate.clientType == 'business';
+
+  bool get _systemDone => _isCommercial
+      ? (_capacityCtrl.text.trim().isNotEmpty &&
+          _panelCountCtrl.text.trim().isNotEmpty &&
+          _priceCtrl.text.trim().isNotEmpty)
+      : _estimate.systemId != null;
 
   double get _progress => _systemDone ? 1.0 : (_leadDone ? 0.65 : 0.0);
 
@@ -297,7 +309,20 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       _snack('Company name is required');
       return false;
     }
-    if (_estimate.systemId == null) {
+    if (_isCommercial) {
+      if ((_estimate.capacityKw ?? 0) <= 0) {
+        _snack('Enter the system capacity (kW)');
+        return false;
+      }
+      if ((_estimate.panelCount ?? 0) <= 0) {
+        _snack('Enter the number of panels');
+        return false;
+      }
+      if ((_estimate.totalPayableOverride ?? 0) <= 0) {
+        _snack('Enter the total payable amount');
+        return false;
+      }
+    } else if (_estimate.systemId == null) {
       _snack('Please select a solar system');
       return false;
     }
@@ -324,6 +349,13 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           : null
       ..estimateNumber = _estimateNumberCtrl.text.trim()
       ..capacityKw = double.tryParse(_capacityCtrl.text)
+      ..panelBrand = _panelCompanyCtrl.text.trim().isEmpty
+          ? null
+          : _panelCompanyCtrl.text.trim()
+      ..panelCount = int.tryParse(_panelCountCtrl.text.trim())
+      ..panelWatt = _panelWattCtrl.text.trim().isEmpty
+          ? null
+          : _panelWattCtrl.text.trim()
       ..createdByName = context.read<AuthProvider>().currentUser?.name
       ..createdByRole = context.read<AuthProvider>().currentUser?.role;
 
@@ -652,7 +684,10 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
               label: 'Business / C&I',
               icon: Icons.business,
               selected: !isIndividual,
-              onTap: () => setState(() => _estimate.clientType = 'business'),
+              onTap: () => setState(() {
+            _estimate.clientType = 'business';
+            _estimate.systemId = null;
+          }),
             ),
           ],
         ),
@@ -734,6 +769,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   // ── Card 2: Solar System Configuration ──
 
   Widget _systemCard() {
+    if (_isCommercial) return _commercialCard();
     final s = _selectedSystem;
     final panels = s?.panels ?? 0;
     final cols = panels == 0 ? 0 : ((panels + 1) ~/ 2);
@@ -924,6 +960,190 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
         const SizedBox(height: 14),
         _totalPayableBanner(s),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Structure Cost'),
+                _field(
+                  controller: _structureCostCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.structureCostOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Stamp & Franking'),
+                _field(
+                  controller: _stampCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.stampChargeOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        _lbl('Tax Calculation Mode'),
+        _segmented(children: [
+          _segmentButton(
+            label: 'With GST (8.9% Composite)',
+            icon: Icons.check,
+            selected: _estimate.gstIncluded,
+            onTap: () => setState(() => _estimate.gstIncluded = true),
+          ),
+          _segmentButton(
+            label: 'Without GST (Ex-tax)',
+            selected: !_estimate.gstIncluded,
+            onTap: () => setState(() => _estimate.gstIncluded = false),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        _lbl('Quotation Language'),
+        _segmented(children: [
+          _segmentButton(
+            label: 'English',
+            selected: _estimate.language == 'en',
+            onTap: () => setState(() => _estimate.language = 'en'),
+          ),
+          _segmentButton(
+            label: 'ગુજરાતી',
+            selected: _estimate.language == 'gu',
+            onTap: () => setState(() => _estimate.language = 'gu'),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  /// Commercial / C&I system details — entered manually (no package, no array
+  /// image, no subsidy).
+  Widget _commercialCard() {
+    return _card(
+      children: [
+        _sectionHeader(
+          icon: Icons.factory_outlined,
+          title: 'Commercial System Details',
+          subtitle: 'Enter the system specifications manually',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _gold.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: _gold.withValues(alpha: 0.3)),
+            ),
+            child: Text('C&I',
+                style: _t(10, FontWeight.w700, const Color(0xFF8A5A00))),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _lbl('Solar Panel Company', required: true),
+        _field(
+          controller: _panelCompanyCtrl,
+          hint: 'e.g. Adani / Waaree / Vikram',
+          onChanged: (v) =>
+              _estimate.panelBrand = v.trim().isEmpty ? null : v.trim(),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Capacity', required: true),
+                _field(
+                  controller: _capacityCtrl,
+                  suffixText: 'kW',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) =>
+                      _estimate.capacityKw = double.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('No. of Panels', required: true),
+                _field(
+                  controller: _panelCountCtrl,
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      _estimate.panelCount = int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Panel Rating (optional)'),
+                _field(
+                  controller: _panelWattCtrl,
+                  suffixText: 'Wp',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      _estimate.panelWatt = v.trim().isEmpty ? null : v.trim(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Inverter Rating'),
+                _field(
+                  controller: _inverterKwCtrl,
+                  suffixText: 'kW',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) =>
+                      _estimate.inverterKwManual = double.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        _lbl('AC Wiring Size'),
+        _field(
+          controller: _acWiringCtrl,
+          suffixText: 'sq.mm',
+          hint: '4.0 UV Tinned Copper',
+          onChanged: (v) => _estimate.acWiringSqMm =
+              v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+        ),
+        const SizedBox(height: 12),
+        _lbl('DC Wiring Size'),
+        _field(
+          controller: _dcWiringCtrl,
+          suffixText: 'sq.mm',
+          hint: '4.0 UV Tinned Copper',
+          onChanged: (v) => _estimate.dcWiringSqMm =
+              v.trim().isNotEmpty ? '${v.trim()} sq.mm' : null,
+        ),
+        const SizedBox(height: 14),
+        _totalPayableBanner(null),
         const SizedBox(height: 14),
         Row(children: [
           Expanded(

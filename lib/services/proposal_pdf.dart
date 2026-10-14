@@ -61,7 +61,7 @@ class ProposalPdf {
     final r = _Renderer(data, logo, hero, design);
     final doc = pw.Document();
     doc.addPage(r.cover());
-    doc.addPage(r.designShowcase());
+    if (!data.isCommercial) doc.addPage(r.designShowcase());
     doc.addPage(r.quotation());
     doc.addPage(r.termsBom());
     doc.addPage(r.warrantyA());
@@ -1026,14 +1026,16 @@ class _Renderer {
         _navyDeep,
         _goldLight,
       ),
-      _fsRow(
-        '2. Central Government Subsidy (PM Surya Ghar 2.0 DBT)',
-        'Direct Bank Credit',
-        '- ${ProposalPdf.moneyINR(d.subsidyAmount)}',
-        _green,
-        _greenDark,
-        _white,
-      ),
+          _fsRow(
+            '2. Central Government Subsidy (PM Surya Ghar 2.0 DBT)',
+            d.isCommercial ? 'Not applicable' : 'Direct Bank Credit',
+            d.subsidyAmount > 0
+                ? '- ${ProposalPdf.moneyINR(d.subsidyAmount)}'
+                : 'Not Applicable',
+            _green,
+            _greenDark,
+            _white,
+          ),
       _fsRow(
         '3. EFFECTIVE NET COST TO CUSTOMER (After DBT Subsidy)',
         'Realized cost after subsidy disbursement',

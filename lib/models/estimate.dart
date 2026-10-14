@@ -735,6 +735,10 @@ class EstimateModel {
   String currency; // currency code, default 'INR'
   double? capacityKw; // auto-filled from Price Calculator
   String? systemId; // selected system (gsQuoteSystems), drives pricing + panel image
+  // Commercial / C&I manual system details (used when clientType == 'business'):
+  String? panelBrand; // panel company, free text
+  int? panelCount; // number of panels
+  String? panelWatt; // panel Wp rating, e.g. "550"
   String? acWiringSqMm; // manual AC wiring size (e.g. "4 sq.mm")
   String? dcWiringSqMm; // manual DC wiring size (e.g. "4 sq.mm")
   double? inverterKwManual; // manual inverter kW capacity
@@ -780,6 +784,9 @@ class EstimateModel {
     this.currency = 'INR',
     this.capacityKw,
     this.systemId,
+    this.panelBrand,
+    this.panelCount,
+    this.panelWatt,
     this.acWiringSqMm,
     this.dcWiringSqMm,
     this.inverterKwManual,
@@ -877,6 +884,9 @@ class EstimateModel {
         'currency': currency,
         'capacity_kw': capacityKw,
         'system_id': systemId,
+        'panel_brand': panelBrand,
+        'panel_count': panelCount,
+        'panel_watt': panelWatt,
         'ac_wiring_sq_mm': acWiringSqMm,
         'dc_wiring_sq_mm': dcWiringSqMm,
         'inverter_kw_manual': inverterKwManual,
@@ -924,6 +934,9 @@ class EstimateModel {
       currency: j['currency'] as String? ?? 'INR',
       capacityKw: (j['capacity_kw'] as num?)?.toDouble(),
       systemId: j['system_id'] as String?,
+      panelBrand: j['panel_brand'] as String?,
+      panelCount: (j['panel_count'] as num?)?.toInt(),
+      panelWatt: j['panel_watt'] as String?,
       acWiringSqMm: j['ac_wiring_sq_mm'] as String?,
       dcWiringSqMm: j['dc_wiring_sq_mm'] as String?,
       inverterKwManual: (j['inverter_kw_manual'] as num?)?.toDouble(),

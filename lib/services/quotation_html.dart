@@ -36,17 +36,22 @@ class QuotationHtml {
     final tokens = _tokens(record, master, lang);
 
     // ── Panel-count design image (real asset, base64) ──
-    final system = record.data.systemId != null
-        ? gsQuoteSystemById(record.data.systemId!)
-        : null;
-    final asset =
-        system?.panelImageAsset ?? 'assets/images/solar_plant_8_panels.png';
-    try {
-      final bytes = (await rootBundle.load(asset)).buffer.asUint8List();
-      final mime = asset.endsWith('.png') ? 'image/png' : 'image/jpeg';
-      tokens['PANEL_IMAGE'] = 'data:$mime;base64,${base64Encode(bytes)}';
-    } catch (_) {
+    // Commercial quotations have no array-design image.
+    if (record.data.clientType == 'business') {
       tokens['PANEL_IMAGE'] = '';
+    } else {
+      final system = record.data.systemId != null
+          ? gsQuoteSystemById(record.data.systemId!)
+          : null;
+      final asset =
+          system?.panelImageAsset ?? 'assets/images/solar_plant_8_panels.png';
+      try {
+        final bytes = (await rootBundle.load(asset)).buffer.asUint8List();
+        final mime = asset.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        tokens['PANEL_IMAGE'] = 'data:$mime;base64,${base64Encode(bytes)}';
+      } catch (_) {
+        tokens['PANEL_IMAGE'] = '';
+      }
     }
 
     // ── Bill of Materials (from the selected lines / master list) ──
@@ -132,15 +137,21 @@ class QuotationHtml {
   static Map<String, String> _tokens(
       EstimateRecord record, MasterData master, String lang) {
     final e = record.data;
-    final system =
-        e.systemId != null ? gsQuoteSystemById(e.systemId!) : null;
+    final isCommercial = e.clientType == 'business';
+    final system = (!isCommercial && e.systemId != null)
+        ? gsQuoteSystemById(e.systemId!)
+        : null;
 
     final kw = e.capacityKw ?? system?.kw ?? 0;
-    final panels = system?.panels ?? 0;
-    final wattLabel = system?.wattLabel ?? '540/545/550';
-    final brandEn = system?.brandEn ?? 'Adani Bi-Facial';
+    final panels = isCommercial ? (e.panelCount ?? 0) : (system?.panels ?? 0);
+    final wattLabel = isCommercial
+        ? (e.panelWatt ?? '')
+        : (system?.wattLabel ?? '540/545/550');
+    final brandEn = isCommercial
+        ? (e.panelBrand ?? '')
+        : (system?.brandEn ?? 'Adani Bi-Facial');
     final brandGu = system?.brandGu ?? 'અદાણી બાય એફિશિયલ';
-    final subsidy = system?.subsidy ?? 0;
+    final subsidy = isCommercial ? 0 : (system?.subsidy ?? 0);
     final invKw = e.inverterKwManual ??
         (kw > 0 ? (kw + 0.64) : 0);
 
@@ -167,12 +178,15 @@ class QuotationHtml {
     var idx = 0;
     String nextNo() => (++idx).toString().padLeft(2, '0');
 
+    final panelPart = panels > 0
+        ? '$panels${wattLabel.isNotEmpty ? ' × $wattLabel Wp' : ''}'
+            '${brandEn.isNotEmpty ? ' $brandEn' : ''} Tier-1 Modules '
+        : '';
     rows.add(_row(
       no: nextNo(),
       title: '${kw.toStringAsFixed(2)} kW Solar PV System (Grid-Tied)',
-      desc: '$panels × $wattLabel Wp $brandEn Tier-1 Modules '
-          '(Glass-to-Glass), 1 × ${invKw.toStringAsFixed(1)} kW Smart MPPT '
-          'Inverter, $panels Pairs MC4 Connectors, AC/DC DB boxes, '
+      desc: '$panelPart(Glass-to-Glass), 1 × ${invKw.toStringAsFixed(1)} kW Smart MPPT '
+          'Inverter, ${panels > 0 ? '$panels Pairs MC4 Connectors, ' : ''}AC/DC DB boxes, '
           '${e.acWiringSqMm ?? '2.5 sq.mm'} AC & '
           '${e.dcWiringSqMm ?? '4.0 sq.mm'} DC UV cables.',
       qty: '1 Set',
@@ -246,7 +260,11 @@ class QuotationHtml {
     final loc = (e.address ?? '').trim().isNotEmpty
         ? e.address!.trim()
         : 'Bhavnagar, Gujarat';
-    final name = e.leadName.trim();
+    final name = isCommercial
+        ? ((e.companyName ?? '').trim().isNotEmpty
+            ? e.companyName!.trim()
+            : e.leadName.trim())
+        : e.leadName.trim();
     final cols = panels == 0 ? 2 : ((panels + 1) ~/ 2);
     final creatorName = _creatorName(e);
     final creatorTitle = _creatorTitle(e, lang);
@@ -287,11 +305,28 @@ class QuotationHtml {
       'SITE_NOTES_BLOCK': _siteNotesBlock(e.description),
       'TABLE_ROWS': rows.join('\n'),
       'GROSS': '₹${_inr2(gross)}',
-      'SUBSIDY_AMT': '− ₹${_inr2(subsidy)}',
+      'SUBSIDY_AMT': isCommercial ? 'Not Applicable' : '− ₹${_inr2(subsidy)}',
       'NET_COST': '₹${_inr2(afterSubsidy)}',
       'AMOUNT_WORDS': lang == 'gu'
           ? 'ભારતીય રૂપિયા ${_wordsGu(afterSubsidy)} પૂરા'
           : 'Indian Rupee ${_words(afterSubsidy)} Only',
+      // Commercial mode: hide residential-only blocks, reveal the spec card.
+      'EXTRA_CSS': isCommercial
+          ? '.gs-subsidy-only{display:none!important;}'
+              '.gs-design-only{display:none!important;}'
+              '.gs-commercial-only{display:block!important;}'
+          : '.gs-commercial-only{display:none!important;}',
+      'CM_PANEL_BRAND': _esc(e.panelBrand ?? '—'),
+      'CM_PANEL_COUNT': '${e.panelCount ?? 0}',
+      'CM_PANEL_WATT':
+          (e.panelWatt ?? '').trim().isNotEmpty ? '${e.panelWatt} Wp' : '—',
+      'CM_CAPACITY': '${kw.toStringAsFixed(2)} kW',
+      'CM_INVERTER': invKw > 0 ? '${invKw.toStringAsFixed(1)} kW' : '—',
+      'CM_AC_WIRING': _esc(e.acWiringSqMm ?? '—'),
+      'CM_DC_WIRING': _esc(e.dcWiringSqMm ?? '—'),
+      'CM_STRUCTURE': '₹${_inr(structure)}',
+      'CM_STAMP': '₹${_inr(stamp)}',
+      'CM_TOTAL': '₹${_inr(baseTotal)}',
     };
   }
 

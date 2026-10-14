@@ -250,6 +250,8 @@ class SolarProposalData {
   final Uint8List? logoImage;
   final Uint8List? heroImage;
   final Uint8List? designImageTop;
+  /// True for Commercial / C&I quotations (no array design, no subsidy).
+  final bool isCommercial;
   final Uint8List? designImageLeft;
   final Uint8List? designImageRight;
   final Uint8List? upiQrImage;
@@ -302,6 +304,7 @@ class SolarProposalData {
     this.logoImage,
     this.heroImage,
     this.designImageTop,
+    this.isCommercial = false,
     this.designImageLeft,
     this.designImageRight,
     this.upiQrImage,
@@ -549,6 +552,7 @@ class SolarProposalData {
         inverterKwValue: j['inverter_kw_value'] as String? ?? '3.6 kW',
         effectiveUpfront: j['effective_upfront'] as int? ?? 0,
         subsidyAmount: j['subsidy_amount'] as int? ?? 0,
+      isCommercial: j['is_commercial'] as bool? ?? false,
         warrantySections: (j['warranty_sections'] as List)
             .map((e) => WarrantySection.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -599,6 +603,7 @@ class SolarProposalData {
         'inverter_kw_value': inverterKwValue,
         'effective_upfront': effectiveUpfront,
         'subsidy_amount': subsidyAmount,
+        'is_commercial': isCommercial,
         'warranty_sections': warrantySections.map((e) => e.toJson()).toList(),
         'upi_id': upiId,
         'upi_qr_upi_id': upiQrUpiId,

@@ -3,57 +3,52 @@
 <head>
 <meta charset="utf-8">
 <title>Unique Solar Energy — Solar Rooftop Quotation</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#141414; --muted:#5b6472; --line:#c9d2dc; --soft:#f4f6f9; --blue:#123a7a; --green:#1E8E3E; }
+  :root{ --ink:#111; --muted:#555; --line:#bfc7d1; --soft:#f3f5f8; --blue:#123a7a; --green:#1E8E3E; }
   *{box-sizing:border-box}
   body{margin:0;background:#e6e8ec;color:var(--ink);
-       font-family:"Lato","Segoe UI",Helvetica,Arial,sans-serif;font-size:11.6px;line-height:1.55}
+       font-family:"Times New Roman",Times,Georgia,serif;font-size:13px;line-height:1.62}
   @page{size:A4;margin:0}
-  .page{position:relative;width:210mm;min-height:297mm;margin:10mm auto;background:#fff;
-        box-shadow:0 2px 14px rgba(0,0,0,.16);overflow:hidden;page-break-after:always;padding-bottom:16mm}
-  @media print{body{background:#fff}.page{margin:0;box-shadow:none}}
 
-  /* letterhead: centred, with logo pinned top-left */
-  .head{position:relative;text-align:center;padding:11mm 14mm 4mm}
-  .head .logo{position:absolute;left:13mm;top:11mm;width:22mm;height:22mm}
-  .head h1{margin:0;font-family:"Merriweather",Georgia,"Times New Roman",serif;
-           font-size:19px;letter-spacing:1.2px;text-transform:uppercase;color:#0e0e0e}
-  .head .ph{font-weight:700;font-size:11px;margin-top:2px}
-  .head .ad{font-size:9.6px;color:#374151;max-width:150mm;margin:1px auto 0}
-  .rule{height:1px;background:var(--line);margin:0 14mm}
+  .page{position:relative;display:flex;flex-direction:column;width:210mm;min-height:297mm;height:297mm;
+        margin:10mm auto;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.16);overflow:hidden;page-break-after:always}
+  @media print{body{background:#fff}.page{margin:0;box-shadow:none;height:297mm}}
+
+  .head{position:relative;flex:none;text-align:center;padding:11mm 14mm 3mm}
+  .head .logo{position:absolute;left:13mm;top:10mm;width:22mm;height:22mm}
+  .head h1{margin:0;font-size:22px;letter-spacing:.8px;text-transform:uppercase;font-weight:700}
+  .head .ph{font-size:12px;margin-top:3px;font-weight:700}
+  .head .ad{font-size:10.5px;color:#333;max-width:150mm;margin:1px auto 0}
+  .rule{flex:none;height:1.2px;background:#111;margin:0 14mm}
 
   .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
-  .wm svg{width:130mm;height:130mm;opacity:.045}
-  .content{position:relative;z-index:1;padding:6mm 14mm 0}
+  .wm svg{width:140mm;height:140mm;opacity:.045}
+  .content{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;padding:6mm 14mm 4mm}
 
-  /* slim colourful footer */
-  .foot{position:absolute;left:0;right:0;bottom:0;height:9mm;display:flex;align-items:center;
-        justify-content:space-between;padding:0 14mm;color:#fff;font-size:9px;letter-spacing:.2px;
-        background:linear-gradient(90deg,#123a7a,#2f6fb8 55%,#1E8E3E)}
+  .foot{flex:none;height:9mm;display:flex;align-items:center;justify-content:space-between;padding:0 14mm;
+        color:#fff;font-size:10px;background:linear-gradient(90deg,#123a7a,#2f6fb8 55%,#1E8E3E)}
   .foot .pg{font-weight:700}
 
-  .title{text-align:center;font-family:"Merriweather",Georgia,serif;font-size:14.5px;margin:2mm 0 5mm;
-         text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
-  .sub{font-family:"Merriweather",Georgia,serif;font-size:12px;margin:5mm 0 1.5mm;
-       border-bottom:1px solid var(--line);padding-bottom:1.5px}
-  table{width:100%;border-collapse:collapse;font-size:11px}
-  th,td{border:1px solid #c9d2dc;padding:5px 8px;vertical-align:top}
-  thead th{background:var(--soft);font-size:10.4px;text-align:left;font-weight:700;color:#111}
+  .title{text-align:center;font-size:17px;font-weight:700;margin:2mm 0 6mm;
+         text-decoration:underline;text-underline-offset:5px}
+  .sub{font-size:14px;font-weight:700;margin:7mm 0 2mm;border-bottom:1px solid var(--line);padding-bottom:2px}
+  .sub:first-child{margin-top:1mm}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:7px 9px;vertical-align:top}
+  thead th{background:var(--soft);text-align:left;font-weight:700}
   .amt{text-align:right;white-space:nowrap}
   .tot td{background:#eef1f5;font-weight:700}
-  .subhead td{background:#f7f9fb;font-weight:700;font-size:10.4px;letter-spacing:.3px}
-  .note{font-size:10.2px;color:#3f4757;margin-top:4mm;padding:6px 9px;border:1px solid var(--line);background:#fbfcfd}
-  .ref{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3.5mm}
+  .subhead td{background:#f7f9fb;font-weight:700;letter-spacing:.2px}
+  .note{font-size:11.5px;color:#333;margin-top:6mm;padding:8px 10px;border:1px solid var(--line);background:#fbfcfd}
+  .ref{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5mm}
   .to p{margin:0}
-  ul{margin:.5mm 0 0;padding-left:15px}li{margin:1.5px 0}
-  .close{border:1px solid var(--line);background:#fbfcfd;padding:8px 12px;margin:6mm 0 3mm;font-weight:700;text-align:center}
-  .sign{text-align:right;margin-top:2mm}
-  .diagram{border:1px solid var(--line);padding:6px;background:#fff}
-  .accept{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;border:1px solid var(--line);padding:10px 14px;margin-top:3mm}
-  .accept div{border-bottom:1px dotted #9aa7b8;padding-bottom:10px;font-size:11px}
+  ul{margin:1mm 0 0;padding-left:17px}li{margin:3px 0}
+  .close{border:1px solid var(--line);background:#fbfcfd;padding:10px 14px;margin:8mm 0 4mm;font-weight:700;text-align:center;font-size:13.5px}
+  .sign{text-align:right;margin-top:3mm;font-size:13px}
+  .diagram{flex:1;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);padding:6px;background:#fff;margin-top:2mm}
+  .diagram img{max-width:100%;max-height:100%;object-fit:contain}
+  .accept{display:grid;grid-template-columns:1fr 1fr;gap:20px 30px;border:1px solid var(--line);padding:12px 16px;margin-top:4mm}
+  .accept div{border-bottom:1px dotted #8f9bab;padding-bottom:14px;font-size:12.5px}
   .center{text-align:center}.muted{color:var(--muted)}
 </style>
 </head>
@@ -73,8 +68,8 @@
     <h2 class="title">Resident Solar Rooftop Proposal</h2>
     <div class="ref"><span>Ref.: -USE/2026-2027/1207</span><span>19-09-2026</span></div>
     <div class="to"><b>To.</b><p>KURIYA MAHESH SHANTILAL</p><p>RAVI PARK STREET No 2,</p><p>VAVDI ROAD MORBI,</p><p>MORBI. - 363641</p></div>
-    <p style="margin-top:5mm"><b>Subject: - Design, Supply, Engineering, Installation &amp; Commissioning of Grid Tied Solar Power Generating System</b></p>
-    <p style="text-align:justify;margin-top:4mm">We Thank You Very Much for Showing Interest in Our Grid Connected Solar System. We Are Pleased to Submit Our Most Competitive Offer For 3.60 kW Solar on Grid Rooftop System as Per Your Requirement. The Price Quoted You Hereunder Is For a Turn Key Project Including Installation &amp; Commissioning of The System at Your Premises. Please Feel Free to Write / Speak to Us for Any Further Query or Any Clarification If Required.</p>
+    <p style="margin-top:8mm"><b>Subject: - Design, Supply, Engineering, Installation &amp; Commissioning of Grid Tied Solar Power Generating System</b></p>
+    <p style="text-align:justify;margin-top:6mm">We Thank You Very Much for Showing Interest in Our Grid Connected Solar System. We Are Pleased to Submit Our Most Competitive Offer For 3.60 kW Solar on Grid Rooftop System as Per Your Requirement. The Price Quoted You Hereunder Is For a Turn Key Project Including Installation &amp; Commissioning of The System at Your Premises. Please Feel Free to Write / Speak to Us for Any Further Query or Any Clarification If Required.</p>
     <div class="close">We Look Forward to Hearing from You Shortly. — Thanking You,</div>
     <div class="sign"><b>From,</b><br>Unique Solar Energy<br><span class="muted">Mo. XXXXX XXXXX</span></div>
   </div>
@@ -84,10 +79,7 @@
 <!-- PAGE 2 -->
 <section class="page">
   <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head">
-    <svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg>
-    <h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div>
-  </div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
   <div class="rule"></div>
   <div class="content">
     <h2 class="title">Project Summary</h2>
@@ -96,34 +88,10 @@
       <tr><td><b>Proposed Project Location</b></td><td>RAJKOT</td></tr>
       <tr><td><b>City</b></td><td>Rajkot</td></tr>
       <tr><td><b>State</b></td><td>Gujarat</td></tr>
-      <tr><td><b>New PV Capacity</b></td><td>3.60 &nbsp;&nbsp;&nbsp; <b>Existing Capacity:</b> - &nbsp;&nbsp;&nbsp; <b>Total PV Capacity:</b> 3.60</td></tr>
+      <tr><td><b>New PV Capacity</b></td><td>3.60 &nbsp;&nbsp;&nbsp;&nbsp; <b>Existing Capacity:</b> - &nbsp;&nbsp;&nbsp;&nbsp; <b>Total PV Capacity:</b> 3.60</td></tr>
     </table>
-    <h3 class="sub center" style="border:0">SCHEMATIC DIAGRAM FOR NET METERING FACILITY</h3>
-    <div class="diagram">
-      <svg viewBox="0 0 900 360" width="100%" height="315">
-        <circle cx="64" cy="54" r="22" fill="#FFD27A"/><circle cx="64" cy="54" r="13" fill="#F5A623"/>
-        <g stroke="#F5A623" stroke-width="3" stroke-linecap="round"><path d="M64 18v9M64 81v9M28 54h9M91 54h9M39 29l6 6M83 73l6 6M89 29l-6 6M45 73l-6 6"/></g>
-        <polygon points="150,150 400,150 430,198 180,198" fill="#2f6fb8" stroke="#123a7a" stroke-width="2"/>
-        <g stroke="#cfe0f5" stroke-width="1.4"><path d="M200 150 L225 198"/><path d="M250 150 L275 198"/><path d="M300 150 L325 198"/><path d="M350 150 L375 198"/><path d="M160 174 L415 174"/></g>
-        <text x="290" y="136" text-anchor="middle" font-size="13" fill="#123a7a" font-weight="700">3.60 kW Solar PV Array</text>
-        <rect x="470" y="150" width="66" height="48" rx="6" fill="#fff" stroke="#123a7a" stroke-width="2"/><text x="503" y="179" text-anchor="middle" font-size="11" fill="#123a7a" font-weight="700">DC</text>
-        <rect x="572" y="140" width="92" height="68" rx="8" fill="#F5A623" stroke="#C67F0A" stroke-width="2"/><text x="618" y="171" text-anchor="middle" font-size="11" fill="#3a2600" font-weight="700">INVERTER</text><text x="618" y="188" text-anchor="middle" font-size="9" fill="#3a2600">3.6 kW MPPT</text>
-        <rect x="700" y="150" width="66" height="48" rx="6" fill="#1E8E3E" stroke="#146b2e" stroke-width="2"/><text x="733" y="179" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">NET</text>
-        <line x1="790" y1="198" x2="790" y2="70" stroke="#6b7280" stroke-width="4"/><line x1="770" y1="95" x2="900" y2="95" stroke="#6b7280" stroke-width="3"/>
-        <polygon points="860,95 900,138 820,138" fill="#123a7a"/><text x="860" y="162" text-anchor="middle" font-size="11" fill="#123a7a" font-weight="700">GRID</text>
-        <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#123a7a"/></marker></defs>
-        <line x1="432" y1="174" x2="468" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="540" y1="174" x2="570" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="666" y1="174" x2="698" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="768" y1="174" x2="788" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
-        <g font-size="10.5" fill="#3b4757">
-          <rect x="150" y="278" width="14" height="10" fill="#2f6fb8"/><text x="170" y="287">Solar PV Array</text>
-          <rect x="300" y="278" width="14" height="10" fill="#F5A623"/><text x="320" y="287">Inverter</text>
-          <rect x="420" y="278" width="14" height="10" fill="#1E8E3E"/><text x="440" y="287">Bi-directional Net Meter</text>
-          <polygon points="622,278 637,288 607,288" fill="#123a7a"/><text x="646" y="287">Utility Grid</text>
-        </g>
-      </svg>
-    </div>
+    <h3 class="sub center" style="border:0;margin-top:8mm">SCHEMATIC DIAGRAM FOR NET METERING FACILITY</h3>
+    <div class="diagram"><img src="../assets/images/schematic_diagram.png" alt="Net Metering Schematic Diagram"></div>
   </div>
   <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 2 / 7</span></div>
 </section>
@@ -135,7 +103,7 @@
   <div class="rule"></div>
   <div class="content">
     <h2 class="title">Commercial Offer</h2>
-    <p class="center muted" style="margin:-3mm 0 3mm">(in INR)</p>
+    <p class="center muted" style="margin:-4mm 0 4mm">(in INR)</p>
     <table>
       <thead><tr><th style="width:8%">Sr No.</th><th>Product Description</th><th class="amt" style="width:22%">Total Payable Amount</th></tr></thead>
       <tbody>
@@ -161,7 +129,7 @@
         <tr class="tot"><td></td><td>Total Amount Payable</td><td class="amt">2,25,000</td></tr>
       </tbody>
     </table>
-    <p style="margin-top:4mm"><b>In Words:</b> Rupee Two Lakh Twenty-Five Thousand Only</p>
+    <p style="margin-top:6mm;font-size:13px"><b>In Words:</b> Rupee Two Lakh Twenty-Five Thousand Only</p>
   </div>
   <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 3 / 7</span></div>
 </section>
@@ -265,9 +233,9 @@
   <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
   <div class="rule"></div>
   <div class="content">
-    <h3 class="sub" style="margin-top:2mm">Purchase Order And Payment Terms In Name Of:-</h3>
-    <p style="margin:0"><b>Unique Solar Energy</b><br>Tithava, Wankaner, Morbi, Gujarat</p>
-    <table style="margin-top:3mm">
+    <h3 class="sub" style="margin-top:1mm">Purchase Order And Payment Terms In Name Of:-</h3>
+    <p style="margin:0;font-size:13px"><b>Unique Solar Energy</b><br>Tithava, Wankaner, Morbi, Gujarat</p>
+    <table style="margin-top:5mm">
       <tr><td style="width:35%"><b>GSTIN NO.</b></td><td>XXXXXXXXXXXX</td></tr>
       <tr><td><b>Bank Name</b></td><td>____________________</td></tr>
       <tr><td><b>Account Number</b></td><td>____________________</td></tr>
@@ -280,7 +248,8 @@
       <div>Name:-</div><div>Title:-</div>
       <div>Date:-</div><div>Address:-</div>
     </div>
-    <p class="center muted" style="margin-top:6mm;font-style:italic">This is system generated quotation not require sign. And stamp.</p>
+    <div style="flex:1"></div>
+    <p class="center muted" style="font-style:italic;font-size:12px">This is system generated quotation not require sign. And stamp.</p>
   </div>
   <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 7 / 7</span></div>
 </section>

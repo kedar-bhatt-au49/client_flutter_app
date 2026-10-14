@@ -3,87 +3,92 @@
 <head>
 <meta charset="utf-8">
 <title>Unique Solar Energy — Solar Rooftop Quotation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --blue:#0B3C8C; --blue-dk:#072a63; --amber:#F5A623; --amber-lt:#FFC85C;
-    --green:#1E8E3E; --ink:#1f2937; --muted:#6b7280; --line:#d5deea; --sky:#EAF2FB;
-  }
+  :root{ --ink:#141414; --muted:#5b6472; --line:#c9d2dc; --soft:#f4f6f9; --blue:#123a7a; --green:#1E8E3E; }
   *{box-sizing:border-box}
-  body{margin:0;background:#e5e7eb;font-family:"Segoe UI",Arial,Helvetica,sans-serif;color:var(--ink);font-size:12px;line-height:1.5}
+  body{margin:0;background:#e6e8ec;color:var(--ink);
+       font-family:"Lato","Segoe UI",Helvetica,Arial,sans-serif;font-size:11.6px;line-height:1.55}
   @page{size:A4;margin:0}
-  .page{position:relative;width:210mm;min-height:297mm;padding:0 0 20mm 0;margin:10mm auto;background:#fff;
-        box-shadow:0 2px 12px rgba(0,0,0,.18);overflow:hidden;page-break-after:always}
+  .page{position:relative;width:210mm;min-height:297mm;margin:10mm auto;background:#fff;
+        box-shadow:0 2px 14px rgba(0,0,0,.16);overflow:hidden;page-break-after:always;padding-bottom:16mm}
   @media print{body{background:#fff}.page{margin:0;box-shadow:none}}
-  /* header */
-  .head{display:flex;align-items:center;gap:12px;padding:10mm 12mm 4mm 12mm}
-  .head .logo{width:64px;height:64px;flex:none}
-  .head .co{flex:1}
-  .head .co h1{margin:0;font-size:22px;letter-spacing:.5px;color:var(--blue);text-transform:uppercase}
-  .head .co .tag{color:var(--muted);font-size:10.5px}
-  .head .meta{text-align:right;font-size:10.5px;color:var(--blue-dk)}
-  .bar{height:5px;background:linear-gradient(90deg,var(--blue),var(--amber));margin:0 12mm}
-  /* watermark */
+
+  /* letterhead: centred, with logo pinned top-left */
+  .head{position:relative;text-align:center;padding:11mm 14mm 4mm}
+  .head .logo{position:absolute;left:13mm;top:11mm;width:22mm;height:22mm}
+  .head h1{margin:0;font-family:"Merriweather",Georgia,"Times New Roman",serif;
+           font-size:19px;letter-spacing:1.2px;text-transform:uppercase;color:#0e0e0e}
+  .head .ph{font-weight:700;font-size:11px;margin-top:2px}
+  .head .ad{font-size:9.6px;color:#374151;max-width:150mm;margin:1px auto 0}
+  .rule{height:1px;background:var(--line);margin:0 14mm}
+
   .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
-  .wm svg{width:120mm;height:120mm;opacity:.05}
-  .content{position:relative;z-index:1;padding:6mm 12mm 0 12mm}
-  /* footer */
-  .foot{position:absolute;left:0;right:0;bottom:0;height:12mm;display:flex;align-items:center;justify-content:space-between;
-        padding:0 12mm;color:#fff;font-size:10px;background:linear-gradient(90deg,var(--blue),var(--blue-dk))}
-  .foot b{color:var(--amber-lt)}
-  h2.title{text-align:center;color:var(--blue);font-size:17px;margin:2mm 0 4mm;text-decoration:underline;text-underline-offset:4px}
-  h3.sub{color:var(--blue);font-size:13px;margin:5mm 0 1.5mm}
+  .wm svg{width:130mm;height:130mm;opacity:.045}
+  .content{position:relative;z-index:1;padding:6mm 14mm 0}
+
+  /* slim colourful footer */
+  .foot{position:absolute;left:0;right:0;bottom:0;height:9mm;display:flex;align-items:center;
+        justify-content:space-between;padding:0 14mm;color:#fff;font-size:9px;letter-spacing:.2px;
+        background:linear-gradient(90deg,#123a7a,#2f6fb8 55%,#1E8E3E)}
+  .foot .pg{font-weight:700}
+
+  .title{text-align:center;font-family:"Merriweather",Georgia,serif;font-size:14.5px;margin:2mm 0 5mm;
+         text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+  .sub{font-family:"Merriweather",Georgia,serif;font-size:12px;margin:5mm 0 1.5mm;
+       border-bottom:1px solid var(--line);padding-bottom:1.5px}
   table{width:100%;border-collapse:collapse;font-size:11px}
-  th,td{border:1px solid var(--line);padding:5px 7px;vertical-align:top}
-  thead th{background:var(--blue);color:#fff;font-size:10.5px;text-align:left}
-  tbody tr:nth-child(even){background:#f7fafd}
-  .amt{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .tot td{background:var(--sky);font-weight:700;color:var(--blue-dk)}
-  .band td{background:var(--amber);color:#3a2600;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.4px}
-  .note{background:#fff8ec;border-left:4px solid var(--amber);padding:6px 9px;font-size:10.5px;color:#5a4500;margin-top:4mm}
-  .callout{border:1.5px solid var(--amber);background:#fffaf0;border-radius:8px;padding:8px 12px;color:var(--blue-dk);font-weight:600;margin:5mm 0 3mm}
-  .ref{display:flex;justify-content:space-between;font-size:11px;color:var(--blue-dk);margin-bottom:3mm}
+  th,td{border:1px solid #c9d2dc;padding:5px 8px;vertical-align:top}
+  thead th{background:var(--soft);font-size:10.4px;text-align:left;font-weight:700;color:#111}
+  .amt{text-align:right;white-space:nowrap}
+  .tot td{background:#eef1f5;font-weight:700}
+  .subhead td{background:#f7f9fb;font-weight:700;font-size:10.4px;letter-spacing:.3px}
+  .note{font-size:10.2px;color:#3f4757;margin-top:4mm;padding:6px 9px;border:1px solid var(--line);background:#fbfcfd}
+  .ref{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3.5mm}
   .to p{margin:0}
-  ul{margin:1mm 0 0 0;padding-left:16px}li{margin:1.5px 0}
-  .diagram-wrap{border:1px solid var(--line);border-radius:8px;padding:6px;background:#fbfdff}
-  .accept{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:3mm}
-  .accept div{border-bottom:1px dotted #9aa7b8;padding-bottom:10px;color:var(--blue-dk);font-size:11px}
+  ul{margin:.5mm 0 0;padding-left:15px}li{margin:1.5px 0}
+  .close{border:1px solid var(--line);background:#fbfcfd;padding:8px 12px;margin:6mm 0 3mm;font-weight:700;text-align:center}
+  .sign{text-align:right;margin-top:2mm}
+  .diagram{border:1px solid var(--line);padding:6px;background:#fff}
+  .accept{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;border:1px solid var(--line);padding:10px 14px;margin-top:3mm}
+  .accept div{border-bottom:1px dotted #9aa7b8;padding-bottom:10px;font-size:11px}
   .center{text-align:center}.muted{color:var(--muted)}
 </style>
 </head>
 <body>
 
-<!-- ================= PAGE 1 : COVER LETTER ================= -->
+<!-- PAGE 1 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
   <div class="head">
-    <svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg>
-    <div class="co"><h1>Unique Solar Energy</h1><div class="tag">Design • Supply • Engineering • Installation • Commissioning</div></div>
-    <div class="meta">Mo. XXXXX XXXXX / XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div>
+    <svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg>
+    <h1>Unique Solar Energy</h1>
+    <div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div>
+    <div class="ad">Tithava, Wankaner, Morbi, Gujarat</div>
   </div>
-  <div class="bar"></div>
+  <div class="rule"></div>
   <div class="content">
     <h2 class="title">Resident Solar Rooftop Proposal</h2>
-    <div class="ref"><span><b>Ref.: -USE/2026-2027/1207</b></span><span>19-09-2026</span></div>
-    <div class="to"><b>To.</b>
-      <p>KURIYA MAHESH SHANTILAL</p><p>RAVI PARK STREET No 2,</p><p>VAVDI ROAD MORBI,</p><p>MORBI. - 363641</p>
-    </div>
+    <div class="ref"><span>Ref.: -USE/2026-2027/1207</span><span>19-09-2026</span></div>
+    <div class="to"><b>To.</b><p>KURIYA MAHESH SHANTILAL</p><p>RAVI PARK STREET No 2,</p><p>VAVDI ROAD MORBI,</p><p>MORBI. - 363641</p></div>
     <p style="margin-top:5mm"><b>Subject: - Design, Supply, Engineering, Installation &amp; Commissioning of Grid Tied Solar Power Generating System</b></p>
     <p style="text-align:justify;margin-top:4mm">We Thank You Very Much for Showing Interest in Our Grid Connected Solar System. We Are Pleased to Submit Our Most Competitive Offer For 3.60 kW Solar on Grid Rooftop System as Per Your Requirement. The Price Quoted You Hereunder Is For a Turn Key Project Including Installation &amp; Commissioning of The System at Your Premises. Please Feel Free to Write / Speak to Us for Any Further Query or Any Clarification If Required.</p>
-    <div class="callout">We Look Forward to Hearing from You Shortly. — Thanking You,</div>
-    <div style="text-align:right;margin-top:2mm"><b>From,</b><br>Unique Solar Energy<br><span class="muted">Mo. XXXXX XXXXX</span></div>
+    <div class="close">We Look Forward to Hearing from You Shortly. — Thanking You,</div>
+    <div class="sign"><b>From,</b><br>Unique Solar Energy<br><span class="muted">Mo. XXXXX XXXXX</span></div>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 1 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 1 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 2 : PROJECT SUMMARY + DIAGRAM ================= -->
+<!-- PAGE 2 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
   <div class="head">
-    <svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg>
-    <div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div>
-    <div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div>
+    <svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg>
+    <h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div>
   </div>
-  <div class="bar"></div>
+  <div class="rule"></div>
   <div class="content">
     <h2 class="title">Project Summary</h2>
     <table>
@@ -91,65 +96,46 @@
       <tr><td><b>Proposed Project Location</b></td><td>RAJKOT</td></tr>
       <tr><td><b>City</b></td><td>Rajkot</td></tr>
       <tr><td><b>State</b></td><td>Gujarat</td></tr>
-      <tr><td><b>New PV Capacity</b></td><td>3.60 &nbsp;&nbsp; <b>Existing Capacity:</b> - &nbsp;&nbsp; <b>Total PV Capacity:</b> 3.60</td></tr>
+      <tr><td><b>New PV Capacity</b></td><td>3.60 &nbsp;&nbsp;&nbsp; <b>Existing Capacity:</b> - &nbsp;&nbsp;&nbsp; <b>Total PV Capacity:</b> 3.60</td></tr>
     </table>
-    <h3 class="sub" style="text-align:center">SCHEMATIC DIAGRAM FOR NET METERING FACILITY</h3>
-    <div class="diagram-wrap">
-      <svg viewBox="0 0 900 380" width="100%" height="330">
-        <rect x="0" y="0" width="900" height="380" fill="#fbfdff"/>
-        <!-- sun -->
-        <circle cx="70" cy="58" r="24" fill="#FFC85C"/><circle cx="70" cy="58" r="15" fill="#F5A623"/>
-        <g stroke="#F5A623" stroke-width="3" stroke-linecap="round"><path d="M70 18v10M70 88v10M30 58h10M100 58h10M42 30l7 7M91 79l7 7M98 30l-7 7M49 79l-7 7"/></g>
-        <!-- solar panel array on roof -->
-        <polygon points="150,150 400,150 430,200 180,200" fill="#1f6fd0" stroke="#0B3C8C" stroke-width="2"/>
-        <g stroke="#BFD9F5" stroke-width="1.5">
-          <path d="M200 150 L225 200"/><path d="M250 150 L275 200"/><path d="M300 150 L325 200"/><path d="M350 150 L375 200"/>
-          <path d="M160 175 L415 175"/>
-        </g>
-        <text x="290" y="135" text-anchor="middle" font-size="13" fill="#0B3C8C" font-weight="700">3.60 kW Solar PV Array</text>
-        <text x="290" y="222" text-anchor="middle" font-size="11" fill="#3b4757">DC generation (string)</text>
-        <!-- DC box -->
-        <rect x="470" y="150" width="70" height="50" rx="6" fill="#fff" stroke="#0B3C8C" stroke-width="2"/>
-        <text x="505" y="180" text-anchor="middle" font-size="11" fill="#0B3C8C" font-weight="700">DC</text>
-        <!-- inverter -->
-        <rect x="575" y="140" width="90" height="70" rx="8" fill="#F5A623" stroke="#C67F0A" stroke-width="2"/>
-        <text x="620" y="172" text-anchor="middle" font-size="11" fill="#3a2600" font-weight="700">INVERTER</text>
-        <text x="620" y="190" text-anchor="middle" font-size="9.5" fill="#3a2600">3.6 kW MPPT</text>
-        <!-- meter -->
-        <rect x="700" y="150" width="70" height="50" rx="6" fill="#1E8E3E" stroke="#146b2e" stroke-width="2"/>
-        <text x="735" y="180" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">NET</text>
-        <!-- utility pole + grid -->
-        <line x1="790" y1="200" x2="790" y2="70" stroke="#6b7280" stroke-width="4"/>
-        <line x1="770" y1="95" x2="900" y2="95" stroke="#6b7280" stroke-width="3"/>
-        <polygon points="860,95 900,140 820,140" fill="#0B3C8C"/>
-        <text x="860" y="165" text-anchor="middle" font-size="11" fill="#0B3C8C" font-weight="700">GRID</text>
-        <!-- arrows -->
-        <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#0B3C8C"/></marker></defs>
-        <line x1="432" y1="175" x2="468" y2="175" stroke="#0B3C8C" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="542" y1="175" x2="573" y2="175" stroke="#0B3C8C" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="667" y1="175" x2="698" y2="175" stroke="#0B3C8C" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="772" y1="175" x2="788" y2="175" stroke="#0B3C8C" stroke-width="3" marker-end="url(#ar)"/>
-        <!-- legend -->
+    <h3 class="sub center" style="border:0">SCHEMATIC DIAGRAM FOR NET METERING FACILITY</h3>
+    <div class="diagram">
+      <svg viewBox="0 0 900 360" width="100%" height="315">
+        <circle cx="64" cy="54" r="22" fill="#FFD27A"/><circle cx="64" cy="54" r="13" fill="#F5A623"/>
+        <g stroke="#F5A623" stroke-width="3" stroke-linecap="round"><path d="M64 18v9M64 81v9M28 54h9M91 54h9M39 29l6 6M83 73l6 6M89 29l-6 6M45 73l-6 6"/></g>
+        <polygon points="150,150 400,150 430,198 180,198" fill="#2f6fb8" stroke="#123a7a" stroke-width="2"/>
+        <g stroke="#cfe0f5" stroke-width="1.4"><path d="M200 150 L225 198"/><path d="M250 150 L275 198"/><path d="M300 150 L325 198"/><path d="M350 150 L375 198"/><path d="M160 174 L415 174"/></g>
+        <text x="290" y="136" text-anchor="middle" font-size="13" fill="#123a7a" font-weight="700">3.60 kW Solar PV Array</text>
+        <rect x="470" y="150" width="66" height="48" rx="6" fill="#fff" stroke="#123a7a" stroke-width="2"/><text x="503" y="179" text-anchor="middle" font-size="11" fill="#123a7a" font-weight="700">DC</text>
+        <rect x="572" y="140" width="92" height="68" rx="8" fill="#F5A623" stroke="#C67F0A" stroke-width="2"/><text x="618" y="171" text-anchor="middle" font-size="11" fill="#3a2600" font-weight="700">INVERTER</text><text x="618" y="188" text-anchor="middle" font-size="9" fill="#3a2600">3.6 kW MPPT</text>
+        <rect x="700" y="150" width="66" height="48" rx="6" fill="#1E8E3E" stroke="#146b2e" stroke-width="2"/><text x="733" y="179" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">NET</text>
+        <line x1="790" y1="198" x2="790" y2="70" stroke="#6b7280" stroke-width="4"/><line x1="770" y1="95" x2="900" y2="95" stroke="#6b7280" stroke-width="3"/>
+        <polygon points="860,95 900,138 820,138" fill="#123a7a"/><text x="860" y="162" text-anchor="middle" font-size="11" fill="#123a7a" font-weight="700">GRID</text>
+        <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#123a7a"/></marker></defs>
+        <line x1="432" y1="174" x2="468" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
+        <line x1="540" y1="174" x2="570" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
+        <line x1="666" y1="174" x2="698" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
+        <line x1="768" y1="174" x2="788" y2="174" stroke="#123a7a" stroke-width="3" marker-end="url(#ar)"/>
         <g font-size="10.5" fill="#3b4757">
-          <rect x="150" y="290" width="14" height="10" fill="#1f6fd0"/><text x="170" y="299">Solar PV Array</text>
-          <rect x="300" y="290" width="14" height="10" fill="#F5A623"/><text x="320" y="299">Inverter</text>
-          <rect x="420" y="290" width="14" height="10" fill="#1E8E3E"/><text x="440" y="299">Bi-directional Net Meter</text>
-          <polygon points="620,290 635,300 605,300" fill="#0B3C8C"/><text x="645" y="299">Utility Grid</text>
+          <rect x="150" y="278" width="14" height="10" fill="#2f6fb8"/><text x="170" y="287">Solar PV Array</text>
+          <rect x="300" y="278" width="14" height="10" fill="#F5A623"/><text x="320" y="287">Inverter</text>
+          <rect x="420" y="278" width="14" height="10" fill="#1E8E3E"/><text x="440" y="287">Bi-directional Net Meter</text>
+          <polygon points="622,278 637,288 607,288" fill="#123a7a"/><text x="646" y="287">Utility Grid</text>
         </g>
       </svg>
     </div>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 2 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 2 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 3 : COMMERCIAL OFFER ================= -->
+<!-- PAGE 3 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div><div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div></div>
-  <div class="bar"></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
+  <div class="rule"></div>
   <div class="content">
     <h2 class="title">Commercial Offer</h2>
-    <p class="center muted" style="margin:-2mm 0 3mm">(in INR)</p>
+    <p class="center muted" style="margin:-3mm 0 3mm">(in INR)</p>
     <table>
       <thead><tr><th style="width:8%">Sr No.</th><th>Product Description</th><th class="amt" style="width:22%">Total Payable Amount</th></tr></thead>
       <tbody>
@@ -157,11 +143,11 @@
         <tr><td>2</td><td>GST Tax 5% On Material Cost (70% Of Total Cost)</td><td class="amt">7,231</td></tr>
         <tr><td>3</td><td>GST Tax 18% on Inst., Com. &amp; CMC (30% of Total Cost)</td><td class="amt">11,157</td></tr>
         <tr class="tot"><td></td><td>Total Project Cost</td><td class="amt">2,25,000</td></tr>
-        <tr class="band"><td colspan="3">National Portal Subsidy Details</td></tr>
+        <tr class="subhead"><td colspan="3">National Portal Subsidy Details</td></tr>
         <tr><td>4</td><td>CFA Subsidy 3.60 kW on</td><td class="amt">- 78,000</td></tr>
         <tr><td>5</td><td>-</td><td class="amt">-</td></tr>
         <tr class="tot"><td></td><td>Total Subsidy</td><td class="amt">78,000</td></tr>
-        <tr class="band"><td colspan="3">Additional Cost Details</td></tr>
+        <tr class="subhead"><td colspan="3">Additional Cost Details</td></tr>
         <tr><td>6</td><td>Elevated Structure Cost</td><td class="amt">-</td></tr>
         <tr><td>7</td><td>Cable Cost</td><td class="amt">-</td></tr>
         <tr><td>8</td><td>Inverter Charge</td><td class="amt">-</td></tr>
@@ -177,14 +163,14 @@
     </table>
     <p style="margin-top:4mm"><b>In Words:</b> Rupee Two Lakh Twenty-Five Thousand Only</p>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 3 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 3 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 4 : TECHNICAL SPECS & BOM ================= -->
+<!-- PAGE 4 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div><div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div></div>
-  <div class="bar"></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
+  <div class="rule"></div>
   <div class="content">
     <h2 class="title">Technical Specifications &amp; BOM</h2>
     <table>
@@ -205,14 +191,14 @@
     </table>
     <div class="note">Note: - If any Condition, any Material is not available which is mentioned above for Supply, that Material will replace with Comparable Reputed Brand for Completion of Project without Prior Notice.</div>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 4 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 4 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 5 : TERMS & CONDITIONS ================= -->
+<!-- PAGE 5 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div><div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div></div>
-  <div class="bar"></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
+  <div class="rule"></div>
   <div class="content">
     <h2 class="title">Terms And Conditions</h2>
     <h3 class="sub">Scope Of Work Of Unique Solar Energy:-</h3>
@@ -241,14 +227,14 @@
       <li>Any Changes In Module Price Before Finalizing The Order Is Added To Quotation.</li>
     </ul>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 5 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 5 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 6 : PAYMENT / DELIVERY / WARRANTY ================= -->
+<!-- PAGE 6 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div><div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div></div>
-  <div class="bar"></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
+  <div class="rule"></div>
   <div class="content">
     <h3 class="sub">Terms of Payment:-</h3>
     <ul><li>3000 Rs. Per KW Payment As Advance With Purchase Order.</li><li>Pending Amount Before Material Dispatch.</li></ul>
@@ -270,16 +256,16 @@
       <li>Any abnormal environmental conditions such as acid rain, earthquake, heavy wind, rains etc.</li>
     </ul>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 6 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 6 / 7</span></div>
 </section>
 
-<!-- ================= PAGE 7 : PURCHASE ORDER / BANK / ACCEPTANCE ================= -->
+<!-- PAGE 7 -->
 <section class="page">
-  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#0B3C8C" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
-  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EAF2FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#0B3C8C" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><div class="co"><h1>Unique Solar Energy</h1><div class="tag">Grid-Tied Solar Power Systems</div></div><div class="meta">Mo. XXXXX XXXXX<br>Tithava, Wankaner, Morbi, Gujarat</div></div>
-  <div class="bar"></div>
+  <div class="wm"><svg viewBox="0 0 24 24" fill="none" stroke="#123a7a" stroke-width="1"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></div>
+  <div class="head"><svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#EEF3FB"/><circle cx="32" cy="32" r="12" fill="#F5A623"/><g stroke="#123a7a" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13 13l6 6M45 45l6 6M51 13l-6 6M19 45l-6 6"/></g></svg><h1>Unique Solar Energy</h1><div class="ph">Mo. XXXXX XXXXX / XXXXX XXXXX</div><div class="ad">Tithava, Wankaner, Morbi, Gujarat</div></div>
+  <div class="rule"></div>
   <div class="content">
-    <h3 class="sub">Purchase Order And Payment Terms In Name Of:-</h3>
+    <h3 class="sub" style="margin-top:2mm">Purchase Order And Payment Terms In Name Of:-</h3>
     <p style="margin:0"><b>Unique Solar Energy</b><br>Tithava, Wankaner, Morbi, Gujarat</p>
     <table style="margin-top:3mm">
       <tr><td style="width:35%"><b>GSTIN NO.</b></td><td>XXXXXXXXXXXX</td></tr>
@@ -296,7 +282,7 @@
     </div>
     <p class="center muted" style="margin-top:6mm;font-style:italic">This is system generated quotation not require sign. And stamp.</p>
   </div>
-  <div class="foot"><span><b>UNIQUE SOLAR ENERGY</b> &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span>Page 7 / 7</span></div>
+  <div class="foot"><span>Unique Solar Energy &nbsp;•&nbsp; Tithava, Wankaner, Morbi, Gujarat &nbsp;•&nbsp; Mo. XXXXX XXXXX</span><span class="pg">Page 7 / 7</span></div>
 </section>
 
 </body>

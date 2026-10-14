@@ -12,7 +12,11 @@
 
   .page{position:relative;display:flex;flex-direction:column;width:210mm;height:297mm;
         padding:12mm 15mm 19mm;margin:10mm auto;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.16);overflow:hidden;page-break-after:always}
-  @media print{body{background:#fff}.page{margin:0;box-shadow:none;height:297mm}}
+  @media print{
+    html,body{background:#fff;margin:0;padding:0;width:210mm}
+    .page{margin:0;box-shadow:none;height:297mm;page-break-after:always;
+          -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
 
   .head{position:relative;flex:none;text-align:center;padding:0 0 3mm}
   .head .logo{position:absolute;left:0;top:-4mm;width:22mm;height:22mm}
@@ -27,6 +31,7 @@
 
   .foot{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;
         padding:2.6mm 15mm;color:#fff;font-size:10px;line-height:1.5;
+        -webkit-print-color-adjust:exact;print-color-adjust:exact;
         background:linear-gradient(90deg,#123a7a,#2f6fb8 55%,#1E8E3E)}
   .foot .lines{flex:1;text-align:center}
   .foot .lines b{font-size:11px;letter-spacing:.4px;text-transform:uppercase}

@@ -358,6 +358,31 @@ final List<GSQuoteSystem> gsQuoteSystems = const [
       id: 'wtc10', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
       wattLabel: '610/615/620', kw: 6.15, panels: 10,
       totalPayable: 279000, afterSubsidy: 201000),
+  // ── Waaree TOPCon 710 W ──
+  GSQuoteSystem(
+      id: 'wtc710_5', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 3.60, panels: 5,
+      totalPayable: 178000, afterSubsidy: 100000),
+  GSQuoteSystem(
+      id: 'wtc710_6', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 4.32, panels: 6,
+      totalPayable: 200000, afterSubsidy: 122000),
+  GSQuoteSystem(
+      id: 'wtc710_7', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 5.04, panels: 7,
+      totalPayable: 228000, afterSubsidy: 150000),
+  GSQuoteSystem(
+      id: 'wtc710_8', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 5.76, panels: 8,
+      totalPayable: 250000, afterSubsidy: 172000),
+  GSQuoteSystem(
+      id: 'wtc710_9', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 6.48, panels: 9,
+      totalPayable: 285000, afterSubsidy: 207000),
+  GSQuoteSystem(
+      id: 'wtc710_10', brandEn: 'Waaree TOPCon', brandGu: 'વારી ટોપકોન',
+      wattLabel: '710', kw: 7.10, panels: 10,
+      totalPayable: 312000, afterSubsidy: 234000),
 ];
 
 /// Legacy system ids (pre brand split) → new ids.

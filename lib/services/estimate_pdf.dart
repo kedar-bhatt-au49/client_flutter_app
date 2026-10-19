@@ -412,10 +412,13 @@ class EstimatePdf {
     final baseTotal = e.totalPayableOverride ?? 0;
     final structure = e.structureCostOverride ?? 0;
     final stamp = e.stampChargeOverride ?? 0;
+    final geda = e.gedaChargeOverride ?? 0;
+    final meter = e.meterChargeOverride ?? 0;
     final includeGst = e.gstIncluded;
     final gstMul = 1 + GSGst.totalPercent / 100; // 1.089
 
-    final pvTaxable = ((baseTotal - structure - stamp) / gstMul).round();
+    final pvTaxable =
+        ((baseTotal - structure - stamp - geda - meter) / gstMul).round();
     final cgstPct = includeGst ? GSGst.cgstPercent : 0.0;
     final sgstPct = includeGst ? GSGst.sgstPercent : 0.0;
     final cgst = ((pvTaxable * cgstPct) / 100).round();
@@ -444,7 +447,8 @@ class EstimatePdf {
       ));
     }
 
-    final baseExclGst = pvTaxable + structure + stamp + customNet;
+    final baseExclGst =
+        pvTaxable + structure + stamp + geda + meter + customNet;
     final cgstTotal = cgst + customCgst;
     final sgstTotal = sgst + customSgst;
     final gross = baseExclGst + cgstTotal + sgstTotal;
@@ -486,6 +490,26 @@ class EstimatePdf {
         cgstPercent: 0,
         sgstPercent: 0,
       ),
+      if (geda > 0)
+        ProposalLineItem(
+          description: 'GEDA Registration / Liaison Charges',
+          specs: const [],
+          qty: '1',
+          unit: 'site',
+          rate: geda,
+          cgstPercent: 0,
+          sgstPercent: 0,
+        ),
+      if (meter > 0)
+        ProposalLineItem(
+          description: 'Discom Meter / Connectivity Charges',
+          specs: const [],
+          qty: '1',
+          unit: 'site',
+          rate: meter,
+          cgstPercent: 0,
+          sgstPercent: 0,
+        ),
       ...custom,
     ];
 

@@ -746,6 +746,8 @@ class EstimateModel {
   bool gstIncluded; // show prices with GST (true) or without (false)
   int? structureCostOverride; // editable structure cost
   int? stampChargeOverride; // editable stamp charge
+  int? gedaChargeOverride; // GEDA liaison charge (commercial, manual)
+  int? meterChargeOverride; // Discom meter charge (commercial, manual)
   String taxMode; // 'exclusive' | 'inclusive'
   List<EstimateLineItem> lineItems;
   List<BomLine> bomLines; // form-editable Bill of Materials
@@ -794,6 +796,8 @@ class EstimateModel {
     this.gstIncluded = true,
     this.structureCostOverride,
     this.stampChargeOverride,
+    this.gedaChargeOverride,
+    this.meterChargeOverride,
     this.taxMode = 'exclusive',
     List<EstimateLineItem>? lineItems,
     List<BomLine>? bomLines,
@@ -894,6 +898,8 @@ class EstimateModel {
         'gst_included': gstIncluded,
         'structure_cost_override': structureCostOverride,
         'stamp_charge_override': stampChargeOverride,
+        'geda_charge_override': gedaChargeOverride,
+        'meter_charge_override': meterChargeOverride,
         'tax_mode': taxMode,
         'line_items': lineItems.map((e) => e.toJson()).toList(),
         'bom_lines': bomLines.map((e) => e.toJson()).toList(),
@@ -944,6 +950,8 @@ class EstimateModel {
       gstIncluded: j['gst_included'] as bool? ?? true,
       structureCostOverride: j['structure_cost_override'] as int?,
       stampChargeOverride: j['stamp_charge_override'] as int?,
+      gedaChargeOverride: j['geda_charge_override'] as int?,
+      meterChargeOverride: j['meter_charge_override'] as int?,
       taxMode: j['tax_mode'] as String? ?? 'exclusive',
       lineItems: (j['line_items'] as List? ?? [])
           .map((e) =>

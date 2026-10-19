@@ -86,6 +86,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
   final _panelCompanyCtrl = TextEditingController();
   final _panelCountCtrl = TextEditingController();
   final _panelWattCtrl = TextEditingController();
+  final _gedaCtrl = TextEditingController();
+  final _meterCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -110,6 +112,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
     _panelCompanyCtrl.dispose();
     _panelCountCtrl.dispose();
     _panelWattCtrl.dispose();
+    _gedaCtrl.dispose();
+    _meterCtrl.dispose();
     super.dispose();
   }
 
@@ -356,6 +360,8 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
       ..panelWatt = _panelWattCtrl.text.trim().isEmpty
           ? null
           : _panelWattCtrl.text.trim()
+      ..gedaChargeOverride = int.tryParse(_gedaCtrl.text.trim())
+      ..meterChargeOverride = int.tryParse(_meterCtrl.text.trim())
       ..createdByName = context.read<AuthProvider>().currentUser?.name
       ..createdByRole = context.read<AuthProvider>().currentUser?.role;
 
@@ -1144,6 +1150,40 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
         ),
         const SizedBox(height: 14),
         _totalPayableBanner(null),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('GEDA Charge'),
+                _field(
+                  controller: _gedaCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.gedaChargeOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _lbl('Meter Charge'),
+                _field(
+                  controller: _meterCtrl,
+                  prefixText: 'Rs.',
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _estimate.meterChargeOverride =
+                      int.tryParse(v.trim()),
+                ),
+              ],
+            ),
+          ),
+        ]),
         const SizedBox(height: 14),
         Row(children: [
           Expanded(

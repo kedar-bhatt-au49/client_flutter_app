@@ -161,13 +161,15 @@ class QuotationHtml {
     final structure =
         e.structureCostOverride ?? system?.structureCost ?? 0;
     final stamp = e.stampChargeOverride ?? system?.stampCharge ?? 0;
+    final geda = e.gedaChargeOverride ?? 0;
+    final meter = e.meterChargeOverride ?? 0;
     final includeGst = e.gstIncluded;
     final gstMul = 1 + GSGst.totalPercent / 100;
 
-    final systemStructure = system?.structureCost ?? 0;
-    final systemStamp = system?.stampCharge ?? 0;
+    // The (manual) Total Payable is GST-inclusive and already includes
+    // structure / stamp / GEDA / meter, so back those non-GST items out first.
     final pvTaxable =
-        ((baseTotal - systemStructure - systemStamp) / gstMul).round();
+        ((baseTotal - structure - stamp - geda - meter) / gstMul).round();
     final cgstPct = includeGst ? GSGst.cgstPercent : 0.0;
     final sgstPct = includeGst ? GSGst.sgstPercent : 0.0;
     final cgst = ((pvTaxable * cgstPct) / 100).round();
@@ -189,8 +191,8 @@ class QuotationHtml {
           'Inverter, ${panels > 0 ? '$panels Pairs MC4 Connectors, ' : ''}AC/DC DB boxes, '
           '${e.acWiringSqMm ?? '2.5 sq.mm'} AC & '
           '${e.dcWiringSqMm ?? '4.0 sq.mm'} DC UV cables.',
-      qty: '1 Set',
-      rate: pvTaxable,
+      qty: panels > 0 ? '$panels Nos' : '1 Set',
+      rate: panels > 0 ? (pvTaxable / panels).round() : pvTaxable,
       cgstPct: cgstPct,
       sgstPct: sgstPct,
       total: pvTaxable + cgst + sgst,
@@ -218,6 +220,30 @@ class QuotationHtml {
       sgstPct: 0,
       total: stamp,
     ));
+    if (geda > 0) {
+      rows.add(_row(
+        no: nextNo(),
+        title: 'GEDA Registration / Liaison Charges',
+        desc: 'GEDA application &amp; approval processing.',
+        qty: '1 Site',
+        rate: geda,
+        cgstPct: 0,
+        sgstPct: 0,
+        total: geda,
+      ));
+    }
+    if (meter > 0) {
+      rows.add(_row(
+        no: nextNo(),
+        title: 'Discom Meter / Connectivity Charges',
+        desc: 'Net meter &amp; connectivity charges as per utility.',
+        qty: '1 Site',
+        rate: meter,
+        cgstPct: 0,
+        sgstPct: 0,
+        total: meter,
+      ));
+    }
 
     var customNet = 0;
     var customCgst = 0;
@@ -243,7 +269,8 @@ class QuotationHtml {
       ));
     }
 
-    final baseExclGst = pvTaxable + structure + stamp + customNet;
+    final baseExclGst =
+        pvTaxable + structure + stamp + geda + meter + customNet;
     final cgstTotal = cgst + customCgst;
     final sgstTotal = sgst + customSgst;
     final gross = baseExclGst + cgstTotal + sgstTotal;
@@ -301,6 +328,9 @@ class QuotationHtml {
       'PANEL_BRAND': brandEn,
       'PANEL_BRAND_GU': brandGu,
       'PANEL_WATT': wattLabel,
+      'INVERTER_SPEC': invKw > 0
+          ? '${invKw.toStringAsFixed(1)} kW Smart MPPT Inverter'
+          : 'Smart MPPT Inverter',
       'MODULE_WARRANTY': '${system?.moduleWarrantyYears ?? 30}',
       'SITE_NOTES_BLOCK': _siteNotesBlock(e.description),
       'TABLE_ROWS': rows.join('\n'),

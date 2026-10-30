@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
+import '../../core/input_formatters.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/client.dart';
 import '../../providers/data_hub.dart';
@@ -208,7 +209,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                             hint: '10-digit mobile number',
                             keyboardType: TextInputType.phone,
                             inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
+                              PhoneNumberFormatter(),
                               LengthLimitingTextInputFormatter(10),
                             ],
                             validator: (v) =>
@@ -233,7 +234,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                             hint: 'Secondary contact number',
                             keyboardType: TextInputType.phone,
                             inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
+                              PhoneNumberFormatter(),
                               LengthLimitingTextInputFormatter(10),
                             ],
                           ),

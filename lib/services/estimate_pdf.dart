@@ -473,43 +473,24 @@ class EstimatePdf {
         sgstPercent: sgstPct,
       ),
       ProposalLineItem(
-        description: 'Structure & Mounting (Elevated)',
-        specs: const ['Hot-dip galvanized MS structure'],
+        description: 'Structure, GEDA & Meter Charges',
+        specs: (structure + geda + meter) > 0 ? const [] : const ['Cost Extra'],
         qty: '1',
-        unit: 'set',
-        rate: structure,
+        unit: 'job',
+        rate: structure + geda + meter,
         cgstPercent: 0,
         sgstPercent: 0,
       ),
       ProposalLineItem(
         description: 'Stamp Charge',
-        specs: const ['Govt. stamp paper & franking'],
+        specs:
+            stamp > 0 ? const ['Govt. stamp paper & franking'] : const ['Cost Extra'],
         qty: '1',
         unit: 'set',
         rate: stamp,
         cgstPercent: 0,
         sgstPercent: 0,
       ),
-      if (geda > 0)
-        ProposalLineItem(
-          description: 'GEDA Registration / Liaison Charges',
-          specs: const [],
-          qty: '1',
-          unit: 'site',
-          rate: geda,
-          cgstPercent: 0,
-          sgstPercent: 0,
-        ),
-      if (meter > 0)
-        ProposalLineItem(
-          description: 'Discom Meter / Connectivity Charges',
-          specs: const [],
-          qty: '1',
-          unit: 'site',
-          rate: meter,
-          cgstPercent: 0,
-          sgstPercent: 0,
-        ),
       ...custom,
     ];
 

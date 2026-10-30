@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
+import '../../core/input_formatters.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/searchable_selector_sheet.dart';
 import '../../models/estimate.dart';
@@ -724,7 +725,7 @@ class _CreateEstimateScreenState extends State<CreateEstimateScreen> {
           hint: '10-digit number',
           keyboardType: TextInputType.phone,
           inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
+            PhoneNumberFormatter(),
             LengthLimitingTextInputFormatter(10),
           ],
           onChanged: (_) => setState(() {}),

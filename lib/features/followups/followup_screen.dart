@@ -57,7 +57,12 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             child: items.isEmpty
                 ? _buildEmptyState(hub)
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    padding: EdgeInsets.fromLTRB(
+                      16 + MediaQuery.of(context).padding.left,
+                      12,
+                      16 + MediaQuery.of(context).padding.right,
+                      24 + MediaQuery.of(context).padding.bottom,
+                    ),
                     itemCount: items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, i) {
@@ -811,56 +816,56 @@ class _FollowUpItem extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: overdue ? const Color(0x99FECACA) : const Color(0xFFF1F5F9))),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Column(
               children: [
-                // Mark Done (green, flex)
-                Expanded(
-                  child: _actionBtn(
-                    label: 'Mark Done',
-                    icon: Icons.check_rounded,
-                    bg: const Color(0xFFECFDF5),
-                    fg: const Color(0xFF1E8E3E),
-                    onTap: followUp.status == 'done' ? null : onMarkDone,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _actionBtn(
+                        label: 'Mark Done',
+                        icon: Icons.check_rounded,
+                        bg: const Color(0xFFECFDF5),
+                        fg: const Color(0xFF1E8E3E),
+                        onTap: followUp.status == 'done' ? null : onMarkDone,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _actionBtn(
+                        label: 'Snooze',
+                        icon: Icons.notifications_none_rounded,
+                        bg: const Color(0xFFEFF6FF),
+                        fg: const Color(0xFF1E5BD8),
+                        onTap: onSnooze,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                // Snooze (blue)
-                _actionBtn(
-                  label: 'Snooze',
-                  icon: Icons.notifications_none_rounded,
-                  bg: const Color(0xFFEFF6FF),
-                  fg: const Color(0xFF1E5BD8),
-                  onTap: onSnooze,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-                const SizedBox(width: 4),
-                // Call (green circle)
-                _iconBtn(
-                  icon: Icons.call_rounded,
-                  bg: const Color(0xFF22A24A),
-                  onTap: clientPhone.isNotEmpty ? onCall : null,
-                ),
-                const SizedBox(width: 4),
-                // WhatsApp (green circle)
-                _iconBtn(
-                  icon: Icons.chat_rounded,
-                  bg: const Color(0xFF25D366),
-                  onTap: clientPhone.isNotEmpty ? onWhatsApp : null,
-                ),
-                const SizedBox(width: 4),
-                // Edit (blue circle)
-                _iconBtn(
-                  icon: Icons.edit_rounded,
-                  bg: const Color(0xFF1E5BD8),
-                  onTap: onEdit,
-                ),
-                const SizedBox(width: 4),
-                // Delete (red circle)
-                _iconBtn(
-                  icon: Icons.delete_outline_rounded,
-                  bg: const Color(0xFFDC2626),
-                  onTap: onDelete,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _iconBtn(
+                      icon: Icons.call_rounded,
+                      bg: const Color(0xFF22A24A),
+                      onTap: clientPhone.isNotEmpty ? onCall : null,
+                    ),
+                    _iconBtn(
+                      icon: Icons.chat_rounded,
+                      bg: const Color(0xFF25D366),
+                      onTap: clientPhone.isNotEmpty ? onWhatsApp : null,
+                    ),
+                    _iconBtn(
+                      icon: Icons.edit_rounded,
+                      bg: const Color(0xFF1E5BD8),
+                      onTap: onEdit,
+                    ),
+                    _iconBtn(
+                      icon: Icons.delete_outline_rounded,
+                      bg: const Color(0xFFDC2626),
+                      onTap: onDelete,
+                    ),
+                  ],
                 ),
               ],
             ),

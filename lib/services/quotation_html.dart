@@ -197,53 +197,34 @@ class QuotationHtml {
       sgstPct: sgstPct,
       total: pvTaxable + cgst + sgst,
     ));
+    final structureCharges = isCommercial ? (structure + geda + meter) : structure;
     rows.add(_row(
       no: nextNo(),
-      title: 'Structure &amp; Mounting (Elevated GI Walkway)',
-      desc: 'Heavy duty hot-dip galvanized C-channel frame with 8.5ft '
-          'clearance, dual earthing civil work, wind resistance up to '
-          '160 km/h.',
+      title: isCommercial
+          ? 'Structure, GEDA &amp; Meter Charges'
+          : 'Structure &amp; Mounting (Elevated GI Walkway)',
+      desc: isCommercial
+          ? 'Mounting structure, GEDA liaison and Discom meter / connectivity charges.'
+          : 'Heavy duty hot-dip galvanized C-channel frame with 8.5ft '
+              'clearance, dual earthing civil work, wind resistance up to 160 km/h.',
       qty: '1 Job',
-      rate: structure,
+      rate: structureCharges,
       cgstPct: 0,
       sgstPct: 0,
-      total: structure,
+      total: structureCharges,
+      costExtra: structureCharges == 0,
     ));
     rows.add(_row(
       no: nextNo(),
       title: 'Stamp Paper, Agreement &amp; Portal Documentation',
-      desc: 'Legal agreement franking, PGVCL liaison, CEIG compliance '
-          'processing.',
+      desc: 'Legal agreement franking, PGVCL liaison, CEIG compliance processing.',
       qty: '1 Job',
       rate: stamp,
       cgstPct: 0,
       sgstPct: 0,
       total: stamp,
+      costExtra: stamp == 0,
     ));
-    if (geda > 0) {
-      rows.add(_row(
-        no: nextNo(),
-        title: 'GEDA Registration / Liaison Charges',
-        desc: 'GEDA application &amp; approval processing.',
-        qty: '1 Site',
-        rate: geda,
-        cgstPct: 0,
-        sgstPct: 0,
-        total: geda,
-      ));
-    }
-    if (meter > 0) {
-      rows.add(_row(
-        no: nextNo(),
-        title: 'Discom Meter / Connectivity Charges',
-        desc: 'Net meter &amp; connectivity charges as per utility.',
-        qty: '1 Site',
-        rate: meter,
-        cgstPct: 0,
-        sgstPct: 0,
-        total: meter,
-      ));
-    }
 
     var customNet = 0;
     var customCgst = 0;
@@ -371,7 +352,13 @@ class QuotationHtml {
     required double cgstPct,
     required double sgstPct,
     required int total,
+    bool costExtra = false,
   }) {
+    final rateCell = costExtra ? 'Cost Extra' : _inr(rate);
+    final discCell = costExtra ? '\u2014' : '\u20b90';
+    final cgstCell = costExtra ? '\u2014' : '${_gstLabel(cgstPct)}%';
+    final sgstCell = costExtra ? '\u2014' : '${_gstLabel(sgstPct)}%';
+    final totalCell = costExtra ? 'Cost Extra' : _inr(total);
     return '''
 <tr class="bg-white hover:bg-slate-50">
 <td class="py-2 px-2.5 text-center font-bold text-slate-400">$no</td>
@@ -380,11 +367,11 @@ class QuotationHtml {
 <span class="text-[9.5px] text-slate-500 block leading-tight">$desc</span>
 </td>
 <td class="py-2 px-2 text-center font-medium">$qty</td>
-<td class="py-2 px-2.5 text-right font-mono text-slate-700">${_inr(rate)}</td>
-<td class="py-2 px-2 text-right font-mono text-slate-500">₹0</td>
-<td class="py-2 px-2 text-right font-mono text-slate-500">${_gstLabel(cgstPct)}%</td>
-<td class="py-2 px-2 text-right font-mono text-slate-500">${_gstLabel(sgstPct)}%</td>
-<td class="py-2 px-3 text-right font-mono font-bold text-[#071440]">${_inr(total)}</td>
+<td class="py-2 px-2.5 text-right font-mono text-slate-700">$rateCell</td>
+<td class="py-2 px-2 text-right font-mono text-slate-500">$discCell</td>
+<td class="py-2 px-2 text-right font-mono text-slate-500">$cgstCell</td>
+<td class="py-2 px-2 text-right font-mono text-slate-500">$sgstCell</td>
+<td class="py-2 px-3 text-right font-mono font-bold text-[#071440]">$totalCell</td>
 </tr>''';
   }
 

@@ -242,7 +242,7 @@ class AppUpdateService {
     try {
       final req = await client.getUrl(Uri.parse(safeUrl));
       req.headers.set(HttpHeaders.userAgentHeader, 'GlobalSolar2.0-Updater');
-      final res = await req.close().timeout(const Duration(seconds: 30));
+      final res = await req.close().timeout(const Duration(seconds: 60));
       if (res.statusCode != HttpStatus.ok) {
         throw AppUpdateException('Download failed (HTTP ${res.statusCode}).');
       }

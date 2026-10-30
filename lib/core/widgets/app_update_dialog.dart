@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/app_update_service.dart';
 import '../theme/app_colors.dart';
@@ -209,7 +210,7 @@ abstract class AppUpdateDialogs {
     if (!context.mounted) return;
 
     if (error != null || path == null) {
-      final retry = await showDialog<bool>(
+      final action = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: Colors.white,
@@ -219,16 +220,23 @@ abstract class AppUpdateDialogs {
                   fontFamily: 'Outfit',
                   fontWeight: FontWeight.w700,
                   color: _navy)),
-          content: Text(error ?? 'The download failed. Please try again.',
-              style:
-                  const TextStyle(fontSize: 13, height: 1.5, color: _slate)),
+          content: Text(
+              '${error ?? 'The download failed. Please try again.'}\n\n'
+              'Downloading the APK here can be slow on mobile data. You can '
+              'instead download it in your browser (it resumes) and install it.',
+              style: const TextStyle(fontSize: 13, height: 1.5, color: _slate)),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx, 'browser'),
+              child: const Text('Open in browser',
+                  style: TextStyle(color: _navy)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'close'),
               child: const Text('Close', style: TextStyle(color: _slate)),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(ctx, 'retry'),
               style: ElevatedButton.styleFrom(
                   backgroundColor: _gold, foregroundColor: Colors.white),
               child: const Text('Retry'),
@@ -236,8 +244,11 @@ abstract class AppUpdateDialogs {
           ],
         ),
       );
-      if (retry == true && context.mounted) {
+      if (action == 'retry' && context.mounted) {
         await _downloadAndInstall(context, info);
+      } else if (action == 'browser' && context.mounted) {
+        await launchUrl(Uri.parse(info.apkUrl),
+            mode: LaunchMode.externalApplication);
       }
       return;
     }
